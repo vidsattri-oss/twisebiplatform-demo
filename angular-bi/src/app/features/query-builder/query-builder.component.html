@@ -73,9 +73,22 @@
         <div class="field-label">Filters</div>
         @for (f of filters(); track $index; let i = $index) {
           <div class="filter-row">
-            <select [(ngModel)]="f.field">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+            <select [(ngModel)]="f.field" (ngModelChange)="onFilterFieldChange(i)">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
             <select [(ngModel)]="f.op" style="flex: 0 0 70px;">@for (o of ops; track o) { <option [value]="o">{{ o }}</option> }</select>
-            <input type="text" [(ngModel)]="f.value">
+            @if (fieldKind(f.field) === 'text') {
+              <select [(ngModel)]="f.value" style="flex: 1;">
+                <option value="">Any</option>
+                @for (v of filterDistinct()[f.field] ?? []; track v) { <option [value]="v">{{ v }}</option> }
+              </select>
+            } @else if (fieldKind(f.field) === 'number') {
+              <div class="range-filter">
+                <input type="range" [attr.min]="filterRange()[f.field]?.min ?? 0" [attr.max]="filterRange()[f.field]?.max ?? 100" [(ngModel)]="f.value">
+                <span class="range-value">{{ f.value || '—' }}</span>
+                <span class="range-bounds">({{ filterRange()[f.field]?.min }}&ndash;{{ filterRange()[f.field]?.max }})</span>
+              </div>
+            } @else {
+              <input type="date" [attr.min]="filterRange()[f.field]?.min" [attr.max]="filterRange()[f.field]?.max" [(ngModel)]="f.value">
+            }
             <button class="remove-btn" (click)="removeFilter(i)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>

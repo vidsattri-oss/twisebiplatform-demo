@@ -50,6 +50,18 @@ export class ApiService {
     return this.http.get<{ table: string; columns: ColumnInfo[] }>(`${this.base}/connections/${connectionId}/tables/${encodeURIComponent(table)}/schema`);
   }
 
+  getColumnDistinct(connectionId: number, table: string, column: string): Observable<{ values: (string | number)[] }> {
+    return this.http.get<{ values: (string | number)[] }>(
+      `${this.base}/connections/${connectionId}/tables/${encodeURIComponent(table)}/columns/${encodeURIComponent(column)}/distinct`,
+    );
+  }
+
+  getColumnRange(connectionId: number, table: string, column: string): Observable<{ min: number | string; max: number | string }> {
+    return this.http.get<{ min: number | string; max: number | string }>(
+      `${this.base}/connections/${connectionId}/tables/${encodeURIComponent(table)}/columns/${encodeURIComponent(column)}/range`,
+    );
+  }
+
   // Query engine
   runQuery(config: QueryConfig): Observable<QueryResult> {
     return this.http.post<QueryResult>(`${this.base}/query`, config);

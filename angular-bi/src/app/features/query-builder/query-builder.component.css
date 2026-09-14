@@ -22,6 +22,10 @@
 
 .filter-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .filter-row select, .filter-row input { flex: 1; }
+.range-filter { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.range-filter input[type="range"] { flex: 1; min-width: 0; }
+.range-value { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; color: #101A48; white-space: nowrap; }
+.range-bounds { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #8B93AC; white-space: nowrap; }
 .remove-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E3E6F0; background: #fff; color: #B0413E; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .ghost-add { display: inline-flex; align-items: center; gap: 6px; border: 1.5px dashed #C7CCDE; border-radius: 9px; padding: 8px 13px; font-size: 12.5px; font-weight: 700; color: #7C84A0; background: transparent; width: fit-content; }
 

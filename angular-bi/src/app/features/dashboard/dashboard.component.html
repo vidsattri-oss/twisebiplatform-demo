@@ -55,6 +55,46 @@
 
 <div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table — including any Table visual, which always shows the live, filtered detail rows. Right-click a bar to see its underlying records. Double-click a dashboard tab or chart title to rename it; use the pencil icon to edit a chart's query. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
 
+<div class="card card-pad filter-bar">
+  <div class="filter-bar-head">
+    <span class="filter-bar-title">Filters</span>
+    <span class="filter-bar-note">Applies to every chart whose table has that column — including across connections.</span>
+  </div>
+  @if (dashFilters().length) {
+    <div class="filter-chips">
+      @for (f of dashFilters(); track $index; let i = $index) {
+        <span class="filter-chip">{{ f.field }} {{ f.op }} {{ f.value }}
+          <button (click)="removeDashFilter(i)">&times;</button>
+        </span>
+      }
+    </div>
+  }
+  <div class="filter-bar-add">
+    <select [(ngModel)]="newFilterField" (ngModelChange)="onNewFilterFieldChange()">
+      <option value="">+ Add filter&hellip;</option>
+      @for (f of availableFilterFields(); track f.name) { <option [value]="f.name">{{ f.name }}</option> }
+    </select>
+    @if (newFilterField()) {
+      <select [(ngModel)]="newFilterOp" style="flex: 0 0 70px;">@for (o of ops; track o) { <option [value]="o">{{ o }}</option> }</select>
+      @if (fieldKindFor(newFilterField()) === 'text') {
+        <select [(ngModel)]="newFilterValue">
+          <option value="">Choose&hellip;</option>
+          @for (v of filterDistinct()[newFilterField()] ?? []; track v) { <option [value]="v">{{ v }}</option> }
+        </select>
+      } @else if (fieldKindFor(newFilterField()) === 'number') {
+        <div class="range-filter">
+          <input type="range" [attr.min]="filterRange()[newFilterField()]?.min ?? 0" [attr.max]="filterRange()[newFilterField()]?.max ?? 100" [(ngModel)]="newFilterValue">
+          <span class="range-value">{{ newFilterValue() || '—' }}</span>
+          <span class="range-bounds">({{ filterRange()[newFilterField()]?.min }}&ndash;{{ filterRange()[newFilterField()]?.max }})</span>
+        </div>
+      } @else {
+        <input type="date" [attr.min]="filterRange()[newFilterField()]?.min" [attr.max]="filterRange()[newFilterField()]?.max" [(ngModel)]="newFilterValue">
+      }
+      <button class="btn btn-primary" (click)="addDashFilter()">Add</button>
+    }
+  </div>
+</div>
+
 <div class="chart-grid">
   @for (cs of charts(); track cs.chart.id) {
     <div class="card card-pad chart-card" [class.table-card]="cs.chart.chartType === 'table'">

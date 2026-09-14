@@ -226,6 +226,30 @@ app.get('/api/connections/:id/tables/:table/schema', (req, res, next) => {
   }
 });
 
+app.get('/api/connections/:id/tables/:table/columns/:column/distinct', (req, res, next) => {
+  try {
+    const connectionId = Number(req.params.id);
+    const col = validateColumn(connectionId, req.params.table, req.params.column);
+    const rows = connDb(connectionId)
+      .prepare(`SELECT DISTINCT "${col}" AS v FROM "${req.params.table}" WHERE "${col}" IS NOT NULL ORDER BY "${col}" LIMIT 200`)
+      .all();
+    res.json({ values: rows.map((r) => r.v) });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get('/api/connections/:id/tables/:table/columns/:column/range', (req, res, next) => {
+  try {
+    const connectionId = Number(req.params.id);
+    const col = validateColumn(connectionId, req.params.table, req.params.column);
+    const row = connDb(connectionId).prepare(`SELECT MIN("${col}") AS min, MAX("${col}") AS max FROM "${req.params.table}"`).get();
+    res.json({ min: row.min, max: row.max });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get('/api/connections/:id/tables/:table/preview', (req, res, next) => {
   try {
     const connectionId = Number(req.params.id);

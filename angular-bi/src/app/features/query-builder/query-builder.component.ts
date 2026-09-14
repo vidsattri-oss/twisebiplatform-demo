@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/api.service';
 import { EditChartService, PendingChartEdit } from '../../core/edit-chart.service';
-import { AggFn, ConnectionInfo, DashboardInfo, FilterOp, Metric, QueryConfig, QueryJoin, QueryResultRow, SavedMeasure } from '../../core/models';
+import { classifyColumn, FieldKind } from '../../core/column-type';
+import { AggFn, ColumnInfo, ConnectionInfo, DashboardInfo, FilterOp, Metric, QueryConfig, QueryJoin, QueryResultRow, SavedMeasure } from '../../core/models';
 import { FormulaModeComponent } from './formula-mode.component';
 import { AiPlaceholderComponent } from './ai-placeholder.component';
 
@@ -52,7 +53,14 @@ export class QueryBuilderComponent implements OnInit {
   readonly filters = signal<FilterRow[]>([{ field: 'status', op: '=', value: 'Active' }]);
 
   readonly schema = signal<string[]>([]);
+  readonly schemaCols = signal<ColumnInfo[]>([]);
   readonly crewNames = signal<Record<number, string>>({});
+
+  // Per-field filter widget data — a text field gets a dropdown of its real
+  // distinct values, a number/date field gets its real min/max — fetched
+  // on demand and cached per field name so re-selecting a field is instant.
+  readonly filterDistinct = signal<Record<string, (string | number)[]>>({});
+  readonly filterRange = signal<Record<string, { min: number | string; max: number | string }>>({});
 
   // Cross-connection join (optional) — see server.js: real via SQLite ATTACH,
   // only possible because both sides are SQLite files.
@@ -171,7 +179,11 @@ export class QueryBuilderComponent implements OnInit {
       this.joinEnabled.set(false);
     }
 
-    this.api.getTableSchema(cfg.connectionId, cfg.table).subscribe((res) => this.schema.set(res.columns.map((c) => c.name)));
+    this.api.getTableSchema(cfg.connectionId, cfg.table).subscribe((res) => {
+      this.schema.set(res.columns.map((c) => c.name));
+      this.schemaCols.set(res.columns);
+      this.filters().forEach((f) => this.ensureFilterOptions(f.field));
+    });
     this.run();
   }
 
@@ -180,7 +192,40 @@ export class QueryBuilderComponent implements OnInit {
   }
 
   loadSchema(): void {
-    this.api.getTableSchema(this.connectionId(), this.table()).subscribe((res) => this.schema.set(res.columns.map((c) => c.name)));
+    this.api.getTableSchema(this.connectionId(), this.table()).subscribe((res) => {
+      this.schema.set(res.columns.map((c) => c.name));
+      this.schemaCols.set(res.columns);
+      this.filters().forEach((f) => this.ensureFilterOptions(f.field));
+    });
+  }
+
+  fieldKind(name: string): FieldKind {
+    const col = this.schemaCols().find((c) => c.name === name);
+    return classifyColumn(name, col?.type ?? '');
+  }
+
+  onFilterFieldChange(i: number): void {
+    const f = this.filters()[i];
+    if (f) this.ensureFilterOptions(f.field);
+  }
+
+  private ensureFilterOptions(field: string): void {
+    if (!field) return;
+    const kind = this.fieldKind(field);
+    if (kind === 'text') {
+      if (this.filterDistinct()[field]) return;
+      this.api.getColumnDistinct(this.connectionId(), this.table(), field).subscribe((res) => {
+        this.filterDistinct.update((m) => ({ ...m, [field]: res.values }));
+      });
+    } else {
+      if (this.filterRange()[field]) return;
+      this.api.getColumnRange(this.connectionId(), this.table(), field).subscribe((res) => {
+        this.filterRange.update((m) => ({ ...m, [field]: res }));
+        if (kind === 'number') {
+          this.filters.update((fs) => fs.map((f2) => (f2.field === field && !f2.value ? { ...f2, value: String(res.min) } : f2)));
+        }
+      });
+    }
   }
 
   onConnectionChange(): void {
@@ -198,9 +243,12 @@ export class QueryBuilderComponent implements OnInit {
   onTableChange(): void {
     this.filters.set([]);
     this.groupBy.set('');
+    this.filterDistinct.set({});
+    this.filterRange.set({});
     this.api.getTableSchema(this.connectionId(), this.table()).subscribe((res) => {
       const cols = res.columns.map((c) => c.name);
       this.schema.set(cols);
+      this.schemaCols.set(res.columns);
       const first = cols[0] ?? '';
       this.field.set(first);
       this.numerator.set(first);
@@ -211,6 +259,7 @@ export class QueryBuilderComponent implements OnInit {
   addFilter(): void {
     const f = this.schema()[0] ?? '';
     this.filters.update((fs) => [...fs, { field: f, op: '=', value: '' }]);
+    this.ensureFilterOptions(f);
   }
 
   removeFilter(i: number): void {
@@ -370,6 +419,8 @@ export class QueryBuilderComponent implements OnInit {
     } else {
       this.joinEnabled.set(false);
     }
+    this.filterDistinct.set({});
+    this.filterRange.set({});
     this.loadSchema();
     this.run();
   }

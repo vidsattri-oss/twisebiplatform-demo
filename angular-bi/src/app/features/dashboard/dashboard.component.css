@@ -16,6 +16,20 @@
 
 .hint { font-size: 12.5px; color: #7C84A0; background: #fff; border: 1px solid #E3E6F0; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
 
+.filter-bar { margin-bottom: 16px; }
+.filter-bar-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-bar-title { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 13px; color: #101A48; }
+.filter-bar-note { font-size: 11.5px; color: #8B93AC; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.filter-chip { display: inline-flex; align-items: center; gap: 6px; background: #EDECFE; color: #5850E6; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 5px 6px 5px 10px; }
+.filter-chip button { border: none; background: transparent; color: #5850E6; font-size: 14px; line-height: 1; cursor: pointer; padding: 0 2px; }
+.filter-bar-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-bar-add select, .filter-bar-add input[type="date"] { min-width: 130px; }
+.range-filter { display: flex; align-items: center; gap: 6px; }
+.range-filter input[type="range"] { width: 120px; }
+.range-value { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; color: #101A48; white-space: nowrap; }
+.range-bounds { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #8B93AC; white-space: nowrap; }
+
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .chart-card { min-height: 260px; display: flex; flex-direction: column; }
 .chart-card.table-card { grid-column: 1 / -1; min-height: 200px; }
