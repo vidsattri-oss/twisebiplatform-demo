@@ -17,8 +17,10 @@
 
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .chart-card { min-height: 260px; display: flex; flex-direction: column; }
+.chart-card.table-card { grid-column: 1 / -1; min-height: 200px; }
 .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.chart-title { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 14px; }
+.chart-title { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.table-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: .04em; background: #EDECFE; color: #5850E6; border-radius: 5px; padding: 3px 7px; }
 .chart-actions { display: flex; gap: 6px; }
 .icon-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid #E3E6F0; background: #fff; color: #7C84A0; display: flex; align-items: center; justify-content: center; }
 .icon-btn.danger { color: #B0413E; }
@@ -40,7 +42,7 @@
 .bar.big { width: 56px; }
 .bar-value.big { font-size: 14px; }
 
-.drill-table-wrap { max-height: 420px; overflow: auto; }
+.drill-table-wrap, .table-visual-wrap { max-height: 420px; overflow: auto; }
 .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .preview-table th, .preview-table td { text-align: left; padding: 6px 9px; border-bottom: 1px solid #F0F1F7; font-family: 'IBM Plex Mono', monospace; }
 .preview-table th { color: #8B93AC; font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; position: sticky; top: 0; background: #fff; }

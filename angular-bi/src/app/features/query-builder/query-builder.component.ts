@@ -7,7 +7,7 @@ import { FormulaModeComponent } from './formula-mode.component';
 import { AiPlaceholderComponent } from './ai-placeholder.component';
 
 type Mode = 'visual' | 'formula' | 'ai';
-type ChartType = 'bar' | 'line' | 'pie';
+type ChartType = 'bar' | 'line' | 'pie' | 'table';
 
 interface FilterRow {
   field: string;
@@ -57,6 +57,8 @@ export class QueryBuilderComponent implements OnInit {
   readonly joinRightField = signal('');
 
   readonly rows = signal<QueryResultRow[]>([]);
+  readonly tableRows = signal<Record<string, unknown>[]>([]);
+  readonly tableColumns = signal<string[]>([]);
   readonly sql = signal<string>('');
   readonly runError = signal<string | null>(null);
   readonly runOk = signal<string | null>(null);
@@ -231,7 +233,8 @@ export class QueryBuilderComponent implements OnInit {
   run(): void {
     this.runError.set(null);
     this.runOk.set(null);
-    this.api.runQuery(this.buildConfig()).subscribe({
+    const cfg = this.buildConfig();
+    this.api.runQuery(cfg).subscribe({
       next: (res) => {
         this.rows.set(res.rows);
         this.sql.set(this.displaySql(res.sql, res.params));
@@ -240,6 +243,13 @@ export class QueryBuilderComponent implements OnInit {
       error: (err) => {
         this.runError.set(err?.error?.error ?? 'Query failed');
       },
+    });
+    // Fetched alongside the aggregate so switching to the Table view is
+    // instant — this is the same detail-row query a Table chart added to a
+    // dashboard runs, letting the Live Preview show exactly what you'd get.
+    this.api.drilldown({ connectionId: cfg.connectionId, table: cfg.table, filters: cfg.filters }).subscribe((res) => {
+      this.tableRows.set(res.rows);
+      this.tableColumns.set(res.rows.length ? Object.keys(res.rows[0]) : []);
     });
   }
 
@@ -266,6 +276,8 @@ export class QueryBuilderComponent implements OnInit {
   }
 
   saveMeasure(): void {
+    this.runError.set(null);
+    this.runOk.set(null);
     const name = this.measureName().trim();
     if (!name) {
       this.runError.set('Give the measure a name first.');
@@ -325,6 +337,8 @@ export class QueryBuilderComponent implements OnInit {
   }
 
   confirmAddToDashboard(): void {
+    this.runError.set(null);
+    this.runOk.set(null);
     const title = this.dashboardChartTitle().trim() || 'Untitled chart';
     const cfg = this.buildConfig();
     const doAdd = (dashboardId: number) => {

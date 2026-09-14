@@ -36,13 +36,16 @@
   </div>
 }
 
-<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table/dimension. Click a bar's magnifier to drill into the underlying rows. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
+<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table — including any Table visual, which always shows the live, filtered detail rows. Click a bar's magnifier for a quick one-off peek. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
 
 <div class="chart-grid">
   @for (cs of charts(); track cs.chart.id) {
-    <div class="card card-pad chart-card">
+    <div class="card card-pad chart-card" [class.table-card]="cs.chart.chartType === 'table'">
       <div class="chart-head">
-        <div class="chart-title">{{ cs.chart.title }}</div>
+        <div class="chart-title">
+          {{ cs.chart.title }}
+          @if (cs.chart.chartType === 'table') { <span class="table-badge">TABLE &middot; LINKED TO ALL FILTERS</span> }
+        </div>
         <div class="chart-actions">
           <button class="icon-btn" title="Expand" (click)="expand(cs)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
@@ -57,6 +60,18 @@
         <div class="status-msg err">{{ cs.error }}</div>
       } @else if (cs.loading) {
         <div class="empty-note">Loading&hellip;</div>
+      } @else if (cs.chart.chartType === 'table') {
+        <div class="table-visual-wrap">
+          <table class="preview-table">
+            <thead><tr>@for (c of cs.tableColumns; track c) { <th>{{ c }}</th> }</tr></thead>
+            <tbody>
+              @for (row of cs.tableRows; track $index) {
+                <tr>@for (c of cs.tableColumns; track c) { <td>{{ row[c] }}</td> }</tr>
+              }
+            </tbody>
+          </table>
+          @if (!cs.tableRows.length) { <div class="empty-note">No rows match the current filters/selection.</div> }
+        </div>
       } @else {
         <div class="bars">
           @for (b of cs.bars; track b.rawKey) {
@@ -88,15 +103,28 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
-      <div class="bars big">
-        @for (b of ex.bars; track b.rawKey) {
-          <div class="bar-col">
-            <div class="bar-value big">{{ displayValue(ex, b.value) }}</div>
-            <div class="bar big" [style.height.%]="b.pct"></div>
-            <div class="bar-label">{{ b.label }}</div>
-          </div>
-        }
-      </div>
+      @if (ex.chart.chartType === 'table') {
+        <div class="table-visual-wrap">
+          <table class="preview-table">
+            <thead><tr>@for (c of ex.tableColumns; track c) { <th>{{ c }}</th> }</tr></thead>
+            <tbody>
+              @for (row of ex.tableRows; track $index) {
+                <tr>@for (c of ex.tableColumns; track c) { <td>{{ row[c] }}</td> }</tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="bars big">
+          @for (b of ex.bars; track b.rawKey) {
+            <div class="bar-col">
+              <div class="bar-value big">{{ displayValue(ex, b.value) }}</div>
+              <div class="bar big" [style.height.%]="b.pct"></div>
+              <div class="bar-label">{{ b.label }}</div>
+            </div>
+          }
+        </div>
+      }
     </div>
   </div>
 }

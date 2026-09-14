@@ -89,7 +89,7 @@ export interface DashboardInfo {
   createdAt: string;
 }
 
-export type ChartType = 'bar' | 'line' | 'pie';
+export type ChartType = 'bar' | 'line' | 'pie' | 'table';
 
 export interface DashboardChart {
   id: number;

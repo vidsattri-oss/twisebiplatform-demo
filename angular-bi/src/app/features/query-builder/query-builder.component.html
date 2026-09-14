@@ -170,6 +170,9 @@
           <button [class.active]="chartType() === 'pie'" (click)="chartType.set('pie')" title="Pie">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7.8-4.5"/></svg>
           </button>
+          <button [class.active]="chartType() === 'table'" (click)="chartType.set('table')" title="Table">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 10h18M9 4v16"/></svg>
+          </button>
         </div>
       </div>
       <div class="chart-caption">Custom visual extensibility (item 04) — native SVG/CSS, no chart-library dependency. <span class="live-badge">LIVE</span></div>
@@ -194,7 +197,7 @@
           }
         </svg>
         <div class="line-labels">@for (r of rows(); track $index) { <span>{{ groupLabel(r) }}</span> }</div>
-      } @else {
+      } @else if (chartType() === 'pie') {
         <div class="pie-wrap">
           <div class="pie-circle" [style.background]="pieGradient()"></div>
           <div class="pie-legend">
@@ -202,6 +205,19 @@
               <div class="legend-row"><span class="swatch" [style.background]="s.color"></span>{{ s.label }} &mdash; {{ s.pct | number:'1.0-0' }}%</div>
             }
           </div>
+        </div>
+      } @else {
+        <div class="table-preview-note">Table visuals show detail rows (matching the current filters), not the aggregate — this is the same query a Table chart on a dashboard runs.</div>
+        <div class="table-preview-wrap">
+          <table class="preview-table">
+            <thead><tr>@for (c of tableColumns(); track c) { <th>{{ c }}</th> }</tr></thead>
+            <tbody>
+              @for (row of tableRows(); track $index) {
+                <tr>@for (c of tableColumns(); track c) { <td>{{ row[c] }}</td> }</tr>
+              }
+            </tbody>
+          </table>
+          @if (!tableRows().length) { <div class="empty-note">No rows.</div> }
         </div>
       }
     </div>

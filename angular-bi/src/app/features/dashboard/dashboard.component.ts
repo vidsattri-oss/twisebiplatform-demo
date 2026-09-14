@@ -18,6 +18,8 @@ interface ChartState {
   chart: DashboardChart;
   rows: QueryResultRow[];
   bars: Bar[];
+  tableRows: Record<string, unknown>[];
+  tableColumns: string[];
   loading: boolean;
   error: string | null;
 }
@@ -63,7 +65,7 @@ export class DashboardComponent implements OnInit {
   selectDashboard(id: number): void {
     this.activeDashboardId.set(id);
     this.api.getDashboardCharts(id).subscribe((res) => {
-      this.charts.set(res.charts.map((chart) => ({ chart, rows: [], bars: [], loading: true, error: null })));
+      this.charts.set(res.charts.map((chart) => ({ chart, rows: [], bars: [], tableRows: [], tableColumns: [], loading: true, error: null })));
       res.charts.forEach((c) => this.runChart(c.id));
     });
   }
@@ -95,6 +97,16 @@ export class DashboardComponent implements OnInit {
     );
   }
 
+  /** The filters every chart type shares: its own base filters, plus the dashboard's live cross-filter selection when it applies to this chart's connection+table — this is what "all filters are linked" means concretely. */
+  private linkedFilters(cfg: DashboardChart['config']): DashboardChart['config']['filters'] {
+    const extra = [...cfg.filters];
+    if (this.selection.appliesTo(cfg.connectionId, cfg.table)) {
+      const sel = this.selection.current()!;
+      extra.push({ field: sel.groupBy, op: '=', value: String(sel.value) });
+    }
+    return extra;
+  }
+
   runChart(chartId: number): void {
     const cs = this.chartState(chartId);
     if (!cs) return;
@@ -103,10 +115,26 @@ export class DashboardComponent implements OnInit {
     this.charts.set([...this.charts()]);
 
     const cfg = cs.chart.config;
-    const extraFilters = [...cfg.filters];
-    if (this.selection.appliesTo(cfg.connectionId, cfg.table)) {
-      const sel = this.selection.current()!;
-      extraFilters.push({ field: sel.groupBy, op: '=', value: String(sel.value) });
+    const extraFilters = this.linkedFilters(cfg);
+
+    if (cs.chart.chartType === 'table') {
+      // A Table visual (Power BI's "add a table, everything else still
+      // filters it") shows the real detail rows behind whatever's
+      // currently selected elsewhere on the dashboard — not an aggregate.
+      this.api.drilldown({ connectionId: cfg.connectionId, table: cfg.table, filters: extraFilters }).subscribe({
+        next: (res) => {
+          cs.tableRows = res.rows;
+          cs.tableColumns = res.rows.length ? Object.keys(res.rows[0]) : [];
+          cs.loading = false;
+          this.charts.set([...this.charts()]);
+        },
+        error: (err) => {
+          cs.error = err?.error?.error ?? 'Query failed';
+          cs.loading = false;
+          this.charts.set([...this.charts()]);
+        },
+      });
+      return;
     }
 
     this.loadIdLabels(cfg.connectionId, cfg.groupBy ?? '').subscribe((labels) => {
