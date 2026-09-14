@@ -1,20 +1,31 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Observable, map, of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { SelectionService } from '../../core/selection.service';
-import { QueryResultRow } from '../../core/models';
+import { DashboardChart, DashboardInfo, QueryResultRow } from '../../core/models';
 
 interface Bar {
-  key: string;
+  /** The real group_key value (e.g. a crew_id) — what filtering/selection/drill-down key off of. */
+  rawKey: string;
+  /** What's shown on screen — resolved to a name where possible, otherwise same as rawKey. */
   label: string;
   value: number;
   pct: number;
 }
 
+interface ChartState {
+  chart: DashboardChart;
+  rows: QueryResultRow[];
+  bars: Bar[];
+  loading: boolean;
+  error: string | null;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -23,92 +34,177 @@ export class DashboardComponent implements OnInit {
   readonly selection = inject(SelectionService);
 
   readonly error = signal<string | null>(null);
-  readonly crewNames = signal<Record<number, string>>({});
-  readonly crewIdByName = signal<Record<string, number>>({});
+  readonly dashboards = signal<DashboardInfo[]>([]);
+  readonly activeDashboardId = signal<number | null>(null);
+  readonly charts = signal<ChartState[]>([]);
 
-  readonly productivityRows = signal<QueryResultRow[]>([]);
-  readonly statusRows = signal<QueryResultRow[]>([]);
-  readonly statusLoading = signal(false);
+  readonly showNewDashboard = signal(false);
+  readonly newDashboardName = signal('');
 
-  readonly productivityBars = computed<Bar[]>(() => {
-    const rows = this.productivityRows();
-    const names = this.crewNames();
-    const max = Math.max(...rows.map((r) => r.value ?? 0), 0.0001);
-    return rows.map((r) => ({
-      key: names[Number(r.group_key)] ?? String(r.group_key),
-      label: names[Number(r.group_key)] ?? String(r.group_key),
-      value: r.value ?? 0,
-      pct: Math.max(3, Math.round(((r.value ?? 0) / max) * 100)),
-    }));
-  });
+  readonly expanded = signal<ChartState | null>(null);
+  readonly drilldown = signal<{ chart: ChartState; groupValue: string | number; rows: Record<string, unknown>[]; columns: string[] } | null>(null);
 
-  readonly statusBars = computed<Bar[]>(() => {
-    const rows = this.statusRows();
-    const max = Math.max(...rows.map((r) => r.value ?? 0), 0.0001);
-    return rows.map((r) => ({
-      key: String(r.group_key),
-      label: String(r.group_key),
-      value: r.value ?? 0,
-      pct: Math.max(3, Math.round(((r.value ?? 0) / max) * 100)),
-    }));
-  });
+  // Best-effort label resolution for "<x>_id" group-by fields: look the id up
+  // in a same-named table (crew_id -> crews.name) on the same connection.
+  // Falls back to the raw id when there's no such table/column — this is a
+  // display nicety, not something the query engine depends on.
+  private readonly idLabelCache = new Map<string, Record<number, string>>();
 
   ngOnInit(): void {
-    this.api.getTablePreview('crews').subscribe((res) => {
-      const names: Record<number, string> = {};
-      const ids: Record<string, number> = {};
-      for (const row of res.rows) {
-        names[row['id'] as number] = row['name'] as string;
-        ids[row['name'] as string] = row['id'] as number;
-      }
-      this.crewNames.set(names);
-      this.crewIdByName.set(ids);
-      this.loadProductivity();
-      this.loadStatusCounts();
+    this.api.getDashboards().subscribe({
+      next: (res) => {
+        this.dashboards.set(res.dashboards);
+        if (res.dashboards.length) this.selectDashboard(res.dashboards[0].id);
+      },
+      error: () => this.error.set('Could not reach the local backend. Run "npm start" in query-builder-prototype/.'),
     });
   }
 
-  private loadProductivity(): void {
-    this.api
-      .runQuery({
-        table: 'tasks',
-        groupBy: 'crew_id',
-        filters: [{ field: 'status', op: '=', value: 'Active' }],
-        metric: { type: 'ratio', agg: 'SUM', numerator: 'actual_quantity', denominator: 'planned_quantity' },
-      })
-      .subscribe({
-        next: (res) => this.productivityRows.set(res.rows),
-        error: () => this.error.set('Could not reach the local backend. Run "npm start" in query-builder-prototype/.'),
-      });
+  selectDashboard(id: number): void {
+    this.activeDashboardId.set(id);
+    this.api.getDashboardCharts(id).subscribe((res) => {
+      this.charts.set(res.charts.map((chart) => ({ chart, rows: [], bars: [], loading: true, error: null })));
+      res.charts.forEach((c) => this.runChart(c.id));
+    });
   }
 
-  private loadStatusCounts(): void {
-    this.statusLoading.set(true);
-    const selectedCrew = this.selection.selected();
-    const crewId = selectedCrew ? this.crewIdByName()[selectedCrew] : undefined;
-    const filters = crewId !== undefined ? [{ field: 'crew_id', op: '=' as const, value: String(crewId) }] : [];
+  private chartState(chartId: number): ChartState | undefined {
+    return this.charts().find((cs) => cs.chart.id === chartId);
+  }
 
-    this.api
-      .runQuery({ table: 'tasks', groupBy: 'status', filters, metric: { type: 'agg', agg: 'COUNT', field: 'id' } })
-      .subscribe({
+  // Known "<x>_id" -> lookup table label mappings. Not a general FK resolver
+  // (that would need real foreign-key metadata this demo schema doesn't
+  // expose) — just the specific case this app's own tables need.
+  private static readonly ID_LOOKUPS: Record<string, { table: string; idCol: string; labelCol: string }> = {
+    crew_id: { table: 'crews', idCol: 'id', labelCol: 'name' },
+  };
+
+  private loadIdLabels(connectionId: number, groupBy: string): Observable<Record<number, string> | null> {
+    const lookup = DashboardComponent.ID_LOOKUPS[groupBy];
+    if (!lookup) return of(null);
+    const cacheKey = `${connectionId}:${groupBy}`;
+    const cached = this.idLabelCache.get(cacheKey);
+    if (cached) return of(cached);
+    return this.api.getTablePreview(connectionId, lookup.table).pipe(
+      map((res) => {
+        const map: Record<number, string> = {};
+        for (const row of res.rows) map[row[lookup.idCol] as number] = row[lookup.labelCol] as string;
+        this.idLabelCache.set(cacheKey, map);
+        return map;
+      }),
+    );
+  }
+
+  runChart(chartId: number): void {
+    const cs = this.chartState(chartId);
+    if (!cs) return;
+    cs.loading = true;
+    cs.error = null;
+    this.charts.set([...this.charts()]);
+
+    const cfg = cs.chart.config;
+    const extraFilters = [...cfg.filters];
+    if (this.selection.appliesTo(cfg.connectionId, cfg.table)) {
+      const sel = this.selection.current()!;
+      extraFilters.push({ field: sel.groupBy, op: '=', value: String(sel.value) });
+    }
+
+    this.loadIdLabels(cfg.connectionId, cfg.groupBy ?? '').subscribe((labels) => {
+      this.api.runQuery({ ...cfg, filters: extraFilters }).subscribe({
         next: (res) => {
-          this.statusRows.set(res.rows);
-          this.statusLoading.set(false);
+          const max = Math.max(...res.rows.map((r) => r.value ?? 0), 0.0001);
+          cs.rows = res.rows;
+          cs.bars = res.rows.map((r) => {
+            const rawKey = String(r.group_key ?? cfg.table);
+            const label = (labels && r.group_key !== undefined ? labels[Number(r.group_key)] : undefined) ?? rawKey;
+            return { rawKey, label, value: r.value ?? 0, pct: Math.max(3, Math.round(((r.value ?? 0) / max) * 100)) };
+          });
+          cs.loading = false;
+          this.charts.set([...this.charts()]);
         },
-        error: () => {
-          this.error.set('Could not reach the local backend.');
-          this.statusLoading.set(false);
+        error: (err) => {
+          cs.error = err?.error?.error ?? 'Query failed';
+          cs.loading = false;
+          this.charts.set([...this.charts()]);
         },
       });
+    });
   }
 
-  onBarClick(crewLabel: string, event: MouseEvent): void {
-    this.selection.select(crewLabel, event.ctrlKey || event.metaKey);
-    this.loadStatusCounts(); // re-query the second chart filtered to the new selection — real cross-filtering, not CSS dimming alone
+  displayValue(cs: ChartState, v: number): string {
+    return cs.chart.config.metric.type === 'ratio' && v < 1.5 ? `${Math.round(v * 100)}%` : v.toFixed(1);
+  }
+
+  onBarClick(cs: ChartState, rawKey: string): void {
+    const cfg = cs.chart.config;
+    if (!cfg.groupBy) return;
+    this.selection.select({ connectionId: cfg.connectionId, table: cfg.table, groupBy: cfg.groupBy, value: rawKey });
+    this.charts().forEach((c) => this.runChart(c.chart.id)); // re-run every chart on this dashboard against the new selection
   }
 
   clearSelection(): void {
     this.selection.clear();
-    this.loadStatusCounts();
+    this.charts().forEach((c) => this.runChart(c.chart.id));
+  }
+
+  expand(cs: ChartState): void {
+    this.expanded.set(cs);
+  }
+
+  closeExpand(): void {
+    this.expanded.set(null);
+  }
+
+  openDrilldown(cs: ChartState, rawKey: string, label: string): void {
+    const cfg = cs.chart.config;
+    this.api
+      .drilldown({
+        connectionId: cfg.connectionId,
+        table: cfg.table,
+        groupBy: cfg.groupBy ?? undefined,
+        groupValue: rawKey,
+        filters: cfg.filters,
+      })
+      .subscribe((res) => {
+        const columns = res.rows.length ? Object.keys(res.rows[0]) : [];
+        this.drilldown.set({ chart: cs, groupValue: label, rows: res.rows, columns });
+      });
+  }
+
+  closeDrilldown(): void {
+    this.drilldown.set(null);
+  }
+
+  deleteChart(cs: ChartState): void {
+    const dashId = this.activeDashboardId();
+    if (!dashId) return;
+    this.api.deleteDashboardChart(dashId, cs.chart.id).subscribe(() => this.selectDashboard(dashId));
+  }
+
+  openNewDashboard(): void {
+    this.newDashboardName.set('');
+    this.showNewDashboard.set(true);
+  }
+
+  createDashboard(): void {
+    const name = this.newDashboardName().trim();
+    if (!name) return;
+    this.api.addDashboard(name).subscribe((res) => {
+      this.showNewDashboard.set(false);
+      this.api.getDashboards().subscribe((dres) => {
+        this.dashboards.set(dres.dashboards);
+        this.selectDashboard(res.id);
+      });
+    });
+  }
+
+  deleteDashboard(id: number): void {
+    if (id === this.dashboards()[0]?.id) return; // guard the default; server also refuses id 1
+    this.api.deleteDashboard(id).subscribe(() => {
+      this.api.getDashboards().subscribe((res) => {
+        this.dashboards.set(res.dashboards);
+        this.selectDashboard(res.dashboards[0].id);
+      });
+    });
   }
 }

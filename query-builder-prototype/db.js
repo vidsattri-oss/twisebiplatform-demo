@@ -39,6 +39,26 @@ const SCHEMA_SQL = `
     received_at TEXT NOT NULL,
     payload_json TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS connections (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    file_name TEXT NOT NULL UNIQUE,
+    credentials_enc TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS dashboards (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS dashboard_charts (
+    id INTEGER PRIMARY KEY,
+    dashboard_id INTEGER NOT NULL REFERENCES dashboards(id),
+    title TEXT NOT NULL,
+    chart_type TEXT NOT NULL,
+    config_json TEXT NOT NULL,
+    position INTEGER NOT NULL
+  );
 `;
 
 function seed(db) {
@@ -137,6 +157,49 @@ function seedRawEvents(db) {
   insert.run('MOC', new Date().toISOString(), JSON.stringify(moc));
 }
 
+function seedConnectionsAndDashboards(db) {
+  const connCount = db.prepare('SELECT COUNT(*) AS c FROM connections').get().c;
+  if (connCount === 0) {
+    db.prepare('INSERT INTO connections (name, file_name, created_at) VALUES (?, ?, ?)')
+      .run('Operations (Al Tasnim)', 'data.db', new Date().toISOString());
+  }
+  const dashCount = db.prepare('SELECT COUNT(*) AS c FROM dashboards').get().c;
+  if (dashCount === 0) {
+    const dashId = db.prepare('INSERT INTO dashboards (name, created_at) VALUES (?, ?)')
+      .run('Operations Overview', new Date().toISOString()).lastInsertRowid;
+
+    const insertChart = db.prepare(
+      'INSERT INTO dashboard_charts (dashboard_id, title, chart_type, config_json, position) VALUES (?, ?, ?, ?, ?)',
+    );
+    insertChart.run(
+      dashId,
+      'Productivity % by Crew',
+      'bar',
+      JSON.stringify({
+        connectionId: 1,
+        table: 'tasks',
+        groupBy: 'crew_id',
+        filters: [{ field: 'status', op: '=', value: 'Active' }],
+        metric: { type: 'ratio', agg: 'SUM', numerator: 'actual_quantity', denominator: 'planned_quantity' },
+      }),
+      0,
+    );
+    insertChart.run(
+      dashId,
+      'Task Status',
+      'bar',
+      JSON.stringify({
+        connectionId: 1,
+        table: 'tasks',
+        groupBy: 'status',
+        filters: [],
+        metric: { type: 'agg', agg: 'COUNT', field: 'id' },
+      }),
+      1,
+    );
+  }
+}
+
 function getDb() {
   if (dbInstance) return dbInstance;
   const db = new DatabaseSync(DB_PATH);
@@ -145,6 +208,7 @@ function getDb() {
   if (crewCount === 0) seed(db);
   const rawCount = db.prepare('SELECT COUNT(*) AS c FROM raw_events').get().c;
   if (rawCount === 0) seedRawEvents(db);
+  seedConnectionsAndDashboards(db);
   dbInstance = db;
   return db;
 }

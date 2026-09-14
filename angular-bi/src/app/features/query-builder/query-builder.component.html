@@ -19,9 +19,16 @@
   <div class="editor-body">
     <div class="card builder-panel">
       <div class="field-row">
-        <div class="field-label">Table <span class="live-badge">LIVE</span></div>
+        <div class="field-label">Connection <span class="live-badge">LIVE</span></div>
+        <select [(ngModel)]="connectionId" (ngModelChange)="onConnectionChange()">
+          @for (c of connections(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Table</div>
         <select [(ngModel)]="table" (ngModelChange)="onTableChange()">
-          @for (t of tables; track t) { <option [value]="t">{{ t }}</option> }
+          @for (t of currentTables(); track t.name) { <option [value]="t.name">{{ t.name }}</option> }
         </select>
       </div>
 
@@ -82,6 +89,38 @@
         <span class="cap placeholder-badge">Cascading filters</span>
       </div>
 
+      <div class="field-row">
+        <div class="field-label">
+          Cross-connection join
+          @if (otherConnections().length) { <span class="live-badge">LIVE (SQLite ATTACH)</span> } @else { <span class="placeholder-badge">Needs a 2nd connection</span> }
+        </div>
+        @if (otherConnections().length) {
+          <label class="join-toggle-row">
+            <input type="checkbox" [ngModel]="joinEnabled()" (ngModelChange)="toggleJoin()">
+            Join with a table from another connection
+          </label>
+          @if (joinEnabled()) {
+            <div class="inline-row">
+              <select [ngModel]="joinConnectionId()" (ngModelChange)="onJoinConnectionChange($event)" style="flex: 1;">
+                @for (c of otherConnections(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+              </select>
+              <select [(ngModel)]="joinTable" (ngModelChange)="onJoinTableChange()" style="flex: 1;">
+                @for (t of joinTables(); track t.name) { <option [value]="t.name">{{ t.name }}</option> }
+              </select>
+            </div>
+            <div class="inline-row">
+              <span class="join-on-label">ON {{ table() }}.</span>
+              <select [(ngModel)]="joinLeftField" style="flex: 1;">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+              <span class="join-on-label">=</span>
+              <select [(ngModel)]="joinRightField" style="flex: 1;">@for (c of joinSchema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+            </div>
+            <div class="join-warning">Joining on a shared dimension (not a unique key) fans out matching rows — COUNT/SUM after a join can be inflated. Prefer joining on a true 1:1 key, or read the two sides as separate queries when comparing by a shared dimension like region.</div>
+          }
+        } @else {
+          <div class="empty-note">Add a second connection on the Data Sources page to enable cross-connection joins.</div>
+        }
+      </div>
+
       <div class="inline-row">
         <button class="btn btn-primary" (click)="run()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 4l14 8-14 8V4Z"/></svg>
@@ -89,6 +128,7 @@
         </button>
         <input type="text" [(ngModel)]="measureName" placeholder="Measure name (e.g. Productivity %)" style="flex: 1; min-width: 160px;">
         <button class="btn" (click)="saveMeasure()">Save Measure</button>
+        <button class="btn" (click)="openAddToDashboard()">Add to Dashboard</button>
       </div>
 
       @if (runError()) { <div class="status-msg err">{{ runError() }}</div> }
@@ -170,4 +210,33 @@
   <app-formula-mode [measures]="measures()" />
 } @else {
   <app-ai-placeholder />
+}
+
+@if (showAddToDashboard()) {
+  <div class="modal-backdrop" (click)="showAddToDashboard.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-title">Add to Dashboard</div>
+      <div class="field-row">
+        <div class="field-label">Chart title</div>
+        <input type="text" [(ngModel)]="dashboardChartTitle">
+      </div>
+      <div class="field-row">
+        <div class="field-label">Dashboard</div>
+        <select [(ngModel)]="targetDashboardId">
+          @for (d of dashboards(); track d.id) { <option [ngValue]="d.id">{{ d.name }}</option> }
+          <option [ngValue]="-1">+ New dashboard&hellip;</option>
+        </select>
+      </div>
+      @if (targetDashboardId() === -1) {
+        <div class="field-row">
+          <div class="field-label">New dashboard name</div>
+          <input type="text" [(ngModel)]="newDashboardName">
+        </div>
+      }
+      <div class="modal-actions">
+        <button class="btn" (click)="showAddToDashboard.set(false)">Cancel</button>
+        <button class="btn btn-primary" (click)="confirmAddToDashboard()">Add chart</button>
+      </div>
+    </div>
+  </div>
 }

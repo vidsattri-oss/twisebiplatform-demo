@@ -4,10 +4,10 @@
   </div>
   <div>
     <h1 class="page-title">Dashboard</h1>
-    <div class="page-sub">Item 06 — Cross filtering <span class="live-badge">LIVE</span></div>
+    <div class="page-sub">Item 06 — Cross filtering, drill-down, multiple dashboards <span class="live-badge">LIVE</span></div>
   </div>
   <div class="head-spacer"></div>
-  @if (selection.hasAnySelection()) {
+  @if (selection.current()) {
     <button class="btn" (click)="clearSelection()">Clear selection</button>
   }
 </div>
@@ -16,41 +16,111 @@
   <div class="status-msg err">{{ error() }}</div>
 }
 
-<div class="hint">Click a bar in <b>Productivity % by Crew</b> to cross-filter <b>Task Status</b> by that crew &mdash; a real, re-run SQL query against SQLite, not a CSS-only highlight. Ctrl/Cmd+click to multi-select.</div>
+<div class="dash-tabs">
+  @for (d of dashboards(); track d.id) {
+    <button class="dash-tab" [class.active]="d.id === activeDashboardId()" (click)="selectDashboard(d.id)">
+      {{ d.name }}
+      @if (d.id !== dashboards()[0].id && d.id === activeDashboardId()) {
+        <span class="dash-del" (click)="$event.stopPropagation(); deleteDashboard(d.id)">&times;</span>
+      }
+    </button>
+  }
+  <button class="dash-tab new" (click)="openNewDashboard()">+ New dashboard</button>
+</div>
+
+@if (showNewDashboard()) {
+  <div class="new-dash-row">
+    <input type="text" [(ngModel)]="newDashboardName" placeholder="Dashboard name" (keyup.enter)="createDashboard()">
+    <button class="btn btn-primary" (click)="createDashboard()">Create</button>
+    <button class="btn btn-quiet" (click)="showNewDashboard.set(false)">Cancel</button>
+  </div>
+}
+
+<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table/dimension. Click a bar's magnifier to drill into the underlying rows. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
 
 <div class="chart-grid">
-  <div class="card card-pad chart-card">
-    <div class="chart-title">Productivity % by Crew</div>
-    <div class="bars">
-      @for (b of productivityBars(); track b.key) {
-        <div class="bar-col" [class.dim]="selection.hasAnySelection() && !selection.isActive(b.key)" (click)="onBarClick(b.key, $event)">
-          <div class="bar-value">{{ (b.value * 100) | number:'1.0-0' }}%</div>
-          <div class="bar" [class.active]="selection.isActive(b.key)" [style.height.%]="b.pct"></div>
-          <div class="bar-label">{{ b.label }}</div>
+  @for (cs of charts(); track cs.chart.id) {
+    <div class="card card-pad chart-card">
+      <div class="chart-head">
+        <div class="chart-title">{{ cs.chart.title }}</div>
+        <div class="chart-actions">
+          <button class="icon-btn" title="Expand" (click)="expand(cs)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Remove chart" (click)="deleteChart(cs)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      @if (cs.error) {
+        <div class="status-msg err">{{ cs.error }}</div>
+      } @else if (cs.loading) {
+        <div class="empty-note">Loading&hellip;</div>
+      } @else {
+        <div class="bars">
+          @for (b of cs.bars; track b.rawKey) {
+            <div class="bar-col" [class.dim]="selection.current() && !selection.isActive(cs.chart.config.connectionId, cs.chart.config.table, cs.chart.config.groupBy || '', b.rawKey)">
+              <button class="drill-btn" title="Drill down" (click)="openDrilldown(cs, b.rawKey, b.label)">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </button>
+              <div class="bar-value">{{ displayValue(cs, b.value) }}</div>
+              <div class="bar" [class.active]="selection.isActive(cs.chart.config.connectionId, cs.chart.config.table, cs.chart.config.groupBy || '', b.rawKey)" [style.height.%]="b.pct" (click)="onBarClick(cs, b.rawKey)"></div>
+              <div class="bar-label">{{ b.label }}</div>
+            </div>
+          }
+          @if (!cs.bars.length) { <div class="empty-note">No rows.</div> }
         </div>
       }
-      @if (!productivityBars().length) { <div class="empty-note">Loading&hellip;</div> }
     </div>
-  </div>
+  }
+  @if (!charts().length && activeDashboardId() !== null) {
+    <div class="empty-note">This dashboard has no charts yet — add one from the Query Builder.</div>
+  }
+</div>
 
-  <div class="card card-pad chart-card">
-    <div class="chart-title">
-      Task Status
-      @if (selection.selected()) { <span class="filter-tag">filtered: {{ selection.selected() }}</span> }
-    </div>
-    <div class="bars">
-      @if (statusLoading()) {
-        <div class="empty-note">Running&hellip;</div>
-      } @else {
-        @for (b of statusBars(); track b.key) {
+@if (expanded(); as ex) {
+  <div class="modal-backdrop" (click)="closeExpand()">
+    <div class="modal-big" (click)="$event.stopPropagation()">
+      <div class="modal-big-head">
+        <div class="modal-big-title">{{ ex.chart.title }}</div>
+        <button class="icon-btn" (click)="closeExpand()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="bars big">
+        @for (b of ex.bars; track b.rawKey) {
           <div class="bar-col">
-            <div class="bar-value">{{ b.value }}</div>
-            <div class="bar status" [style.height.%]="b.pct"></div>
+            <div class="bar-value big">{{ displayValue(ex, b.value) }}</div>
+            <div class="bar big" [style.height.%]="b.pct"></div>
             <div class="bar-label">{{ b.label }}</div>
           </div>
         }
-        @if (!statusBars().length) { <div class="empty-note">No rows for this selection.</div> }
-      }
+      </div>
     </div>
   </div>
-</div>
+}
+
+@if (drilldown(); as dd) {
+  <div class="modal-backdrop" (click)="closeDrilldown()">
+    <div class="modal-big" (click)="$event.stopPropagation()">
+      <div class="modal-big-head">
+        <div class="modal-big-title">{{ dd.chart.chart.title }} &mdash; {{ dd.groupValue }}</div>
+        <button class="icon-btn" (click)="closeDrilldown()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="empty-note" style="margin-bottom: 8px;">{{ dd.rows.length }} underlying row(s) (max 50), live from SQLite.</div>
+      <div class="drill-table-wrap">
+        <table class="preview-table">
+          <thead><tr>@for (c of dd.columns; track c) { <th>{{ c }}</th> }</tr></thead>
+          <tbody>
+            @for (row of dd.rows; track $index) {
+              <tr>@for (c of dd.columns; track c) { <td>{{ row[c] }}</td> }</tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}

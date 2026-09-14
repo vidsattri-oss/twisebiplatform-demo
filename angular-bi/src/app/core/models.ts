@@ -6,16 +6,17 @@ export interface ColumnInfo {
 export interface TableInfo {
   name: string;
   rowCount: number;
-  columns: ColumnInfo[];
 }
 
-export interface SourceInfo {
+export interface ConnectionInfo {
+  id: number;
   name: string;
+  fileName: string;
   driver: string;
-  file: string;
   status: 'connected' | 'error';
-  lastSynced: string;
+  createdAt: string;
   tables: TableInfo[];
+  error: string | null;
 }
 
 export type AggFn = 'SUM' | 'AVG' | 'COUNT' | 'MIN' | 'MAX';
@@ -31,11 +32,20 @@ export type Metric =
   | { type: 'agg'; agg: AggFn; field: string }
   | { type: 'ratio'; agg: AggFn; numerator: string; denominator: string };
 
+export interface QueryJoin {
+  connectionId: number;
+  table: string;
+  leftField: string;
+  rightField: string;
+}
+
 export interface QueryConfig {
+  connectionId: number;
   table: string;
   groupBy: string | null;
   filters: QueryFilter[];
   metric: Metric;
+  join?: QueryJoin | null;
 }
 
 export interface QueryResultRow {
@@ -65,3 +75,26 @@ export interface RawEvent {
 
 /** One flattened row: dotted/bracketed path -> scalar leaf value. */
 export type FlatRow = Record<string, string | number | boolean | null>;
+
+export interface IngestResult {
+  connectionId: number;
+  table: string;
+  rowCount: number;
+  columns: string[];
+}
+
+export interface DashboardInfo {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
+export type ChartType = 'bar' | 'line' | 'pie';
+
+export interface DashboardChart {
+  id: number;
+  title: string;
+  chartType: ChartType;
+  config: QueryConfig;
+  position: number;
+}

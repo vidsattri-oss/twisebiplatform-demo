@@ -2,7 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/api.service';
-import { AggFn, FilterOp, Metric, QueryConfig, QueryResultRow, SavedMeasure } from '../../core/models';
+import { AggFn, ConnectionInfo, DashboardInfo, FilterOp, Metric, QueryConfig, QueryJoin, QueryResultRow, SavedMeasure } from '../../core/models';
 import { FormulaModeComponent } from './formula-mode.component';
 import { AiPlaceholderComponent } from './ai-placeholder.component';
 
@@ -27,13 +27,14 @@ const PIE_COLORS = ['#6C63F5', '#3D63E8', '#17A567', '#F5811F', '#B0413E', '#585
 export class QueryBuilderComponent implements OnInit {
   private readonly api = inject(ApiService);
 
-  readonly tables = ['tasks', 'crews', 'equipment'];
   readonly aggs: AggFn[] = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'];
   readonly ops: FilterOp[] = ['=', '!=', '>', '<', '>=', '<='];
 
   readonly mode = signal<Mode>('visual');
   readonly chartType = signal<ChartType>('bar');
 
+  readonly connections = signal<ConnectionInfo[]>([]);
+  readonly connectionId = signal(1);
   readonly table = signal('tasks');
   readonly metricType = signal<'agg' | 'ratio'>('ratio');
   readonly agg = signal<AggFn>('SUM');
@@ -46,6 +47,15 @@ export class QueryBuilderComponent implements OnInit {
   readonly schema = signal<string[]>([]);
   readonly crewNames = signal<Record<number, string>>({});
 
+  // Cross-connection join (optional) — see server.js: real via SQLite ATTACH,
+  // only possible because both sides are SQLite files.
+  readonly joinEnabled = signal(false);
+  readonly joinConnectionId = signal<number | null>(null);
+  readonly joinTable = signal('');
+  readonly joinSchema = signal<string[]>([]);
+  readonly joinLeftField = signal('');
+  readonly joinRightField = signal('');
+
   readonly rows = signal<QueryResultRow[]>([]);
   readonly sql = signal<string>('');
   readonly runError = signal<string | null>(null);
@@ -53,6 +63,12 @@ export class QueryBuilderComponent implements OnInit {
 
   readonly measureName = signal('');
   readonly measures = signal<SavedMeasure[]>([]);
+
+  readonly dashboards = signal<DashboardInfo[]>([]);
+  readonly showAddToDashboard = signal(false);
+  readonly targetDashboardId = signal<number | null>(null);
+  readonly newDashboardName = signal('');
+  readonly dashboardChartTitle = signal('');
 
   readonly maxValue = computed(() => Math.max(...this.rows().map((r) => r.value ?? 0), 0.0001));
 
@@ -97,7 +113,10 @@ export class QueryBuilderComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.getTablePreview('crews').subscribe((res) => {
+    this.api.getConnections().subscribe((res) => {
+      this.connections.set(res.connections);
+    });
+    this.api.getTablePreview(1, 'crews').subscribe((res) => {
       const names: Record<number, string> = {};
       for (const row of res.rows) names[row['id'] as number] = row['name'] as string;
       this.crewNames.set(names);
@@ -107,8 +126,18 @@ export class QueryBuilderComponent implements OnInit {
     this.run();
   }
 
+  currentTables(): { name: string }[] {
+    return this.connections().find((c) => c.id === this.connectionId())?.tables ?? [];
+  }
+
   loadSchema(): void {
-    this.api.getTableSchema(this.table()).subscribe((res) => this.schema.set(res.columns.map((c) => c.name)));
+    this.api.getTableSchema(this.connectionId(), this.table()).subscribe((res) => this.schema.set(res.columns.map((c) => c.name)));
+  }
+
+  onConnectionChange(): void {
+    const tables = this.currentTables();
+    this.table.set(tables[0]?.name ?? '');
+    this.onTableChange();
   }
 
   /**
@@ -120,7 +149,7 @@ export class QueryBuilderComponent implements OnInit {
   onTableChange(): void {
     this.filters.set([]);
     this.groupBy.set('');
-    this.api.getTableSchema(this.table()).subscribe((res) => {
+    this.api.getTableSchema(this.connectionId(), this.table()).subscribe((res) => {
       const cols = res.columns.map((c) => c.name);
       this.schema.set(cols);
       const first = cols[0] ?? '';
@@ -139,16 +168,63 @@ export class QueryBuilderComponent implements OnInit {
     this.filters.update((fs) => fs.filter((_, idx) => idx !== i));
   }
 
+  otherConnections(): ConnectionInfo[] {
+    return this.connections().filter((c) => c.id !== this.connectionId());
+  }
+
+  joinTables(): { name: string }[] {
+    return this.connections().find((c) => c.id === this.joinConnectionId())?.tables ?? [];
+  }
+
+  toggleJoin(): void {
+    this.joinEnabled.update((v) => !v);
+    if (this.joinEnabled() && this.otherConnections().length) {
+      this.onJoinConnectionChange(this.otherConnections()[0].id);
+    } else {
+      this.joinConnectionId.set(null);
+    }
+  }
+
+  onJoinConnectionChange(id: number): void {
+    this.joinConnectionId.set(id);
+    const tables = this.connections().find((c) => c.id === id)?.tables ?? [];
+    this.joinTable.set(tables[0]?.name ?? '');
+    this.onJoinTableChange();
+  }
+
+  onJoinTableChange(): void {
+    const connId = this.joinConnectionId();
+    if (connId == null || !this.joinTable()) return;
+    this.api.getTableSchema(connId, this.joinTable()).subscribe((res) => {
+      const cols = res.columns.map((c) => c.name);
+      this.joinSchema.set(cols);
+      this.joinRightField.set(cols[0] ?? '');
+    });
+  }
+
   buildConfig(): QueryConfig {
     const metric: Metric =
       this.metricType() === 'agg'
         ? { type: 'agg', agg: this.agg(), field: this.field() }
         : { type: 'ratio', agg: this.agg(), numerator: this.numerator(), denominator: this.denominator() };
+
+    let join: QueryJoin | null = null;
+    if (this.joinEnabled() && this.joinConnectionId() != null && this.joinTable() && this.joinLeftField() && this.joinRightField()) {
+      join = {
+        connectionId: this.joinConnectionId()!,
+        table: this.joinTable(),
+        leftField: this.joinLeftField(),
+        rightField: this.joinRightField(),
+      };
+    }
+
     return {
+      connectionId: this.connectionId(),
       table: this.table(),
       groupBy: this.groupBy() || null,
       filters: this.filters().filter((f) => f.value !== ''),
       metric,
+      join,
     };
   }
 
@@ -178,7 +254,7 @@ export class QueryBuilderComponent implements OnInit {
   groupLabel(row: QueryResultRow): string {
     const key = row.group_key;
     if (key === undefined) return this.table();
-    if ((this.table() === 'tasks' || this.table() === 'equipment') && this.groupBy() === 'crew_id') {
+    if (this.connectionId() === 1 && (this.table() === 'tasks' || this.table() === 'equipment') && this.groupBy() === 'crew_id') {
       return this.crewNames()[Number(key)] ?? String(key);
     }
     return String(key);
@@ -214,6 +290,7 @@ export class QueryBuilderComponent implements OnInit {
   }
 
   loadMeasure(m: SavedMeasure): void {
+    this.connectionId.set(m.config.connectionId);
     this.table.set(m.config.table);
     this.metricType.set(m.config.metric.type);
     this.agg.set(m.config.metric.agg);
@@ -225,7 +302,47 @@ export class QueryBuilderComponent implements OnInit {
     }
     this.groupBy.set(m.config.groupBy ?? '');
     this.filters.set(m.config.filters);
+    if (m.config.join) {
+      this.joinEnabled.set(true);
+      this.joinConnectionId.set(m.config.join.connectionId);
+      this.joinTable.set(m.config.join.table);
+      this.joinLeftField.set(m.config.join.leftField);
+      this.joinRightField.set(m.config.join.rightField);
+    } else {
+      this.joinEnabled.set(false);
+    }
     this.loadSchema();
     this.run();
+  }
+
+  openAddToDashboard(): void {
+    this.dashboardChartTitle.set(this.measureName().trim() || `${this.table()} chart`);
+    this.api.getDashboards().subscribe((res) => {
+      this.dashboards.set(res.dashboards);
+      this.targetDashboardId.set(res.dashboards[0]?.id ?? null);
+      this.showAddToDashboard.set(true);
+    });
+  }
+
+  confirmAddToDashboard(): void {
+    const title = this.dashboardChartTitle().trim() || 'Untitled chart';
+    const cfg = this.buildConfig();
+    const doAdd = (dashboardId: number) => {
+      this.api.addDashboardChart(dashboardId, title, this.chartType(), cfg).subscribe({
+        next: () => {
+          this.runOk.set(`Added "${title}" to the dashboard.`);
+          this.showAddToDashboard.set(false);
+        },
+        error: (err) => this.runError.set(err?.error?.error ?? 'Could not add chart'),
+      });
+    };
+
+    if (this.targetDashboardId() === -1) {
+      const name = this.newDashboardName().trim();
+      if (!name) return;
+      this.api.addDashboard(name).subscribe((res) => doAdd(res.id));
+    } else if (this.targetDashboardId() != null) {
+      doAdd(this.targetDashboardId()!);
+    }
   }
 }
