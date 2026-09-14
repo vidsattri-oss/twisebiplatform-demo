@@ -50,6 +50,20 @@
 
     .footnote { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-soft); margin-top: 0.75rem; }
 
+    .coverage-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; border: 1px solid var(--color-rule); overflow: hidden; }
+    .coverage-table th { text-align: left; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); font-weight: 500; padding: 0.7rem 1rem; border-bottom: 1px solid var(--color-rule); background: var(--color-paper-2); }
+    .coverage-table td { padding: 0.75rem 1rem; font-size: 0.82rem; border-bottom: 1px solid rgba(22,32,61,0.06); vertical-align: top; }
+    .coverage-table tr:last-child td { border-bottom: none; }
+    .coverage-table .num { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-soft); }
+    .coverage-table .feat { font-weight: 600; }
+    .coverage-table .path { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-muted); }
+    .cov-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; white-space: nowrap; }
+    .cov-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .cov-pill.on-diagram { background: rgba(245,129,31,0.08); color: #b5591a; }
+    .cov-pill.on-diagram::before { background: var(--color-accent); }
+    .cov-pill.client-only { background: rgba(91,100,128,0.10); color: var(--color-muted); }
+    .cov-pill.client-only::before { background: var(--color-soft); }
+
     .footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(22,32,61,0.10); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--color-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
   </style>
 </head>
@@ -260,6 +274,63 @@
           <text x="624" y="76" fill="#5b6480" font-size="8.5" font-family="'Geist', sans-serif">Return / scheduled</text>
         </svg>
       </div>
+    </div>
+
+    <!-- ============ FEATURE COVERAGE MAP ============ -->
+    <div class="section">
+      <p class="section-eyebrow">Reading the diagram against the tracker</p>
+      <h2>What's actually on this diagram — and what isn't</h2>
+      <p class="section-sub">The two diagrams above show the query/security path. Three of the six P&#8209;1 features never touch that path at all — they run entirely in the Angular SPA. Showing them on the Gate/Cube.dev path would misstate what the code does.</p>
+
+      <table class="coverage-table">
+        <thead>
+          <tr><th>#</th><th>Feature</th><th>Where it runs</th><th>Diagram coverage</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num">01</td>
+            <td class="feat">Data connectivity</td>
+            <td class="path">SPA &rarr; Gate/Cube.dev &rarr; DB</td>
+            <td><span class="cov-pill on-diagram">On diagram</span></td>
+          </tr>
+          <tr>
+            <td class="num">02</td>
+            <td class="feat">JSON parsing &amp; flattening</td>
+            <td class="path">Angular SPA only &mdash; FlattenService, plain GET</td>
+            <td><span class="cov-pill client-only">Client-only, not shown</span></td>
+          </tr>
+          <tr>
+            <td class="num">03</td>
+            <td class="feat">Formula editor</td>
+            <td class="path">SPA parses (jsep) &rarr; Gate/Cube.dev &rarr; DB, once per referenced measure</td>
+            <td><span class="cov-pill on-diagram">Query half only</span></td>
+          </tr>
+          <tr>
+            <td class="num">04</td>
+            <td class="feat">Custom visual extensibility</td>
+            <td class="path">Angular SPA only &mdash; native SVG chart render</td>
+            <td><span class="cov-pill client-only">Client-only, not shown</span></td>
+          </tr>
+          <tr>
+            <td class="num">05</td>
+            <td class="feat">Filters</td>
+            <td class="path">SPA &rarr; Gate/Cube.dev &rarr; DB (bound parameters)</td>
+            <td><span class="cov-pill on-diagram">On diagram</span></td>
+          </tr>
+          <tr>
+            <td class="num">06</td>
+            <td class="feat">Cross-filtering</td>
+            <td class="path">SPA (SelectionService) &rarr; re-query &rarr; Gate/Cube.dev &rarr; DB</td>
+            <td><span class="cov-pill on-diagram">Query half only</span></td>
+          </tr>
+          <tr>
+            <td class="num">&mdash;</td>
+            <td class="feat">AI mode</td>
+            <td class="path">Angular SPA only &mdash; explicit demo placeholder</td>
+            <td><span class="cov-pill client-only">Client-only, not shown</span></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="cards">
