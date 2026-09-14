@@ -21,6 +21,12 @@
     <button class="btn btn-quiet" (click)="cancelChartEdit()">Cancel edit</button>
   </div>
 }
+@if (addingToDashboard(); as at) {
+  <div class="edit-banner">
+    <span>Adding a new visual to <strong>&ldquo;{{ at.dashboardName }}&rdquo;</strong> &mdash; build the query, then add it below.</span>
+    <button class="btn btn-quiet" (click)="cancelAddToDashboard()">Cancel</button>
+  </div>
+}
 
 @if (mode() === 'visual') {
   <div class="editor-body">
@@ -149,10 +155,12 @@
         @if (editingChart()) {
           <input type="text" [(ngModel)]="dashboardChartTitle" placeholder="Chart title" style="flex: 1; min-width: 160px;">
           <button class="btn btn-primary" (click)="saveChartEdit()">Update chart</button>
+        } @else if (addingToDashboard()) {
+          <input type="text" [(ngModel)]="dashboardChartTitle" placeholder="Chart title" style="flex: 1; min-width: 160px;">
+          <button class="btn btn-primary" (click)="addChartToDashboard()">Add chart</button>
         } @else {
           <input type="text" [(ngModel)]="measureName" placeholder="Measure name (e.g. Productivity %)" style="flex: 1; min-width: 160px;">
           <button class="btn" (click)="saveMeasure()">Save Measure</button>
-          <button class="btn" (click)="openAddToDashboard()">Add to Dashboard</button>
         }
       </div>
 
@@ -251,33 +259,4 @@
   <app-formula-mode [measures]="measures()" />
 } @else {
   <app-ai-placeholder />
-}
-
-@if (showAddToDashboard()) {
-  <div class="modal-backdrop" (click)="showAddToDashboard.set(false)">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-title">Add to Dashboard</div>
-      <div class="field-row">
-        <div class="field-label">Chart title</div>
-        <input type="text" [(ngModel)]="dashboardChartTitle">
-      </div>
-      <div class="field-row">
-        <div class="field-label">Dashboard</div>
-        <select [(ngModel)]="targetDashboardId">
-          @for (d of dashboards(); track d.id) { <option [ngValue]="d.id">{{ d.name }}</option> }
-          <option [ngValue]="-1">+ New dashboard&hellip;</option>
-        </select>
-      </div>
-      @if (targetDashboardId() === -1) {
-        <div class="field-row">
-          <div class="field-label">New dashboard name</div>
-          <input type="text" [(ngModel)]="newDashboardName">
-        </div>
-      }
-      <div class="modal-actions">
-        <button class="btn" (click)="showAddToDashboard.set(false)">Cancel</button>
-        <button class="btn btn-primary" (click)="confirmAddToDashboard()">Add chart</button>
-      </div>
-    </div>
-  </div>
 }

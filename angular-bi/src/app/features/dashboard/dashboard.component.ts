@@ -400,13 +400,22 @@ export class DashboardComponent implements OnInit {
   editChartQuery(cs: ChartState): void {
     const dashboardId = this.activeDashboardId();
     if (!dashboardId) return;
-    this.editChart.request({
+    this.editChart.requestEdit({
       dashboardId,
       chartId: cs.chart.id,
       title: cs.chart.title,
       chartType: cs.chart.chartType,
       config: cs.chart.config,
     });
+    this.router.navigate(['/query-builder']);
+  }
+
+  /** The dashboard always initiates adding a visual — this hands Query Builder the target dashboard and navigates there, rather than Query Builder asking "which dashboard?" after the fact. */
+  addVisual(): void {
+    const dashboardId = this.activeDashboardId();
+    const dashboard = this.dashboards().find((d) => d.id === dashboardId);
+    if (!dashboardId || !dashboard) return;
+    this.editChart.requestAdd({ dashboardId, dashboardName: dashboard.name });
     this.router.navigate(['/query-builder']);
   }
 }

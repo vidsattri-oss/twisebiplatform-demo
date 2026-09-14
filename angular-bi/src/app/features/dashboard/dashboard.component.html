@@ -10,6 +10,9 @@
   @if (selection.current()) {
     <button class="btn" (click)="clearSelection()">Clear selection</button>
   }
+  @if (activeDashboardId()) {
+    <button class="btn btn-primary" (click)="addVisual()">+ Add Visual</button>
+  }
 </div>
 
 @if (error()) {
@@ -53,7 +56,7 @@
   </div>
 }
 
-<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table — including any Table visual, which always shows the live, filtered detail rows. Right-click a bar to see its underlying records. Double-click a dashboard tab or chart title to rename it; use the pencil icon to edit a chart's query. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
+<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table — including any Table visual, which always shows the live, filtered detail rows. Right-click a bar to see its underlying records. Double-click a dashboard tab or chart title to rename it; use the pencil icon to edit a chart's query. Use "+ Add Visual" above to build a new chart for this dashboard.</div>
 
 <div class="card card-pad filter-bar">
   <div class="filter-bar-head">
@@ -164,7 +167,7 @@
     </div>
   }
   @if (!charts().length && activeDashboardId() !== null) {
-    <div class="empty-note">This dashboard has no charts yet — add one from the Query Builder.</div>
+    <div class="empty-note">This dashboard has no charts yet — click "+ Add Visual" above to build one.</div>
   }
 </div>
 

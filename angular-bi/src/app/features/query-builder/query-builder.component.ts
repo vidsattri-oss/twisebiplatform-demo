@@ -3,9 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/api.service';
-import { EditChartService, PendingChartEdit } from '../../core/edit-chart.service';
+import { EditChartService, PendingChartAdd, PendingChartEdit } from '../../core/edit-chart.service';
 import { classifyColumn, FieldKind } from '../../core/column-type';
-import { AggFn, ColumnInfo, ConnectionInfo, DashboardInfo, FilterOp, Metric, QueryConfig, QueryJoin, QueryResultRow, SavedMeasure } from '../../core/models';
+import { AggFn, ColumnInfo, ConnectionInfo, FilterOp, Metric, QueryConfig, QueryJoin, QueryResultRow, SavedMeasure } from '../../core/models';
 import { FormulaModeComponent } from './formula-mode.component';
 import { AiPlaceholderComponent } from './ai-placeholder.component';
 
@@ -32,8 +32,10 @@ export class QueryBuilderComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly editChartService = inject(EditChartService);
 
-  /** Set when arriving here via Dashboard's "Edit query" action — swaps "Add to Dashboard" for "Update chart". */
+  /** Set when arriving here via Dashboard's "Edit query" action — swaps the add-chart action for "Update chart". */
   readonly editingChart = signal<PendingChartEdit | null>(null);
+  /** Set when arriving here via Dashboard's "+ Add Visual" action — the only way to add a chart to a dashboard; there is no dashboard-picker here, the dashboard always initiates. */
+  readonly addingToDashboard = signal<PendingChartAdd | null>(null);
 
   readonly aggs: AggFn[] = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'];
   readonly ops: FilterOp[] = ['=', '!=', '>', '<', '>=', '<='];
@@ -81,10 +83,6 @@ export class QueryBuilderComponent implements OnInit {
   readonly measureName = signal('');
   readonly measures = signal<SavedMeasure[]>([]);
 
-  readonly dashboards = signal<DashboardInfo[]>([]);
-  readonly showAddToDashboard = signal(false);
-  readonly targetDashboardId = signal<number | null>(null);
-  readonly newDashboardName = signal('');
   readonly dashboardChartTitle = signal('');
 
   readonly maxValue = computed(() => Math.max(...this.rows().map((r) => r.value ?? 0), 0.0001));
@@ -140,9 +138,14 @@ export class QueryBuilderComponent implements OnInit {
     });
     this.loadMeasures();
 
-    const pendingEdit = this.editChartService.consume();
-    if (pendingEdit) {
-      this.applyChartEdit(pendingEdit);
+    const pending = this.editChartService.consume();
+    if (pending?.mode === 'edit') {
+      this.applyChartEdit(pending);
+    } else if (pending?.mode === 'add') {
+      this.addingToDashboard.set(pending);
+      this.dashboardChartTitle.set('');
+      this.loadSchema();
+      this.run();
     } else {
       this.loadSchema();
       this.run();
@@ -425,37 +428,21 @@ export class QueryBuilderComponent implements OnInit {
     this.run();
   }
 
-  openAddToDashboard(): void {
-    this.dashboardChartTitle.set(this.measureName().trim() || `${this.table()} chart`);
-    this.api.getDashboards().subscribe((res) => {
-      this.dashboards.set(res.dashboards);
-      this.targetDashboardId.set(res.dashboards[0]?.id ?? null);
-      this.showAddToDashboard.set(true);
+  addChartToDashboard(): void {
+    this.runError.set(null);
+    this.runOk.set(null);
+    const target = this.addingToDashboard();
+    if (!target) return;
+    const title = this.dashboardChartTitle().trim() || `${this.table()} chart`;
+    this.api.addDashboardChart(target.dashboardId, title, this.chartType(), this.buildConfig()).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: (err) => this.runError.set(err?.error?.error ?? 'Could not add chart'),
     });
   }
 
-  confirmAddToDashboard(): void {
-    this.runError.set(null);
-    this.runOk.set(null);
-    const title = this.dashboardChartTitle().trim() || 'Untitled chart';
-    const cfg = this.buildConfig();
-    const doAdd = (dashboardId: number) => {
-      this.api.addDashboardChart(dashboardId, title, this.chartType(), cfg).subscribe({
-        next: () => {
-          this.runOk.set(`Added "${title}" to the dashboard.`);
-          this.showAddToDashboard.set(false);
-        },
-        error: (err) => this.runError.set(err?.error?.error ?? 'Could not add chart'),
-      });
-    };
-
-    if (this.targetDashboardId() === -1) {
-      const name = this.newDashboardName().trim();
-      if (!name) return;
-      this.api.addDashboard(name).subscribe((res) => doAdd(res.id));
-    } else if (this.targetDashboardId() != null) {
-      doAdd(this.targetDashboardId()!);
-    }
+  cancelAddToDashboard(): void {
+    this.addingToDashboard.set(null);
+    this.router.navigate(['/dashboard']);
   }
 
   saveChartEdit(): void {
