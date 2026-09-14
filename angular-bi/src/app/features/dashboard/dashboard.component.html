@@ -1,0 +1,56 @@
+<div class="page-head">
+  <div class="page-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20V14"/></svg>
+  </div>
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <div class="page-sub">Item 06 — Cross filtering <span class="live-badge">LIVE</span></div>
+  </div>
+  <div class="head-spacer"></div>
+  @if (selection.hasAnySelection()) {
+    <button class="btn" (click)="clearSelection()">Clear selection</button>
+  }
+</div>
+
+@if (error()) {
+  <div class="status-msg err">{{ error() }}</div>
+}
+
+<div class="hint">Click a bar in <b>Productivity % by Crew</b> to cross-filter <b>Task Status</b> by that crew &mdash; a real, re-run SQL query against SQLite, not a CSS-only highlight. Ctrl/Cmd+click to multi-select.</div>
+
+<div class="chart-grid">
+  <div class="card card-pad chart-card">
+    <div class="chart-title">Productivity % by Crew</div>
+    <div class="bars">
+      @for (b of productivityBars(); track b.key) {
+        <div class="bar-col" [class.dim]="selection.hasAnySelection() && !selection.isActive(b.key)" (click)="onBarClick(b.key, $event)">
+          <div class="bar-value">{{ (b.value * 100) | number:'1.0-0' }}%</div>
+          <div class="bar" [class.active]="selection.isActive(b.key)" [style.height.%]="b.pct"></div>
+          <div class="bar-label">{{ b.label }}</div>
+        </div>
+      }
+      @if (!productivityBars().length) { <div class="empty-note">Loading&hellip;</div> }
+    </div>
+  </div>
+
+  <div class="card card-pad chart-card">
+    <div class="chart-title">
+      Task Status
+      @if (selection.selected()) { <span class="filter-tag">filtered: {{ selection.selected() }}</span> }
+    </div>
+    <div class="bars">
+      @if (statusLoading()) {
+        <div class="empty-note">Running&hellip;</div>
+      } @else {
+        @for (b of statusBars(); track b.key) {
+          <div class="bar-col">
+            <div class="bar-value">{{ b.value }}</div>
+            <div class="bar status" [style.height.%]="b.pct"></div>
+            <div class="bar-label">{{ b.label }}</div>
+          </div>
+        }
+        @if (!statusBars().length) { <div class="empty-note">No rows for this selection.</div> }
+      }
+    </div>
+  </div>
+</div>

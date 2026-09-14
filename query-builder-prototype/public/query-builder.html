@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Query Builder — Tasnim Maps</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div id="shell-root"></div>
+<script src="/shell.js"></script>
+<script>
+renderShell('builder', 'Query Builder <span class="dim">&gt;</span> Build New Query');
+
+const svgFx = '<svg width="18" height="18" viewBox="0 0 24 24"><text x="1" y="17" font-family="IBM Plex Mono" font-size="14" font-weight="700" fill="currentColor">ƒx</text></svg>';
+const svgPlus = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>';
+const svgX = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const svgPlay = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 4l14 8-14 8V4Z"/></svg>';
+const svgSave = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 5h11l3 3v11H5V5Z"/><path d="M8 5v5h7V5M8 14h8"/></svg>';
+
+const TABLES = ['crews', 'equipment', 'tasks'];
+const AGGS = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'];
+const OPS = ['=', '!=', '>', '<', '>=', '<='];
+
+const state = {
+  table: 'tasks',
+  metricType: 'ratio',
+  agg: 'SUM',
+  field: 'actual_hours',
+  numerator: 'actual_quantity',
+  denominator: 'planned_quantity',
+  groupBy: 'crew_id',
+  filters: [{ field: 'status', op: '=', value: 'Active' }],
+  schema: [],
+  crewNames: {},
+};
+
+async function loadCrewNames() {
+  const res = await fetch('/api/tables/crews/preview');
+  const { rows } = await res.json();
+  rows.forEach((r) => { state.crewNames[r.id] = r.name; });
+}
+
+async function loadSchema(table) {
+  const res = await fetch(`/api/tables/${table}/schema`);
+  const data = await res.json();
+  state.schema = data.columns.map((c) => c.name);
+}
+
+function fieldOptions(selected) {
+  return state.schema.map((c) => `<option value="${c}" ${c === selected ? 'selected' : ''}>${c}</option>`).join('');
+}
+
+function renderPage() {
+  const content = document.getElementById('page-content');
+  content.innerHTML = `
+    <div class="page-head">
+      <div class="page-icon">${svgFx}</div>
+      <div><div class="page-title">Build New Query</div><div class="page-sub">Visual mode &mdash; wired to the local SQLite source</div></div>
+    </div>
+    <div class="editor-body">
+      <div class="card builder-panel">
+        <div class="field-row">
+          <div class="field-label">Table</div>
+          <select id="sel-table">${TABLES.map((t) => `<option value="${t}" ${t === state.table ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">Metric</div>
+          <div class="metric-toggle">
+            <button data-mt="agg" class="${state.metricType === 'agg' ? 'active' : ''}">Aggregate</button>
+            <button data-mt="ratio" class="${state.metricType === 'ratio' ? 'active' : ''}">Ratio (e.g. Productivity %)</button>
+          </div>
+        </div>
+
+        <div id="metric-config"></div>
+
+        <div class="field-row">
+          <div class="field-label">Group By</div>
+          <select id="sel-groupby">
+            <option value="">None</option>
+            ${fieldOptions(state.groupBy)}
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">Filters</div>
+          <div id="filters-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <button class="ghost-add" id="add-filter">${svgPlus} Add filter</button>
+        </div>
+
+        <div class="inline-row">
+          <button class="btn btn-primary" id="run-btn">${svgPlay} Run Query</button>
+          <input type="text" id="measure-name" placeholder="Measure name (e.g. Productivity %)" style="flex:1;min-width:160px;">
+          <button class="btn" id="save-btn">${svgSave} Save Measure</button>
+        </div>
+        <div id="status-msg"></div>
+
+        <div class="field-row">
+          <div class="field-label">Generated SQL</div>
+          <div class="sql-box" id="sql-box">Run the query to see the compiled SQL.</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-label">Saved Measures</div>
+          <div class="measure-list" id="measure-list"></div>
+        </div>
+      </div>
+
+      <div class="card preview-panel">
+        <div class="preview-title"><span class="live-dot"></span>Live Preview</div>
+        <div class="chart-mock" id="chart-mock"><div class="empty-note">Run a query to see results.</div></div>
+      </div>
+    </div>
+  `;
+
+  renderMetricConfig();
+  renderFilters();
+  bindStaticEvents();
+  loadMeasures();
+}
+
+function renderMetricConfig() {
+  const el = document.getElementById('metric-config');
+  if (state.metricType === 'agg') {
+    el.innerHTML = `
+      <div class="inline-row">
+        <select id="sel-agg" style="width:110px;">${AGGS.map((a) => `<option ${a === state.agg ? 'selected' : ''}>${a}</option>`).join('')}</select>
+        <select id="sel-field" style="flex:1;">${fieldOptions(state.field)}</select>
+      </div>`;
+    document.getElementById('sel-agg').onchange = (e) => { state.agg = e.target.value; };
+    document.getElementById('sel-field').onchange = (e) => { state.field = e.target.value; };
+  } else {
+    el.innerHTML = `
+      <div class="inline-row">
+        <select id="sel-agg" style="width:110px;">${AGGS.map((a) => `<option ${a === state.agg ? 'selected' : ''}>${a}</option>`).join('')}</select>
+        <select id="sel-num" style="flex:1;">${fieldOptions(state.numerator)}</select>
+        <span style="color:#8B93AC;font-weight:700;">&divide;</span>
+        <select id="sel-den" style="flex:1;">${fieldOptions(state.denominator)}</select>
+      </div>`;
+    document.getElementById('sel-agg').onchange = (e) => { state.agg = e.target.value; };
+    document.getElementById('sel-num').onchange = (e) => { state.numerator = e.target.value; };
+    document.getElementById('sel-den').onchange = (e) => { state.denominator = e.target.value; };
+  }
+}
+
+function renderFilters() {
+  const el = document.getElementById('filters-list');
+  el.innerHTML = state.filters.map((f, i) => `
+    <div class="filter-row" data-i="${i}">
+      <select class="f-field">${fieldOptions(f.field)}</select>
+      <select class="f-op" style="flex:0 0 70px;">${OPS.map((o) => `<option ${o === f.op ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <input type="text" class="f-value" value="${f.value}">
+      <button class="remove-btn" data-remove="${i}">${svgX}</button>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.filter-row').forEach((row) => {
+    const i = Number(row.dataset.i);
+    row.querySelector('.f-field').onchange = (e) => { state.filters[i].field = e.target.value; };
+    row.querySelector('.f-op').onchange = (e) => { state.filters[i].op = e.target.value; };
+    row.querySelector('.f-value').oninput = (e) => { state.filters[i].value = e.target.value; };
+  });
+  el.querySelectorAll('[data-remove]').forEach((btn) => {
+    btn.onclick = () => { state.filters.splice(Number(btn.dataset.remove), 1); renderFilters(); };
+  });
+}
+
+function buildConfig() {
+  const metric = state.metricType === 'agg'
+    ? { type: 'agg', agg: state.agg, field: state.field }
+    : { type: 'ratio', agg: state.agg, numerator: state.numerator, denominator: state.denominator };
+  return {
+    table: state.table,
+    groupBy: state.groupBy || null,
+    filters: state.filters.filter((f) => f.value !== ''),
+    metric,
+  };
+}
+
+function displaySql(sql, params) {
+  let i = 0;
+  return sql.replace(/\?/g, () => {
+    const v = params[i++];
+    return typeof v === 'string' ? `'${v}'` : v;
+  });
+}
+
+function groupLabel(key) {
+  if (state.table === 'tasks' && state.groupBy === 'crew_id' && state.crewNames[key]) return state.crewNames[key];
+  if (state.table === 'equipment' && state.groupBy === 'crew_id' && state.crewNames[key]) return state.crewNames[key];
+  return String(key);
+}
+
+async function runQuery() {
+  const statusEl = document.getElementById('status-msg');
+  const sqlEl = document.getElementById('sql-box');
+  const chartEl = document.getElementById('chart-mock');
+  statusEl.innerHTML = '<div class="empty-note">Running&hellip;</div>';
+  try {
+    const res = await fetch('/api/query', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildConfig()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Query failed');
+
+    statusEl.innerHTML = `<div class="status-msg ok">${data.rows.length} row(s) returned from the live SQLite database.</div>`;
+    sqlEl.innerHTML = displaySql(data.sql, data.params);
+
+    if (!data.rows.length) {
+      chartEl.innerHTML = '<div class="empty-note">No rows matched.</div>';
+      return;
+    }
+    const max = Math.max(...data.rows.map((r) => r.value || 0), 0.0001);
+    chartEl.innerHTML = data.rows.map((r) => {
+      const val = r.value == null ? 0 : r.value;
+      const pct = Math.max(3, Math.round((val / max) * 100));
+      const label = r.group_key !== undefined ? groupLabel(r.group_key) : state.table;
+      const display = val < 1.5 ? `${Math.round(val * 100)}%` : val.toFixed(1);
+      return `<div class="bar-col"><div class="bar-value">${display}</div><div class="bar" style="height:${pct}%;"></div><div class="bar-label">${label}</div></div>`;
+    }).join('');
+  } catch (e) {
+    statusEl.innerHTML = `<div class="status-msg err">${e.message}</div>`;
+    sqlEl.textContent = 'Query was not valid against the schema — see error above.';
+  }
+}
+
+async function saveMeasure() {
+  const nameEl = document.getElementById('measure-name');
+  const name = nameEl.value.trim();
+  const statusEl = document.getElementById('status-msg');
+  if (!name) { statusEl.innerHTML = '<div class="status-msg err">Give the measure a name first.</div>'; return; }
+  try {
+    const res = await fetch('/api/measures', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, config: buildConfig() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    statusEl.innerHTML = `<div class="status-msg ok">Saved "${name}" to the measures table.</div>`;
+    nameEl.value = '';
+    loadMeasures();
+  } catch (e) {
+    statusEl.innerHTML = `<div class="status-msg err">${e.message}</div>`;
+  }
+}
+
+async function loadMeasures() {
+  const el = document.getElementById('measure-list');
+  const res = await fetch('/api/measures');
+  const { measures } = await res.json();
+  if (!measures.length) { el.innerHTML = '<div class="empty-note">No measures saved yet.</div>'; return; }
+  el.innerHTML = measures.map((m) => `
+    <div class="measure-item">
+      <span class="n">${m.name}</span>
+      <span style="color:#8B93AC;">${m.config.table}</span>
+      <button class="btn btn-quiet" data-load="${m.id}">Load</button>
+      <button class="remove-btn" data-del="${m.id}">${svgX}</button>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-load]').forEach((btn) => {
+    btn.onclick = () => {
+      const m = measures.find((x) => x.id === Number(btn.dataset.load));
+      Object.assign(state, {
+        table: m.config.table,
+        metricType: m.config.metric.type,
+        agg: m.config.metric.agg,
+        field: m.config.metric.field || state.field,
+        numerator: m.config.metric.numerator || state.numerator,
+        denominator: m.config.metric.denominator || state.denominator,
+        groupBy: m.config.groupBy || '',
+        filters: m.config.filters && m.config.filters.length ? m.config.filters : [],
+      });
+      loadSchema(state.table).then(renderPage);
+    };
+  });
+  el.querySelectorAll('[data-del]').forEach((btn) => {
+    btn.onclick = async () => { await fetch(`/api/measures/${btn.dataset.del}`, { method: 'DELETE' }); loadMeasures(); };
+  });
+}
+
+function bindStaticEvents() {
+  document.getElementById('sel-table').onchange = async (e) => {
+    state.table = e.target.value;
+    await loadSchema(state.table);
+    state.field = state.schema[0]; state.numerator = state.schema[0]; state.denominator = state.schema[0]; state.groupBy = '';
+    state.filters = [];
+    renderPage();
+  };
+  document.querySelectorAll('.metric-toggle button').forEach((b) => {
+    b.onclick = () => { state.metricType = b.dataset.mt; renderMetricConfig(); document.querySelectorAll('.metric-toggle button').forEach((x) => x.classList.toggle('active', x === b)); };
+  });
+  document.getElementById('sel-groupby').onchange = (e) => { state.groupBy = e.target.value; };
+  document.getElementById('add-filter').onclick = () => { state.filters.push({ field: state.schema[0], op: '=', value: '' }); renderFilters(); };
+  document.getElementById('run-btn').onclick = runQuery;
+  document.getElementById('save-btn').onclick = saveMeasure;
+}
+
+(async function init() {
+  await loadCrewNames();
+  await loadSchema(state.table);
+  renderPage();
+  runQuery();
+})();
+</script>
+</body>
+</html>

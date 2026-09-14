@@ -1,0 +1,54 @@
+<div class="page-head">
+  <div class="page-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/></svg>
+  </div>
+  <div>
+    <h1 class="page-title">JSON Explorer</h1>
+    <div class="page-sub">Item 02 — JSON parsing and flattening <span class="live-badge">LIVE</span></div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="status-msg err">{{ error() }}</div>
+}
+
+<div class="explorer-body">
+  <div class="card card-pad event-list">
+    <div class="field-label" style="margin-bottom: 10px;">Raw events (raw_events table)</div>
+    @for (e of events(); track e.id) {
+      <div class="event-item" [class.active]="e.id === selectedId()" (click)="select(e.id)">
+        <span class="src-tag">{{ e.source }}</span>
+        <span class="event-meta">#{{ e.id }} &middot; {{ e.receivedAt | slice:0:19 }}</span>
+      </div>
+    }
+    @if (!events().length && !error()) {
+      <div class="empty-note">Loading&hellip;</div>
+    }
+  </div>
+
+  <div class="card card-pad json-pane">
+    <div class="field-label" style="margin-bottom: 10px;">Raw JSON payload</div>
+    <pre class="json-box">{{ prettyJson() }}</pre>
+    <button class="btn btn-primary" (click)="flattenSelected()" [disabled]="!selectedEvent()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M5 12h14M12 5v14"/></svg>
+      Flatten
+    </button>
+  </div>
+
+  <div class="card card-pad flat-pane">
+    <div class="field-label" style="margin-bottom: 10px;">Flattened rows</div>
+    @if (flattened(); as f) {
+      <div class="empty-note" style="margin-bottom: 8px;">{{ f.columns.length }} paths extracted from the nested payload.</div>
+      <table class="flat-table">
+        <thead><tr><th>Path</th><th>Value</th></tr></thead>
+        <tbody>
+          @for (col of f.columns; track col) {
+            <tr><td class="path">{{ col }}</td><td>{{ f.rows[0][col] }}</td></tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <div class="empty-note">Click "Flatten" to run the recursive client-side flattener (FlattenService) on the selected payload.</div>
+    }
+  </div>
+</div>

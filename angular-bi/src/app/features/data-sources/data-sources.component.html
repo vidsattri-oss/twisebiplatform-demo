@@ -1,0 +1,92 @@
+<div class="page-head">
+  <div class="page-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+  </div>
+  <div>
+    <h1 class="page-title">Data Sources</h1>
+    <div class="page-sub">Item 01 — Multiple data source connectivity</div>
+  </div>
+  <div class="head-spacer"></div>
+  @if (source()) {
+    <button class="btn" (click)="testConnection()">
+      @if (testStatus() === 'ok') { Connection OK } @else if (testStatus() === 'testing') { Testing&hellip; } @else { Test Connection }
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="status-msg err">{{ error() }}</div>
+}
+
+@if (source(); as s) {
+  <div class="card conn-card">
+    <div class="conn-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+    </div>
+    <div class="conn-body">
+      <div class="conn-title">{{ s.name }} <span class="driver">({{ s.driver }})</span> <span class="live-badge">LIVE</span></div>
+      <div class="conn-meta">{{ s.file }}</div>
+    </div>
+    <div class="conn-status">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+      Connected
+    </div>
+  </div>
+
+  <div class="card card-pad">
+    <div class="field-label" style="margin-bottom: 12px;">Tables ({{ s.tables.length }})</div>
+    <div class="table-list">
+      @for (t of s.tables; track t.name) {
+        <div class="table-row" [class.open]="openTables().has(t.name)">
+          <div class="table-row-head" (click)="toggle(t.name)">
+            <div class="table-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 10h18M9 4v16"/></svg>
+            </div>
+            <div class="table-name">{{ t.name }}</div>
+            <div class="table-count">{{ t.rowCount }} rows</div>
+            <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+          @if (openTables().has(t.name)) {
+            <div class="table-detail">
+              <div class="field-label" style="margin: 10px 0 6px;">Columns</div>
+              <div class="col-chip-row">
+                @for (c of t.columns; track c.name) {
+                  <span class="col-chip">{{ c.name }}<span class="t">{{ c.type }}</span></span>
+                }
+              </div>
+              <div class="field-label" style="margin-bottom: 6px;">Preview</div>
+              @if (previewColumns(t.name).length) {
+                <table class="preview-table">
+                  <thead><tr>@for (c of previewColumns(t.name); track c) { <th>{{ c }}</th> }</tr></thead>
+                  <tbody>
+                    @for (row of previews()[t.name]; track $index) {
+                      <tr>@for (c of previewColumns(t.name); track c) { <td>{{ row[c] }}</td> }</tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-note">Loading preview&hellip;</div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+} @else if (!error()) {
+  <div class="empty-note">Loading data sources&hellip;</div>
+}
+
+<div class="field-label" style="margin: 6px 0 -6px;">Other configured connections</div>
+<div class="placeholder-grid">
+  @for (p of placeholders; track p.name) {
+    <div class="card card-pad placeholder-card">
+      <div class="ph-row">
+        <div class="ph-title">{{ p.name }}</div>
+        <span class="placeholder-badge">DEMO</span>
+      </div>
+      <div class="ph-driver">{{ p.driver }}</div>
+      <div class="ph-note">{{ p.note }}</div>
+    </div>
+  }
+</div>

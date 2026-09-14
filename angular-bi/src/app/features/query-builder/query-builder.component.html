@@ -1,0 +1,173 @@
+<div class="page-head">
+  <div class="page-icon"><svg width="20" height="20" viewBox="0 0 24 24"><text x="1" y="17" font-family="IBM Plex Mono" font-size="16" font-weight="700" fill="currentColor">&#402;x</text></svg></div>
+  <div>
+    <h1 class="page-title">Query Builder</h1>
+    <div class="page-sub">Items 03, 04, 05 &mdash; formula editor, custom visuals, filters</div>
+  </div>
+  <div class="head-spacer"></div>
+  <div class="mode-tabs">
+    <button [class.active]="mode() === 'visual'" (click)="mode.set('visual')">Visual</button>
+    <button [class.active]="mode() === 'formula'" (click)="mode.set('formula')">Formula</button>
+    <button class="ai" [class.active]="mode() === 'ai'" (click)="mode.set('ai')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 4.9L19 9.5l-4.9 1.8L12 16l-1.8-4.7L5 9.5l5-1.8L12 3Z"/></svg>
+      AI
+    </button>
+  </div>
+</div>
+
+@if (mode() === 'visual') {
+  <div class="editor-body">
+    <div class="card builder-panel">
+      <div class="field-row">
+        <div class="field-label">Table <span class="live-badge">LIVE</span></div>
+        <select [(ngModel)]="table" (ngModelChange)="onTableChange()">
+          @for (t of tables; track t) { <option [value]="t">{{ t }}</option> }
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Metric</div>
+        <div class="metric-toggle">
+          <button [class.active]="metricType() === 'agg'" (click)="metricType.set('agg')">Aggregate</button>
+          <button [class.active]="metricType() === 'ratio'" (click)="metricType.set('ratio')">Ratio (e.g. Productivity %)</button>
+        </div>
+      </div>
+
+      @if (metricType() === 'agg') {
+        <div class="inline-row">
+          <select [(ngModel)]="agg" style="width: 110px;">@for (a of aggs; track a) { <option [value]="a">{{ a }}</option> }</select>
+          <select [(ngModel)]="field" style="flex: 1;">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+        </div>
+      } @else {
+        <div class="inline-row">
+          <select [(ngModel)]="agg" style="width: 110px;">@for (a of aggs; track a) { <option [value]="a">{{ a }}</option> }</select>
+          <select [(ngModel)]="numerator" style="flex: 1;">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+          <span style="color:#8B93AC;font-weight:700;">&divide;</span>
+          <select [(ngModel)]="denominator" style="flex: 1;">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+        </div>
+      }
+
+      <div class="field-row">
+        <div class="field-label">Group By</div>
+        <select [(ngModel)]="groupBy">
+          <option value="">None</option>
+          @for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Filters</div>
+        @for (f of filters(); track $index; let i = $index) {
+          <div class="filter-row">
+            <select [(ngModel)]="f.field">@for (c of schema(); track c) { <option [value]="c">{{ c }}</option> }</select>
+            <select [(ngModel)]="f.op" style="flex: 0 0 70px;">@for (o of ops; track o) { <option [value]="o">{{ o }}</option> }</select>
+            <input type="text" [(ngModel)]="f.value">
+            <button class="remove-btn" (click)="removeFilter(i)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+        }
+        <button class="ghost-add" (click)="addFilter()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+          Add filter
+        </button>
+      </div>
+
+      <div class="filter-caps">
+        <span class="cap live-badge">Visual · Field · Operator · Value</span>
+        <span class="cap live-badge">Group By</span>
+        <span class="cap placeholder-badge">Top N / Bottom N</span>
+        <span class="cap placeholder-badge">Relative Date</span>
+        <span class="cap placeholder-badge">Boolean</span>
+        <span class="cap placeholder-badge">Cascading filters</span>
+      </div>
+
+      <div class="inline-row">
+        <button class="btn btn-primary" (click)="run()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 4l14 8-14 8V4Z"/></svg>
+          Run Query
+        </button>
+        <input type="text" [(ngModel)]="measureName" placeholder="Measure name (e.g. Productivity %)" style="flex: 1; min-width: 160px;">
+        <button class="btn" (click)="saveMeasure()">Save Measure</button>
+      </div>
+
+      @if (runError()) { <div class="status-msg err">{{ runError() }}</div> }
+      @if (runOk()) { <div class="status-msg ok">{{ runOk() }}</div> }
+
+      <div class="field-row">
+        <div class="field-label">Generated SQL</div>
+        <div class="sql-box">{{ sql() || 'Run the query to see the compiled SQL.' }}</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Saved Measures</div>
+        <div class="measure-list">
+          @for (m of measures(); track m.id) {
+            <div class="measure-item">
+              <span class="n">{{ m.name }}</span>
+              <span class="t">{{ m.config.table }}</span>
+              <button class="btn btn-quiet" (click)="loadMeasure(m)">Load</button>
+              <button class="remove-btn" (click)="deleteMeasure(m.id)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </div>
+          }
+          @if (!measures().length) { <div class="empty-note">No measures saved yet.</div> }
+        </div>
+      </div>
+    </div>
+
+    <div class="card preview-panel">
+      <div class="preview-head">
+        <div class="preview-title"><span class="live-dot"></span>Live Preview</div>
+        <div class="chart-type-switch">
+          <button [class.active]="chartType() === 'bar'" (click)="chartType.set('bar')" title="Bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="10" width="4" height="10" rx="1"/><rect x="10" y="5" width="4" height="15" rx="1"/><rect x="16" y="13" width="4" height="7" rx="1"/></svg>
+          </button>
+          <button [class.active]="chartType() === 'line'" (click)="chartType.set('line')" title="Line">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-6 4 3 7-9"/></svg>
+          </button>
+          <button [class.active]="chartType() === 'pie'" (click)="chartType.set('pie')" title="Pie">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7.8-4.5"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="chart-caption">Custom visual extensibility (item 04) — native SVG/CSS, no chart-library dependency. <span class="live-badge">LIVE</span></div>
+
+      @if (!rows().length) {
+        <div class="empty-note">Run a query to see results.</div>
+      } @else if (chartType() === 'bar') {
+        <div class="bars">
+          @for (r of rows(); track $index) {
+            <div class="bar-col">
+              <div class="bar-value">{{ displayValue(r.value) }}</div>
+              <div class="bar" [style.height.%]="((r.value ?? 0) / maxValue()) * 100"></div>
+              <div class="bar-label">{{ groupLabel(r) }}</div>
+            </div>
+          }
+        </div>
+      } @else if (chartType() === 'line') {
+        <svg class="line-chart" viewBox="0 0 300 160" preserveAspectRatio="none">
+          <polyline [attr.points]="linePoints()" fill="none" stroke="#6C63F5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          @for (r of rows(); track $index; let i = $index) {
+            <circle [attr.cx]="linePointX(i)" [attr.cy]="linePointY(r.value)" r="4" fill="#4740C9"/>
+          }
+        </svg>
+        <div class="line-labels">@for (r of rows(); track $index) { <span>{{ groupLabel(r) }}</span> }</div>
+      } @else {
+        <div class="pie-wrap">
+          <div class="pie-circle" [style.background]="pieGradient()"></div>
+          <div class="pie-legend">
+            @for (s of pieSlices(); track s.label) {
+              <div class="legend-row"><span class="swatch" [style.background]="s.color"></span>{{ s.label }} &mdash; {{ s.pct | number:'1.0-0' }}%</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+} @else if (mode() === 'formula') {
+  <app-formula-mode [measures]="measures()" />
+} @else {
+  <app-ai-placeholder />
+}

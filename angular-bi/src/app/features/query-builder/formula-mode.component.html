@@ -1,0 +1,46 @@
+<div class="fm-body">
+  <div class="fm-editor">
+    <div class="field-label" style="margin-bottom: 8px;">Formula (arithmetic over saved measures) <span class="live-badge">LIVE</span></div>
+    <textarea class="formula-input" rows="3" [(ngModel)]="formula" spellcheck="false"></textarea>
+
+    @if (!measures.length) {
+      <div class="empty-note" style="margin: 8px 0;">No saved measures yet — save one from Visual mode first, then reference it here as <code>[Measure Name]</code>.</div>
+    } @else {
+      <div class="ref-hint">Available: @for (m of measures; track m.id) { <span class="ref-chip">[{{ m.name }}]</span> }</div>
+    }
+
+    <button class="btn btn-primary" style="margin-top: 10px;" (click)="evaluate()" [disabled]="evaluating()">
+      @if (evaluating()) { Evaluating&hellip; } @else { Evaluate }
+    </button>
+
+    @if (result(); as r) {
+      @if (r.ok) {
+        <div class="status-msg ok" style="margin-top: 10px;">= {{ r.value?.toFixed(4) }}</div>
+      } @else {
+        <div class="status-msg err" style="margin-top: 10px;">{{ r.error }}</div>
+      }
+    }
+
+    <div class="field-label" style="margin: 18px 0 8px;">Examples</div>
+    @for (ex of examples; track ex.code) {
+      <div class="ex-card" (click)="useExample(ex.code)">
+        <span class="ex-tag">{{ ex.tag }}</span>
+        <div class="ex-body"><div class="ex-desc">{{ ex.desc }}</div><div class="ex-code">{{ ex.code }}</div></div>
+      </div>
+    }
+  </div>
+
+  <div class="fm-placeholder placeholder-panel">
+    <div class="ph-head"><span class="placeholder-badge">DEMO PLACEHOLDER</span></div>
+    <b>Filter-context modification (CALCULATE-equivalent)</b>
+    <p>
+      Real DAX's hard part isn't the arithmetic above &mdash; it's changing the
+      filter context a measure is evaluated under, e.g.
+      <code>CALCULATE([Productivity %], Year = 2026)</code>. Per the feasibility
+      tracker, that needs a real relationship/semantic layer (Cube.dev or
+      equivalent) sitting on the data platform, not something this local demo
+      approximates. Shown here as a labeled roadmap item, not faked.
+    </p>
+    <div class="fake-code">CALCULATE(<br>&nbsp;&nbsp;[Productivity %],<br>&nbsp;&nbsp;Year = 2026<br>)</div>
+  </div>
+</div>

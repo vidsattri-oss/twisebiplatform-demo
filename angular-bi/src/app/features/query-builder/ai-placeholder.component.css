@@ -1,0 +1,16 @@
+.ai-panel { max-width: 560px; }
+.ph-head { margin-bottom: 14px; }
+
+.ai-input-mock { display: flex; align-items: center; gap: 10px; background: #fff; border: 1.5px solid #DCD9FB; border-radius: 12px; padding: 12px 14px; }
+.ai-icon { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(120deg, #6C63F5, #3D63E8); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ai-text { font-size: 13px; color: #16203D; }
+
+.arrow-down { display: flex; justify-content: center; color: #C7A876; margin: 10px 0; }
+
+.ai-response-mock { background: #F9F8FF; border: 1px solid #E5E1FC; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+.resp-label { font-family: 'Plus Jakarta Sans'; font-size: 11.5px; font-weight: 800; color: #5850E6; margin-bottom: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: #fff; border: 1px solid #E5E1FC; border-radius: 9px; padding: 7px 11px; font-size: 12px; font-weight: 600; color: #3A4160; }
+.chip .k { color: #8B93AC; font-weight: 500; margin-right: 4px; }
+
+.note { font-size: 12px; margin: 0; }

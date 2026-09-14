@@ -1,0 +1,53 @@
+<div class="shell">
+  <div class="sidebar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M4 9 L16 5 L28 9 L16 13 Z" fill="#F5811F"/><path d="M16 13 L16 27 M8 17 L24 17" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div>
+        <div class="brand-title">AL TASNIM</div>
+        <div class="brand-sub">BI Prototype — Angular</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" routerLink="/data-sources" routerLinkActive="active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+        Data Sources
+      </a>
+      <a class="nav-item" routerLink="/json-explorer" routerLinkActive="active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/></svg>
+        JSON Explorer
+      </a>
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20V14"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" routerLink="/query-builder" routerLinkActive="active">
+        <svg width="17" height="17" viewBox="0 0 24 24"><text x="1" y="17" font-family="IBM Plex Mono" font-size="14" font-weight="700" fill="currentColor">&#402;x</text></svg>
+        Query Builder
+      </a>
+    </nav>
+    <div class="sidebar-note">
+      <b>6 P&#8209;1 features, one app.</b><br>
+      Each screen is marked <span class="mini-live">LIVE</span> (real SQLite query) or
+      <span class="mini-demo">DEMO</span> (placeholder) &mdash; nothing here silently fakes data.
+    </div>
+  </div>
+
+  <div class="main-col">
+    <div class="topbar">
+      <div class="crumb">Tasnim Maps &mdash; Angular Prototype</div>
+      <div class="spacer"></div>
+      <div class="status-pill">
+        @if (connected() === 'up') {
+          <span class="status-dot"></span><span>Backend connected</span>
+        } @else if (connected() === 'down') {
+          <span class="status-dot warn"></span><span>Backend unreachable &mdash; start query-builder-prototype</span>
+        } @else {
+          <span class="status-dot warn"></span><span>Checking&hellip;</span>
+        }
+      </div>
+    </div>
+    <div class="page-outlet">
+      <router-outlet />
+    </div>
+  </div>
+</div>

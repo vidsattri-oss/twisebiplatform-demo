@@ -1,0 +1,13 @@
+{
+  "name": "query-builder-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local prototype: SQLite data source + a wired Visual query builder, proving the Cube.dev-style metadata-validation pattern from the feasibility study.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
