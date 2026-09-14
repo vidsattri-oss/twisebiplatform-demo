@@ -21,7 +21,7 @@ const DEV_ORIGIN = 'http://localhost:4200';
 app.use((req, res, next) => {
   if (req.headers.origin === DEV_ORIGIN) {
     res.setHeader('Access-Control-Allow-Origin', DEV_ORIGIN);
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204);
@@ -386,6 +386,19 @@ app.post('/api/dashboards', (req, res, next) => {
   }
 });
 
+app.patch('/api/dashboards/:id', (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { name } = req.body || {};
+    if (!name || !String(name).trim()) throw new HttpError(400, 'name is required');
+    const info = db.prepare('UPDATE dashboards SET name = ? WHERE id = ?').run(String(name).trim(), id);
+    if (info.changes === 0) throw new HttpError(404, 'Dashboard not found');
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.delete('/api/dashboards/:id', (req, res, next) => {
   try {
     const id = Number(req.params.id);
@@ -418,6 +431,27 @@ app.post('/api/dashboards/:id/charts', (req, res, next) => {
       .prepare('INSERT INTO dashboard_charts (dashboard_id, title, chart_type, config_json, position) VALUES (?, ?, ?, ?, ?)')
       .run(dashboardId, title, chartType, JSON.stringify(config), maxPos + 1);
     res.json({ id: info.lastInsertRowid });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.patch('/api/dashboards/:dashboardId/charts/:chartId', (req, res, next) => {
+  try {
+    const { dashboardId, chartId } = req.params;
+    const existing = db.prepare('SELECT * FROM dashboard_charts WHERE id = ? AND dashboard_id = ?').get(chartId, dashboardId);
+    if (!existing) throw new HttpError(404, 'Chart not found');
+
+    const { title, chartType, config } = req.body || {};
+    const nextTitle = title !== undefined ? String(title).trim() : existing.title;
+    const nextType = chartType !== undefined ? chartType : existing.chart_type;
+    const nextConfig = config !== undefined ? config : JSON.parse(existing.config_json);
+    if (!nextTitle) throw new HttpError(400, 'title is required');
+    buildQuery(nextConfig); // validate before saving — same gate as creating a chart
+
+    db.prepare('UPDATE dashboard_charts SET title = ?, chart_type = ?, config_json = ? WHERE id = ? AND dashboard_id = ?')
+      .run(nextTitle, nextType, JSON.stringify(nextConfig), chartId, dashboardId);
+    res.json({ ok: true });
   } catch (e) {
     next(e);
   }

@@ -18,12 +18,29 @@
 
 <div class="dash-tabs">
   @for (d of dashboards(); track d.id) {
-    <button class="dash-tab" [class.active]="d.id === activeDashboardId()" (click)="selectDashboard(d.id)">
-      {{ d.name }}
-      @if (d.id !== dashboards()[0].id && d.id === activeDashboardId()) {
-        <span class="dash-del" (click)="$event.stopPropagation(); deleteDashboard(d.id)">&times;</span>
-      }
-    </button>
+    @if (editingDashboardId() === d.id) {
+      <input
+        class="dash-tab-edit"
+        type="text"
+        [(ngModel)]="editDashboardName"
+        (keyup.enter)="saveRenameDashboard(d)"
+        (keyup.escape)="editingDashboardId.set(null)"
+        (blur)="saveRenameDashboard(d)"
+        (click)="$event.stopPropagation()"
+        autofocus>
+    } @else {
+      <button
+        class="dash-tab"
+        [class.active]="d.id === activeDashboardId()"
+        title="Double-click to rename"
+        (click)="selectDashboard(d.id)"
+        (dblclick)="startRenameDashboard(d)">
+        {{ d.name }}
+        @if (d.id !== dashboards()[0].id && d.id === activeDashboardId()) {
+          <span class="dash-del" title="Delete dashboard" (click)="$event.stopPropagation(); deleteDashboard(d.id)">&times;</span>
+        }
+      </button>
+    }
   }
   <button class="dash-tab new" (click)="openNewDashboard()">+ New dashboard</button>
 </div>
@@ -36,17 +53,31 @@
   </div>
 }
 
-<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table — including any Table visual, which always shows the live, filtered detail rows. Click a bar's magnifier for a quick one-off peek. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
+<div class="hint">Click a bar to cross-filter every chart on this dashboard that shares its table — including any Table visual, which always shows the live, filtered detail rows. Right-click a bar to see its underlying records. Double-click a dashboard tab or chart title to rename it; use the pencil icon to edit a chart's query. Charts are added from the Query Builder's "Add to Dashboard" action.</div>
 
 <div class="chart-grid">
   @for (cs of charts(); track cs.chart.id) {
     <div class="card card-pad chart-card" [class.table-card]="cs.chart.chartType === 'table'">
       <div class="chart-head">
-        <div class="chart-title">
-          {{ cs.chart.title }}
-          @if (cs.chart.chartType === 'table') { <span class="table-badge">TABLE &middot; LINKED TO ALL FILTERS</span> }
-        </div>
+        @if (editingChartId() === cs.chart.id) {
+          <input
+            class="chart-title-edit"
+            type="text"
+            [(ngModel)]="editChartTitle"
+            (keyup.enter)="saveRenameChart(cs)"
+            (keyup.escape)="editingChartId.set(null)"
+            (blur)="saveRenameChart(cs)"
+            autofocus>
+        } @else {
+          <div class="chart-title" title="Double-click to rename" (dblclick)="startRenameChart(cs)">
+            {{ cs.chart.title }}
+            @if (cs.chart.chartType === 'table') { <span class="table-badge">TABLE &middot; LINKED TO ALL FILTERS</span> }
+          </div>
+        }
         <div class="chart-actions">
+          <button class="icon-btn" title="Edit query" (click)="editChartQuery(cs)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
           <button class="icon-btn" title="Expand" (click)="expand(cs)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
           </button>
@@ -76,11 +107,14 @@
         <div class="bars">
           @for (b of cs.bars; track b.rawKey) {
             <div class="bar-col" [class.dim]="selection.current() && !selection.isActive(cs.chart.config.connectionId, cs.chart.config.table, cs.chart.config.groupBy || '', b.rawKey)">
-              <button class="drill-btn" title="Drill down" (click)="openDrilldown(cs, b.rawKey, b.label)">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-              </button>
               <div class="bar-value">{{ displayValue(cs, b.value) }}</div>
-              <div class="bar" [class.active]="selection.isActive(cs.chart.config.connectionId, cs.chart.config.table, cs.chart.config.groupBy || '', b.rawKey)" [style.height.%]="b.pct" (click)="onBarClick(cs, b.rawKey)"></div>
+              <div
+                class="bar"
+                title="Click to filter · Right-click to see records"
+                [class.active]="selection.isActive(cs.chart.config.connectionId, cs.chart.config.table, cs.chart.config.groupBy || '', b.rawKey)"
+                [style.height.%]="b.pct"
+                (click)="onBarClick(cs, b.rawKey)"
+                (contextmenu)="onBarContextMenu($event, cs, b.rawKey, b.label)"></div>
               <div class="bar-label">{{ b.label }}</div>
             </div>
           }

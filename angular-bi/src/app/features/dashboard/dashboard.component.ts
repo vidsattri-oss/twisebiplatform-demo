@@ -1,8 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Observable, map, of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { SelectionService } from '../../core/selection.service';
+import { EditChartService } from '../../core/edit-chart.service';
 import { DashboardChart, DashboardInfo, QueryResultRow } from '../../core/models';
 
 interface Bar {
@@ -33,6 +35,8 @@ interface ChartState {
 })
 export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
+  private readonly editChart = inject(EditChartService);
   readonly selection = inject(SelectionService);
 
   readonly error = signal<string | null>(null);
@@ -42,6 +46,13 @@ export class DashboardComponent implements OnInit {
 
   readonly showNewDashboard = signal(false);
   readonly newDashboardName = signal('');
+
+  // Inline rename — dashboard tabs and chart titles are editable in place
+  // (double-click to enter, Enter/blur to save, Escape to cancel).
+  readonly editingDashboardId = signal<number | null>(null);
+  readonly editDashboardName = signal('');
+  readonly editingChartId = signal<number | null>(null);
+  readonly editChartTitle = signal('');
 
   readonly expanded = signal<ChartState | null>(null);
   readonly drilldown = signal<{ chart: ChartState; groupValue: string | number; rows: Record<string, unknown>[]; columns: string[] } | null>(null);
@@ -183,6 +194,12 @@ export class DashboardComponent implements OnInit {
     this.expanded.set(null);
   }
 
+  /** Power BI's actual pattern: left-click a data point cross-filters (onBarClick); right-click opens "See records" for just that point. */
+  onBarContextMenu(event: MouseEvent, cs: ChartState, rawKey: string, label: string): void {
+    event.preventDefault();
+    this.openDrilldown(cs, rawKey, label);
+  }
+
   openDrilldown(cs: ChartState, rawKey: string, label: string): void {
     const cfg = cs.chart.config;
     this.api
@@ -234,5 +251,49 @@ export class DashboardComponent implements OnInit {
         this.selectDashboard(res.dashboards[0].id);
       });
     });
+  }
+
+  startRenameDashboard(d: DashboardInfo): void {
+    this.editingDashboardId.set(d.id);
+    this.editDashboardName.set(d.name);
+  }
+
+  saveRenameDashboard(d: DashboardInfo): void {
+    const name = this.editDashboardName().trim();
+    this.editingDashboardId.set(null);
+    if (!name || name === d.name) return;
+    this.api.renameDashboard(d.id, name).subscribe(() => {
+      this.dashboards.update((ds) => ds.map((x) => (x.id === d.id ? { ...x, name } : x)));
+    });
+  }
+
+  startRenameChart(cs: ChartState): void {
+    this.editingChartId.set(cs.chart.id);
+    this.editChartTitle.set(cs.chart.title);
+  }
+
+  saveRenameChart(cs: ChartState): void {
+    const title = this.editChartTitle().trim();
+    this.editingChartId.set(null);
+    const dashId = this.activeDashboardId();
+    if (!title || title === cs.chart.title || !dashId) return;
+    this.api.updateDashboardChart(dashId, cs.chart.id, { title }).subscribe(() => {
+      cs.chart = { ...cs.chart, title };
+      this.charts.set([...this.charts()]);
+    });
+  }
+
+  /** Hands the chart's full config to Query Builder and navigates there to edit it — the config editor already lives there, so this reuses it instead of duplicating it in-place. */
+  editChartQuery(cs: ChartState): void {
+    const dashboardId = this.activeDashboardId();
+    if (!dashboardId) return;
+    this.editChart.request({
+      dashboardId,
+      chartId: cs.chart.id,
+      title: cs.chart.title,
+      chartType: cs.chart.chartType,
+      config: cs.chart.config,
+    });
+    this.router.navigate(['/query-builder']);
   }
 }

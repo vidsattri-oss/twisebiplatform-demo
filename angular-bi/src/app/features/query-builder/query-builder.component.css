@@ -9,6 +9,8 @@
 .mode-tabs button.active { background: #101A48; color: #fff; }
 .mode-tabs button.ai.active { background: linear-gradient(120deg, #6C63F5, #3D63E8); }
 
+.edit-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #EEF0FF; border: 1px solid #C9CBF7; color: #3A3F8C; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+
 .editor-body { display: flex; gap: 18px; align-items: flex-start; }
 .builder-panel { flex: 1.15; display: flex; flex-direction: column; gap: 16px; padding: 20px 22px; }
 .field-row { display: flex; flex-direction: column; gap: 6px; }

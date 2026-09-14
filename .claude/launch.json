@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "angular-bi",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "angular-bi", "start"],
+      "port": 4200
+    }
+  ]
+}

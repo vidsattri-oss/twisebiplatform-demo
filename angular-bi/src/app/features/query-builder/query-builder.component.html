@@ -15,6 +15,13 @@
   </div>
 </div>
 
+@if (editingChart(); as ec) {
+  <div class="edit-banner">
+    <span>Editing <strong>&ldquo;{{ ec.title }}&rdquo;</strong> from the <strong>{{ ec.chartType === 'table' ? 'Table' : ec.chartType }}</strong> chart on the dashboard &mdash; changes save back to it.</span>
+    <button class="btn btn-quiet" (click)="cancelChartEdit()">Cancel edit</button>
+  </div>
+}
+
 @if (mode() === 'visual') {
   <div class="editor-body">
     <div class="card builder-panel">
@@ -126,9 +133,14 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 4l14 8-14 8V4Z"/></svg>
           Run Query
         </button>
-        <input type="text" [(ngModel)]="measureName" placeholder="Measure name (e.g. Productivity %)" style="flex: 1; min-width: 160px;">
-        <button class="btn" (click)="saveMeasure()">Save Measure</button>
-        <button class="btn" (click)="openAddToDashboard()">Add to Dashboard</button>
+        @if (editingChart()) {
+          <input type="text" [(ngModel)]="dashboardChartTitle" placeholder="Chart title" style="flex: 1; min-width: 160px;">
+          <button class="btn btn-primary" (click)="saveChartEdit()">Update chart</button>
+        } @else {
+          <input type="text" [(ngModel)]="measureName" placeholder="Measure name (e.g. Productivity %)" style="flex: 1; min-width: 160px;">
+          <button class="btn" (click)="saveMeasure()">Save Measure</button>
+          <button class="btn" (click)="openAddToDashboard()">Add to Dashboard</button>
+        }
       </div>
 
       @if (runError()) { <div class="status-msg err">{{ runError() }}</div> }

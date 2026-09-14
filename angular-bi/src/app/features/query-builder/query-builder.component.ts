@@ -1,7 +1,9 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/api.service';
+import { EditChartService, PendingChartEdit } from '../../core/edit-chart.service';
 import { AggFn, ConnectionInfo, DashboardInfo, FilterOp, Metric, QueryConfig, QueryJoin, QueryResultRow, SavedMeasure } from '../../core/models';
 import { FormulaModeComponent } from './formula-mode.component';
 import { AiPlaceholderComponent } from './ai-placeholder.component';
@@ -26,6 +28,11 @@ const PIE_COLORS = ['#6C63F5', '#3D63E8', '#17A567', '#F5811F', '#B0413E', '#585
 })
 export class QueryBuilderComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
+  private readonly editChartService = inject(EditChartService);
+
+  /** Set when arriving here via Dashboard's "Edit query" action — swaps "Add to Dashboard" for "Update chart". */
+  readonly editingChart = signal<PendingChartEdit | null>(null);
 
   readonly aggs: AggFn[] = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'];
   readonly ops: FilterOp[] = ['=', '!=', '>', '<', '>=', '<='];
@@ -123,8 +130,48 @@ export class QueryBuilderComponent implements OnInit {
       for (const row of res.rows) names[row['id'] as number] = row['name'] as string;
       this.crewNames.set(names);
     });
-    this.loadSchema();
     this.loadMeasures();
+
+    const pendingEdit = this.editChartService.consume();
+    if (pendingEdit) {
+      this.applyChartEdit(pendingEdit);
+    } else {
+      this.loadSchema();
+      this.run();
+    }
+  }
+
+  /** Populates the form from an existing dashboard chart's config — same idea as loadMeasure(), plus join fields and chart type. */
+  private applyChartEdit(edit: PendingChartEdit): void {
+    this.editingChart.set(edit);
+    this.chartType.set(edit.chartType);
+    this.dashboardChartTitle.set(edit.title);
+
+    const cfg = edit.config;
+    this.connectionId.set(cfg.connectionId);
+    this.table.set(cfg.table);
+    this.metricType.set(cfg.metric.type);
+    this.agg.set(cfg.metric.agg);
+    if (cfg.metric.type === 'agg') {
+      this.field.set(cfg.metric.field);
+    } else {
+      this.numerator.set(cfg.metric.numerator);
+      this.denominator.set(cfg.metric.denominator);
+    }
+    this.groupBy.set(cfg.groupBy ?? '');
+    this.filters.set(cfg.filters);
+    if (cfg.join) {
+      this.joinEnabled.set(true);
+      this.joinConnectionId.set(cfg.join.connectionId);
+      this.joinTable.set(cfg.join.table);
+      this.joinLeftField.set(cfg.join.leftField);
+      this.joinRightField.set(cfg.join.rightField);
+      this.onJoinTableChange();
+    } else {
+      this.joinEnabled.set(false);
+    }
+
+    this.api.getTableSchema(cfg.connectionId, cfg.table).subscribe((res) => this.schema.set(res.columns.map((c) => c.name)));
     this.run();
   }
 
@@ -358,5 +405,22 @@ export class QueryBuilderComponent implements OnInit {
     } else if (this.targetDashboardId() != null) {
       doAdd(this.targetDashboardId()!);
     }
+  }
+
+  saveChartEdit(): void {
+    this.runError.set(null);
+    this.runOk.set(null);
+    const edit = this.editingChart();
+    if (!edit) return;
+    const title = this.dashboardChartTitle().trim() || edit.title;
+    this.api.updateDashboardChart(edit.dashboardId, edit.chartId, { title, chartType: this.chartType(), config: this.buildConfig() }).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: (err) => this.runError.set(err?.error?.error ?? 'Could not update chart'),
+    });
+  }
+
+  cancelChartEdit(): void {
+    this.editingChart.set(null);
+    this.router.navigate(['/dashboard']);
   }
 }

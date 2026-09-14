@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
+  ChartType,
   ColumnInfo,
   ConnectionInfo,
   DashboardChart,
@@ -95,6 +96,10 @@ export class ApiService {
     return this.http.post<{ id: number }>(`${this.base}/dashboards`, { name });
   }
 
+  renameDashboard(id: number, name: string): Observable<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`${this.base}/dashboards/${id}`, { name });
+  }
+
   deleteDashboard(id: number): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.base}/dashboards/${id}`);
   }
@@ -105,6 +110,14 @@ export class ApiService {
 
   addDashboardChart(dashboardId: number, title: string, chartType: string, config: QueryConfig): Observable<{ id: number }> {
     return this.http.post<{ id: number }>(`${this.base}/dashboards/${dashboardId}/charts`, { title, chartType, config });
+  }
+
+  updateDashboardChart(
+    dashboardId: number,
+    chartId: number,
+    patch: Partial<{ title: string; chartType: ChartType; config: QueryConfig }>,
+  ): Observable<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`${this.base}/dashboards/${dashboardId}/charts/${chartId}`, patch);
   }
 
   deleteDashboardChart(dashboardId: number, chartId: number): Observable<{ ok: boolean }> {
