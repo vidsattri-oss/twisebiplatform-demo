@@ -111,10 +111,23 @@ export class QueryBuilderComponent implements OnInit {
     this.api.getTableSchema(this.table()).subscribe((res) => this.schema.set(res.columns.map((c) => c.name)));
   }
 
+  /**
+   * Switching tables invalidates every column reference the form is
+   * currently holding — this resets them to the new table's own columns
+   * once its schema loads, rather than leaving stale references (e.g.
+   * "actual_hours" selected against a table that has no such column).
+   */
   onTableChange(): void {
     this.filters.set([]);
     this.groupBy.set('');
-    this.loadSchema();
+    this.api.getTableSchema(this.table()).subscribe((res) => {
+      const cols = res.columns.map((c) => c.name);
+      this.schema.set(cols);
+      const first = cols[0] ?? '';
+      this.field.set(first);
+      this.numerator.set(first);
+      this.denominator.set(cols[1] ?? first);
+    });
   }
 
   addFilter(): void {
