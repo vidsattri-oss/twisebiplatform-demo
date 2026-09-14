@@ -15,6 +15,7 @@
       --color-link: #3d63e8;
       --color-good: #17a567; --color-good-tint: rgba(23,165,103,0.10);
       --color-warn: #9a6b0c; --color-warn-tint: rgba(245,129,31,0.10);
+      --color-bad: #b3423c; --color-bad-tint: rgba(179,66,60,0.06);
       --font-sans: 'Geist', system-ui, sans-serif;
       --font-serif: 'Instrument Serif', serif;
       --font-mono: 'Geist Mono', ui-monospace, monospace;
@@ -54,6 +55,15 @@
     }
     .rec::before { content: 'RECOMMENDATION'; display: block; font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; color: var(--color-accent); margin-bottom: 0.35rem; }
 
+    .limit {
+      background: var(--color-bad-tint); border: 1px solid rgba(179,66,60,0.25); border-radius: 8px;
+      padding: 0.85rem 1rem; margin-top: 0.7rem; font-size: 0.88rem;
+    }
+    .limit::before { content: 'LIMITATION VS. THE ACTUAL REQUIREMENT'; display: block; font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.08em; color: var(--color-bad); margin-bottom: 0.35rem; }
+    .limit ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
+    .limit li { margin-bottom: 0.35rem; }
+    .limit li:last-child { margin-bottom: 0; }
+
     .section { margin-top: 2.5rem; }
     .section-eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 0.5rem; }
     h2 { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 400; margin-bottom: 0.9rem; }
@@ -90,6 +100,15 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>A real connection registry (<code>connections.js</code>) backed by SQLite files, with every table/column validated dynamically via <code>PRAGMA table_info</code> — no hardcoded table list, so a new connection becomes queryable with zero code changes. Proved this by standing up a second database (<code>sales.db</code>, a software company's customers/deals/invoices) and connecting it live through a new "Add Connection" UI restricted to files the server already knows about. Cross-connection joins work for real via SQLite's <code>ATTACH DATABASE</code> — verified against an injection attempt, and the fan-out risk of joining on a shared dimension (region) rather than a unique key is surfaced directly in the UI, not hidden. Credential encryption (<code>secrets.js</code>, AES-256-GCM) is wired in even though SQLite doesn't need it yet.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>The join mechanism doesn't generalize.</strong> <code>ATTACH DATABASE</code> only works because both sides are SQLite files in the same process — it cannot join a real SQL Server source to Oracle, or to SAP, in the same query. A real heterogeneous join needs a federation layer (Cube.dev) or an ETL/staging step; "swap the resolver" understates that this is a different architecture, not a driver swap.</li>
+          <li><strong>No real enterprise driver exists yet</strong> — only SQLite is actually implemented. SQL Server/Oracle/SAP adapters, connection pooling, and retry/timeout handling are all unbuilt.</li>
+          <li><strong>No RBAC or row-level security</strong> — any user of the app sees every registered connection and every table in it. The actual requirement (a company-wide BI platform) needs per-user/per-role data access, which isn't modeled at all.</li>
+          <li><strong>Key management is dev-only</strong> — <code>secrets.js</code> falls back to an ephemeral in-memory key with a loud warning if <code>CONNECTION_SECRET_KEY</code> isn't set; production needs a real KMS/HSM-backed key with rotation.</li>
+          <li><strong>"Near real-time" isn't actually met at scale</strong> — every chart runs a live synchronous query on load/click. Fine for demo-sized SQLite files; the seconds-level freshness target from the original requirement needs a caching or materialized-view layer this prototype doesn't have.</li>
+        </ul>
+      </div>
       <div class="rec">When a real networked source (SQL Server, SAP) replaces a second SQLite file, swap the connection resolver for the documented Cube.dev/RDS path — the Angular-facing contract (list connections, get schema, run query) doesn't change. SAP/ERP is the one source still fully gated behind its own connector build (OData default, RFC fallback, per the tracker).</div>
     </div>
 
@@ -101,6 +120,15 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>A pure client-side Angular service (<code>FlattenService</code>) doing recursive dotted/bracketed-path flattening, unit-tested including edge cases (empty objects/arrays, null leaves). Extended this session into a real ingestion pipeline: flattened rows post to <code>/api/ingest</code>, which dynamically creates a sanitized SQL table and inserts via parameterized statements — from the seeded demo events, from any already-connected table, or from an uploaded <code>.json</code>/<code>.csv</code> file. The result is immediately a real, queryable table, not just a preview.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>Runs on the main thread</strong> — a large payload will visibly freeze the UI; there's no Web Worker yet, so "flatten a real API export" (often tens of MB) isn't actually safe today.</li>
+          <li><strong>No schema evolution.</strong> Each ingest infers a table shape from that moment's data; a second upload with new or renamed fields has no reconciliation path — it either fails or drifts silently. A real ingestion pipeline needs versioned schemas.</li>
+          <li><strong>CSV parsing is naive</strong> — no handling for quoted commas, embedded newlines, or encoding edge cases. Real-world CSV exports (e.g., from SAP or Excel) will break it.</li>
+          <li><strong>No dedup or upsert</strong> — every ingest is a full insert; re-running the same import duplicates rows. The actual requirement (repeatable ingestion, not one-off demo imports) needs idempotency.</li>
+          <li><strong>No data-quality or lineage tracking</strong> — no required-field validation, type-coercion reporting, or audit trail of what was ingested, when, and by whom, which a governed BI platform needs.</li>
+        </ul>
+      </div>
       <div class="rec">Move flattening into a Web Worker once payloads exceed the ~1&ndash;10MB threshold already documented. If this becomes a repeated ingestion path rather than one-off imports, add basic schema-evolution handling for new columns appearing in a later upload.</div>
     </div>
 
@@ -112,6 +140,14 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>A real <code>jsep</code>-based AST parser/evaluator (<code>FormulaService</code>) for arithmetic over saved measures — unit-tested specifically to prove it fails closed on an unknown measure reference and never evaluates via <code>eval()</code>/<code>Function()</code>. The CALCULATE-style filter-context half is an explicit, clearly labeled placeholder panel in the UI, not something quietly approximated with the wrong semantics.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>No context manipulation — arguably DAX's defining feature is entirely missing.</strong> CALCULATE-style filter-context override (e.g., "total sales ignoring the region filter") is a placeholder, not functional. Without it, this isn't a DAX-equivalent yet, just a calculator over pre-built numbers.</li>
+          <li><strong>No time intelligence</strong> — no SAMEPERIODLASTYEAR/TOTALYTD/rolling-average equivalents, which are near-universal asks for an operations dashboard (month-over-month, YoY).</li>
+          <li><strong>No cross-source formulas</strong> — a formula still can't combine a measure from Operations with one from Sales in a single expression; each side must already exist as a separately-built, pre-aggregated measure. This was an explicit early requirement ("formulas should support cross-source joins too") that isn't met.</li>
+          <li><strong>Can't express its own aggregation</strong> — the evaluator only combines numbers already computed by other queries; it can't itself define "SUM(x)/SUM(y) grouped by region" as one dynamic, re-evaluating formula the way DAX measures do.</li>
+        </ul>
+      </div>
       <div class="rec">Still the single largest schedule risk on the tracker. Before investing further in the client-side formula UI, spike Cube.dev (or Malloy) against 3&ndash;4 real cross-source formulas to validate the semantic-layer approach — the AST-parsing, no-<code>eval()</code> pattern built here should carry over unchanged to whatever real engine replaces the demo backend.</div>
     </div>
 
@@ -123,6 +159,14 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>Native SVG/CSS rendering for Bar, Line, and Pie &mdash; no charting-library dependency. This session added a fourth type, Table, the exact same way: one more entry in the chart-type switch and one more rendering branch, no architectural change required. That's the actual proof the rendering layer is swappable independent of the query/data layer, not just a claim.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>Not actually extensible by anyone but this codebase's developers.</strong> There's no plugin architecture — adding a visual means editing source and rebuilding/redeploying the whole app. A third party (or a less-technical internal team) can't add one, which is what "extensibility" usually implies.</li>
+          <li><strong>No map visual</strong> — a real gap for an oilfield/drilling company where rig and site geography is often the most natural way to view operations data; only 4 chart-shaped types exist, nothing geospatial.</li>
+          <li><strong>No complex/combo visuals</strong> — gauges, funnels, combo (bar+line), or custom D3 visuals aren't supported.</li>
+          <li><strong>Not built for scale or accessibility</strong> — no virtualization/binning for large category counts, and no screen-reader/keyboard-navigation support in the hand-rolled SVG.</li>
+        </ul>
+      </div>
       <div class="rec">Adding 1&ndash;2 more native types (scatter, gauge) is low-risk and would round out coverage before investing in a full plugin SDK (Module/Native Federation) for genuinely third-party visuals — that remains a bigger, separate effort.</div>
     </div>
 
@@ -134,6 +178,14 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>Field/operator/value filter rows plus Group By, validated server-side against the live schema with bound parameters &mdash; no client-supplied identifier reaches SQL unescaped. A capability-status chip row is honest about scope: Top N, Relative Date, Boolean, and Cascading filters are shown as explicit placeholders, never silently missing.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>Four common filter types don't work yet</strong> — Relative Date ("last 30 days"), Top N, Boolean toggles, and Cascading (dependent) filters are all placeholders. These are near-baseline expectations in any Power BI-comparable tool, not edge cases.</li>
+          <li><strong>No report-level slicers.</strong> Filters live per-chart in Query Builder; there's no shared, page-level filter widget a user sets once that every visual on a dashboard respects (cross-filter-by-click is a different mechanism, not a substitute).</li>
+          <li><strong>Can't filter on a calculated field</strong> — only raw table columns are filterable, not a formula/ratio result.</li>
+          <li><strong>No typeahead/search for high-cardinality fields</strong> — a plain <code>&lt;select&gt;</code> doesn't scale to filtering on, say, a customer name across thousands of rows.</li>
+        </ul>
+      </div>
       <div class="rec">Relative Date and Top N are the best next additions &mdash; both are pure SQL transformations (date math, <code>ORDER BY</code>/<code>LIMIT</code>) needing no new infrastructure, unlike Cascading filters, which depend on the same relationship metadata the formula editor is already waiting on.</div>
     </div>
 
@@ -145,6 +197,15 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>A connection+table-scoped <code>SelectionService</code> (an Angular signal) &mdash; generalized this session from "same Group By" to "same table," so clicking one chart's dimension filters every chart querying that table, not only ones grouped identically. Extended with a real Table visual as the "linked filters" surface (Power BI's table/matrix pattern), addable from the Query Builder exactly like any other chart type, plus a quick-peek drill-down modal &mdash; both reading the same shared selection state, verified end to end in the browser.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>Single selection only</strong> — picking a second data point replaces the filter instead of adding to it. Power BI supports multiple simultaneous highlighted selections (Ctrl+click); this doesn't yet.</li>
+          <li><strong>No real relationship model — this is the biggest structural gap.</strong> Cross-filtering only fires when two charts query the literal same table name. Two visuals on genuinely related tables (e.g., crews and the equipment assigned to them) do NOT filter each other, because there's no foreign-key/relationship metadata — the mechanism that makes Power BI's cross-filtering actually powerful across a whole data model, not just within one table.</li>
+          <li><strong>No cross-dashboard persistence</strong> — a selection clears on navigating away or reloading; there's no bookmarking or shareable filtered-view URL.</li>
+          <li><strong>Table visuals are filter receivers only</strong> — clicking a table row doesn't set a selection, so the linkage is one-directional, not the full symmetric model the original ask implied.</li>
+          <li><strong>No highlight-vs-filter distinction</strong> — Power BI can dim non-matching data (highlight) or remove it entirely (filter) as separate modes; this only ever removes.</li>
+        </ul>
+      </div>
       <div class="rec">Multi-select (Ctrl+click) was deliberately left out this round. Also worth a deliberate decision on whether Table visuals should become filter <em>sources</em> (a row click driving selection), not just receivers, if bidirectional cross-filtering turns out to matter for this audience.</div>
     </div>
 
@@ -156,12 +217,33 @@
       </div>
       <p class="block-label">Solution leveraged</p>
       <p>A static, clearly labeled example &mdash; no live model call, no backend request. Kept this way per explicit instruction, so the demo never implies a capability that isn't there.</p>
+      <div class="limit">
+        <ul>
+          <li><strong>Zero actual functionality — and likely the most expensive item to build for real.</strong> "Placeholder" understates the gap: a working version needs an LLM integration, a security review for what data gets sent to a model, per-query cost, and hallucination guardrails before it could safely sit in front of real operations/sales data. It shouldn't be treated as a small remaining step.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="section-eyebrow">Beyond any single feature</p>
+      <h2>Limitations the demo doesn't surface per-feature</h2>
+      <div class="feature" style="margin-top: 0;">
+        <div class="limit" style="margin-top: 0;">
+          <ul>
+            <li><strong>No authentication or authorization anywhere in the app.</strong> Every connection, table, and dashboard is visible to anyone who can reach the URL — there's no login, no roles, no row-level security. This is the single biggest gap between "working prototype" and "something a company deploys."</li>
+            <li><strong>Single-process, file-based backend.</strong> The Express server and SQLite files on disk can't be horizontally scaled or load-balanced the way a production BI backend needs — one process, one machine, one set of files.</li>
+            <li><strong>No caching, monitoring, or automated backup.</strong> Every dashboard load is a live query against source; there's no health/alerting instrumentation and no backup strategy for the SQLite files, which currently are the only copy of demo data.</li>
+            <li><strong>Real-time freshness is demonstrated at demo scale only.</strong> The original requirement was seconds-level freshness; that holds here because the data is tiny. Nothing in this build has been tested against production-scale tables or concurrent users.</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <div class="section">
       <p class="section-eyebrow">Where to spend the next cycle</p>
       <h2>Overall recommendations</h2>
       <ol class="priority-list">
+        <li><b>Add authentication and role-based access before any real deployment.</b> <span class="why">Every limitation above compounds this one — there's currently no login and no per-user data access at all, which blocks a real rollout regardless of how complete any single feature is.</span></li>
         <li><b>Build the SAP/ERP connector.</b> <span class="why">It's the one remaining gap in item 01 &mdash; everything else in connectivity is live. OData default, RFC fallback, per the plan already in the tracker.</span></li>
         <li><b>Spike Cube.dev against real formulas.</b> <span class="why">Item 03 is the highest schedule risk on the whole tracker. Validate the semantic-layer approach on 3&ndash;4 real cross-source formulas before building more UI around it.</span></li>
         <li><b>Add Relative Date and Top N filters.</b> <span class="why">Cheapest, highest-value gap in item 05 &mdash; pure SQL, no new infrastructure, unlike Cascading filters which need relationship metadata that doesn't exist yet.</span></li>
