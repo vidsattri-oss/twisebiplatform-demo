@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Each Feature Was Solved</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f4f5fa; --color-paper-2: #eef0f7;
+      --color-ink: #16203d; --color-muted: #5b6480; --color-soft: #8b93ac;
+      --color-rule: rgba(22,32,61,0.12);
+      --color-accent: #f5811f; --color-accent-tint: rgba(245,129,31,0.08);
+      --color-link: #3d63e8;
+      --color-good: #17a567; --color-good-tint: rgba(23,165,103,0.10);
+      --color-warn: #9a6b0c; --color-warn-tint: rgba(245,129,31,0.10);
+      --font-sans: 'Geist', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', serif;
+      --font-mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); min-height: 100vh; padding: 3rem 2rem; color: var(--color-ink); line-height: 1.55; }
+    .container { max-width: 880px; margin: 0 auto; }
+    .header { margin-bottom: 2.5rem; }
+    .header-eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.75rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.75rem, 3vw + 1rem, 2.4rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.12; margin-bottom: 0.6rem; }
+    .subtitle { font-size: 1rem; color: var(--color-muted); max-width: 62ch; }
+
+    .feature {
+      background: #fff; border: 1px solid var(--color-rule); border-radius: 10px;
+      padding: 1.5rem 1.75rem; margin-top: 1.25rem;
+    }
+    .feature-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+    .feature-num { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--color-accent); letter-spacing: 0.04em; }
+    .feature-title { font-family: var(--font-sans); font-size: 1.05rem; font-weight: 700; }
+    .status-pill {
+      font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 0.18rem 0.55rem; border-radius: 5px; margin-left: auto;
+    }
+    .status-pill.live { background: var(--color-good-tint); color: var(--color-good); }
+    .status-pill.partial { background: var(--color-warn-tint); color: var(--color-warn); }
+
+    .block-label {
+      font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-muted); margin: 0.9rem 0 0.4rem;
+    }
+    .block-label:first-of-type { margin-top: 0; }
+    .feature p { font-size: 0.9rem; color: var(--color-ink); }
+    .feature code { font-family: var(--font-mono); font-size: 0.85em; background: var(--color-paper-2); border-radius: 4px; padding: 0.1em 0.35em; }
+
+    .rec {
+      background: var(--color-accent-tint); border: 1px solid rgba(245,129,31,0.25); border-radius: 8px;
+      padding: 0.85rem 1rem; margin-top: 0.5rem; font-size: 0.88rem;
+    }
+    .rec::before { content: 'RECOMMENDATION'; display: block; font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; color: var(--color-accent); margin-bottom: 0.35rem; }
+
+    .section { margin-top: 2.5rem; }
+    .section-eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 0.5rem; }
+    h2 { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 400; margin-bottom: 0.9rem; }
+
+    .priority-list { list-style: none; counter-reset: pri; }
+    .priority-list li {
+      counter-increment: pri; position: relative; padding: 0.9rem 0 0.9rem 2.6rem; border-bottom: 1px solid var(--color-rule); font-size: 0.9rem;
+    }
+    .priority-list li:last-child { border-bottom: none; }
+    .priority-list li::before {
+      content: counter(pri); position: absolute; left: 0; top: 0.85rem; width: 1.7rem; height: 1.7rem;
+      border-radius: 50%; background: var(--color-ink); color: #fff; font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .priority-list b { display: block; margin-bottom: 0.2rem; }
+    .priority-list span.why { color: var(--color-muted); }
+
+    .footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-rule); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--color-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <p class="header-eyebrow">Angular BI Prototype · Implementation Summary</p>
+      <h1>How each of the six features was actually solved</h1>
+      <p class="subtitle">Not the plan — what got built, tested, and verified working in the running prototype this session, plus what to do next for each.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">01</span>
+        <span class="feature-title">Multiple data source connectivity</span>
+        <span class="status-pill live">Live</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>A real connection registry (<code>connections.js</code>) backed by SQLite files, with every table/column validated dynamically via <code>PRAGMA table_info</code> — no hardcoded table list, so a new connection becomes queryable with zero code changes. Proved this by standing up a second database (<code>sales.db</code>, a software company's customers/deals/invoices) and connecting it live through a new "Add Connection" UI restricted to files the server already knows about. Cross-connection joins work for real via SQLite's <code>ATTACH DATABASE</code> — verified against an injection attempt, and the fan-out risk of joining on a shared dimension (region) rather than a unique key is surfaced directly in the UI, not hidden. Credential encryption (<code>secrets.js</code>, AES-256-GCM) is wired in even though SQLite doesn't need it yet.</p>
+      <div class="rec">When a real networked source (SQL Server, SAP) replaces a second SQLite file, swap the connection resolver for the documented Cube.dev/RDS path — the Angular-facing contract (list connections, get schema, run query) doesn't change. SAP/ERP is the one source still fully gated behind its own connector build (OData default, RFC fallback, per the tracker).</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">02</span>
+        <span class="feature-title">JSON parsing and flattening</span>
+        <span class="status-pill live">Live</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>A pure client-side Angular service (<code>FlattenService</code>) doing recursive dotted/bracketed-path flattening, unit-tested including edge cases (empty objects/arrays, null leaves). Extended this session into a real ingestion pipeline: flattened rows post to <code>/api/ingest</code>, which dynamically creates a sanitized SQL table and inserts via parameterized statements — from the seeded demo events, from any already-connected table, or from an uploaded <code>.json</code>/<code>.csv</code> file. The result is immediately a real, queryable table, not just a preview.</p>
+      <div class="rec">Move flattening into a Web Worker once payloads exceed the ~1&ndash;10MB threshold already documented. If this becomes a repeated ingestion path rather than one-off imports, add basic schema-evolution handling for new columns appearing in a later upload.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">03</span>
+        <span class="feature-title">DAX-like formula editor</span>
+        <span class="status-pill partial">Partial &mdash; highest risk</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>A real <code>jsep</code>-based AST parser/evaluator (<code>FormulaService</code>) for arithmetic over saved measures — unit-tested specifically to prove it fails closed on an unknown measure reference and never evaluates via <code>eval()</code>/<code>Function()</code>. The CALCULATE-style filter-context half is an explicit, clearly labeled placeholder panel in the UI, not something quietly approximated with the wrong semantics.</p>
+      <div class="rec">Still the single largest schedule risk on the tracker. Before investing further in the client-side formula UI, spike Cube.dev (or Malloy) against 3&ndash;4 real cross-source formulas to validate the semantic-layer approach — the AST-parsing, no-<code>eval()</code> pattern built here should carry over unchanged to whatever real engine replaces the demo backend.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">04</span>
+        <span class="feature-title">Custom visual extensibility</span>
+        <span class="status-pill live">Live</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>Native SVG/CSS rendering for Bar, Line, and Pie &mdash; no charting-library dependency. This session added a fourth type, Table, the exact same way: one more entry in the chart-type switch and one more rendering branch, no architectural change required. That's the actual proof the rendering layer is swappable independent of the query/data layer, not just a claim.</p>
+      <div class="rec">Adding 1&ndash;2 more native types (scatter, gauge) is low-risk and would round out coverage before investing in a full plugin SDK (Module/Native Federation) for genuinely third-party visuals — that remains a bigger, separate effort.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">05</span>
+        <span class="feature-title">Filters</span>
+        <span class="status-pill partial">Partial by design</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>Field/operator/value filter rows plus Group By, validated server-side against the live schema with bound parameters &mdash; no client-supplied identifier reaches SQL unescaped. A capability-status chip row is honest about scope: Top N, Relative Date, Boolean, and Cascading filters are shown as explicit placeholders, never silently missing.</p>
+      <div class="rec">Relative Date and Top N are the best next additions &mdash; both are pure SQL transformations (date math, <code>ORDER BY</code>/<code>LIMIT</code>) needing no new infrastructure, unlike Cascading filters, which depend on the same relationship metadata the formula editor is already waiting on.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">06</span>
+        <span class="feature-title">Cross-filtering</span>
+        <span class="status-pill live">Live</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>A connection+table-scoped <code>SelectionService</code> (an Angular signal) &mdash; generalized this session from "same Group By" to "same table," so clicking one chart's dimension filters every chart querying that table, not only ones grouped identically. Extended with a real Table visual as the "linked filters" surface (Power BI's table/matrix pattern), addable from the Query Builder exactly like any other chart type, plus a quick-peek drill-down modal &mdash; both reading the same shared selection state, verified end to end in the browser.</p>
+      <div class="rec">Multi-select (Ctrl+click) was deliberately left out this round. Also worth a deliberate decision on whether Table visuals should become filter <em>sources</em> (a row click driving selection), not just receivers, if bidirectional cross-filtering turns out to matter for this audience.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-head">
+        <span class="feature-num">&mdash;</span>
+        <span class="feature-title">AI mode</span>
+        <span class="status-pill partial">Placeholder, as instructed</span>
+      </div>
+      <p class="block-label">Solution leveraged</p>
+      <p>A static, clearly labeled example &mdash; no live model call, no backend request. Kept this way per explicit instruction, so the demo never implies a capability that isn't there.</p>
+    </div>
+
+    <div class="section">
+      <p class="section-eyebrow">Where to spend the next cycle</p>
+      <h2>Overall recommendations</h2>
+      <ol class="priority-list">
+        <li><b>Build the SAP/ERP connector.</b> <span class="why">It's the one remaining gap in item 01 &mdash; everything else in connectivity is live. OData default, RFC fallback, per the plan already in the tracker.</span></li>
+        <li><b>Spike Cube.dev against real formulas.</b> <span class="why">Item 03 is the highest schedule risk on the whole tracker. Validate the semantic-layer approach on 3&ndash;4 real cross-source formulas before building more UI around it.</span></li>
+        <li><b>Add Relative Date and Top N filters.</b> <span class="why">Cheapest, highest-value gap in item 05 &mdash; pure SQL, no new infrastructure, unlike Cascading filters which need relationship metadata that doesn't exist yet.</span></li>
+        <li><b>Decide on multi-select and table-as-source.</b> <span class="why">Both are real scope decisions for item 06, not technical blockers &mdash; worth a deliberate yes/no rather than defaulting.</span></li>
+        <li><b>Keep the metadata-validation gate as the one non-negotiable pattern.</b> <span class="why">Every item above depends on it staying intact as real sources replace SQLite &mdash; it's what makes items 01, 03, 05, and 06 safe to extend without re-litigating security each time.</span></li>
+      </ol>
+    </div>
+
+    <div class="footer">
+      <span>angular bi prototype &middot; implementation summary</span>
+      <span>tasnim maps brand &middot; 2026-09-14</span>
+    </div>
+  </div>
+</body>
+</html>
