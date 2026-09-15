@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 import {
@@ -12,6 +12,7 @@ import {
   describeFilter,
 } from '@tasnim/bi/core';
 import { BiNavComponent, FilterEditorComponent } from '@tasnim/bi/report';
+import { DataSourceSection, readDataSourcesLayout, writeDataSourcesLayout } from './collapsible-layout';
 
 interface FieldSpec {
   key: string;
@@ -118,6 +119,26 @@ export class DataSourcesComponent {
   protected readonly message = signal<{ kind: 'error' | 'success' | 'info'; text: string } | null>(null);
   protected readonly confirmRemoveId = signal<number | null>(null);
   protected readonly openTable = signal<string | null>(null);
+
+  /** D1: collapsed Connections rail and open sections, remembered per browser. */
+  protected readonly layout = signal(readDataSourcesLayout());
+  protected readonly allOpen = computed(() => Object.values(this.layout().open).every(Boolean));
+
+  constructor() {
+    effect(() => writeDataSourcesLayout(this.layout()));
+  }
+
+  protected toggleSection(section: DataSourceSection): void {
+    this.layout.update((l) => ({ ...l, open: { ...l.open, [section]: !l.open[section] } }));
+  }
+
+  protected setAllSections(open: boolean): void {
+    this.layout.update((l) => ({ ...l, open: { tables: open, datasetFilters: open, relationships: open, measures: open } }));
+  }
+
+  protected toggleConnections(): void {
+    this.layout.update((l) => ({ ...l, connectionsCollapsed: !l.connectionsCollapsed }));
+  }
 
   protected readonly fields = computed(() => FIELDS[this.newType()] ?? []);
   protected readonly secretLabel = computed(() => SECRET_LABELS[this.newType()] ?? null);

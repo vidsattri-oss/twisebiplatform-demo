@@ -98,158 +98,210 @@
     </form>
   }
 
-  <div class="split">
-    <section class="panel">
-      <div class="panel-head"><h2 class="panel-title">Connections</h2></div>
-      @if (listError(); as msg) {
-        <p class="alert error" role="alert">{{ msg }}</p>
-        <button type="button" class="btn sm" (click)="models.reload()">Try again</button>
-      } @else {
-        <ul class="sources">
-          @for (m of models.value() ?? []; track m.id) {
-            @let badge = stateBadge(m);
-            <li>
-              <button type="button" class="source" [class.active]="activeId() === m.id" [attr.aria-current]="activeId() === m.id" (click)="selectedId.set(m.id)">
-                <span class="source-name">{{ m.name }}</span>
-                <span class="source-meta">
-                  <span [class]="'badge ' + badge.cls">{{ badge.text }}</span>
-                  <span class="badge">{{ m.typeLabel ?? 'SQLite file' }}</span>
-                  <span>{{ m.tableCount }} tables@if (m.lastRefresh) { · {{ when(m.lastRefresh) }} }</span>
-                </span>
-                @if (m.needs) {
-                  <span class="note warning">{{ m.needs }}</span>
-                }
-                @if (m.lastError) {
-                  <span class="note danger">{{ m.lastError }}</span>
-                }
-              </button>
-              <div class="source-actions">
-                @if (busyId() === m.id) {
-                  <span class="help" aria-live="polite">Working…</span>
-                } @else {
-                  @if (m.kind === 'pull' || m.kind === 'database') {
-                    <button type="button" class="link" (click)="test(m.id)">Test</button>
-                    <button type="button" class="link" (click)="refresh(m.id)">Refresh now</button>
+  <div class="split" [class.rail]="layout().connectionsCollapsed">
+    @if (layout().connectionsCollapsed) {
+      <section class="panel rail-panel" aria-label="Connections">
+        <button type="button" class="rail-toggle" aria-expanded="false" aria-controls="bi-connections" title="Show connections" (click)="toggleConnections()">
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          <span class="rail-label">Connections · {{ models.value()?.length ?? 0 }}</span>
+        </button>
+      </section>
+    } @else {
+      <section class="panel" id="bi-connections">
+        <div class="panel-head">
+          <h2 class="panel-title">Connections <span class="badge">{{ models.value()?.length ?? 0 }}</span></h2>
+          <button type="button" class="icon-toggle" aria-expanded="true" aria-controls="bi-connections" title="Collapse connections" (click)="toggleConnections()">
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            <span class="sr-only">Collapse connections</span>
+          </button>
+        </div>
+        @if (listError(); as msg) {
+          <p class="alert error" role="alert">{{ msg }}</p>
+          <button type="button" class="btn sm" (click)="models.reload()">Try again</button>
+        } @else {
+          <ul class="sources">
+            @for (m of models.value() ?? []; track m.id) {
+              @let badge = stateBadge(m);
+              <li>
+                <button type="button" class="source" [class.active]="activeId() === m.id" [attr.aria-current]="activeId() === m.id" (click)="selectedId.set(m.id)">
+                  <span class="source-name">{{ m.name }}</span>
+                  <span class="source-meta">
+                    <span [class]="'badge ' + badge.cls">{{ badge.text }}</span>
+                    <span class="badge">{{ m.typeLabel ?? 'SQLite file' }}</span>
+                    <span>{{ m.tableCount }} tables@if (m.lastRefresh) { · {{ when(m.lastRefresh) }} }</span>
+                  </span>
+                  @if (m.needs) {
+                    <span class="note warning">{{ m.needs }}</span>
                   }
-                  @if (m.type === 'csv' || m.type === 'excel') {
-                    <label class="link upload">
-                      Upload {{ m.type === 'csv' ? 'CSV' : 'workbook' }}
-                      <input type="file" class="sr-only" [attr.accept]="m.type === 'csv' ? '.csv,text/csv' : '.xlsx'" (change)="onUpload(m, $event)" />
-                    </label>
+                  @if (m.lastError) {
+                    <span class="note danger">{{ m.lastError }}</span>
                   }
-                }
-                @if (m.fileName !== 'data.db') {
-                  @if (confirmRemoveId() === m.id) {
-                    <span class="confirm">
-                      Remove this connection? Reports built on it stop working.
-                      <button type="button" class="btn danger sm" (click)="remove(m.id)">Remove</button>
-                      <button type="button" class="btn ghost sm" (click)="confirmRemoveId.set(null)">Keep</button>
-                    </span>
+                </button>
+                <div class="source-actions">
+                  @if (busyId() === m.id) {
+                    <span class="help" aria-live="polite">Working…</span>
                   } @else {
-                    <button type="button" class="link remove" (click)="confirmRemoveId.set(m.id)">Remove</button>
+                    @if (m.kind === 'pull' || m.kind === 'database') {
+                      <button type="button" class="link" (click)="test(m.id)">Test</button>
+                      <button type="button" class="link" (click)="refresh(m.id)">Refresh now</button>
+                    }
+                    @if (m.type === 'csv' || m.type === 'excel') {
+                      <label class="link upload">
+                        Upload {{ m.type === 'csv' ? 'CSV' : 'workbook' }}
+                        <input type="file" class="sr-only" [attr.accept]="m.type === 'csv' ? '.csv,text/csv' : '.xlsx'" (change)="onUpload(m, $event)" />
+                      </label>
+                    }
                   }
-                }
-              </div>
-            </li>
-          }
-        </ul>
-      }
-      <p class="help">Every connector lands its data in the connection's own store, so reports, filters and formulas work the same whatever the source. New connector types plug into the same interface.</p>
-    </section>
+                  @if (m.fileName !== 'data.db') {
+                    @if (confirmRemoveId() === m.id) {
+                      <span class="confirm">
+                        Remove this connection? Reports built on it stop working.
+                        <button type="button" class="btn danger sm" (click)="remove(m.id)">Remove</button>
+                        <button type="button" class="btn ghost sm" (click)="confirmRemoveId.set(null)">Keep</button>
+                      </span>
+                    } @else {
+                      <button type="button" class="link remove" (click)="confirmRemoveId.set(m.id)">Remove</button>
+                    }
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+        <p class="help">Every connector lands its data in the connection's own store, so reports, filters and formulas work the same whatever the source.</p>
+      </section>
+    }
 
     <section class="panel model">
       @if (modelError(); as msg) {
         <p class="alert error" role="alert">{{ msg }}</p>
       } @else if (model.value(); as m) {
         <div class="panel-head">
-          <h2 class="panel-title">{{ m.name }}</h2>
-          <span class="help">{{ m.tables.length }} tables · {{ m.relationships.length }} relationships · {{ m.measures.length }} measures</span>
-        </div>
-
-        <h3 class="subhead">Tables</h3>
-        <div class="tables">
-          @for (t of m.tables; track t.name) {
-            <div class="table-card">
-              <button type="button" class="table-toggle" [attr.aria-expanded]="openTable() === t.name" (click)="openTable.set(openTable() === t.name ? null : t.name)">
-                <span class="mono">{{ t.name }}</span>
-                <span class="help">{{ t.rowCount.toLocaleString('en-US') }} rows · {{ t.columns.length }} columns</span>
-              </button>
-              @if (openTable() === t.name) {
-                <div class="table-wrap">
-                  <table class="data-table">
-                    <thead><tr><th scope="col">Column</th><th scope="col">Type</th><th scope="col">Notes</th></tr></thead>
-                    <tbody>
-                      @for (c of t.columns; track c.name) {
-                        <tr>
-                          <td class="mono">{{ c.name }}</td>
-                          <td><span class="badge primary">{{ c.dataType }}</span></td>
-                          <td class="help">
-                            @if (c.expression) { Calculated: <span class="mono">{{ c.expression }}</span>. }
-                            @if (c.expressionError) { <span class="badge danger">{{ c.expressionError }}</span> }
-                            @if (c.hidden) { Hidden. }
-                            @if (c.sortBy) { Sorted by {{ c.sortBy }}. }
-                            @if (c.format) { Format {{ c.format }}. }
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <h3 class="subhead">Dataset filters</h3>
-        <p class="help">Applied on the server to every visual, table and slicer built on this source. Reports show them but can't remove them.</p>
-        @if (datasetFilters().length) {
-          <ul class="rels dataset-filters">
-            @for (f of datasetFilters(); track $index; let i = $index) {
-              <li>
-                <span class="badge accent">Always</span>
-                <span class="filter-text">{{ describe(f) }}</span>
-                <button type="button" class="link danger" [disabled]="savingFilters()" [attr.aria-label]="'Remove dataset filter: ' + describe(f)" (click)="removeDatasetFilter(i)">Remove</button>
-              </li>
-            }
-          </ul>
-        }
-        @if (addingFilter()) {
-          <div class="table-card filter-card">
-            <bi-filter-editor [model]="m" (applied)="addDatasetFilter($event)" (cancelled)="addingFilter.set(false)" />
+          <div>
+            <h2 class="panel-title">{{ m.name }}</h2>
+            <span class="help">{{ m.tables.length }} tables · {{ m.relationships.length }} relationships · {{ m.measures.length }} measures</span>
           </div>
-        } @else {
-          <button type="button" class="btn sm add-filter" (click)="addingFilter.set(true)">+ Add dataset filter</button>
-        }
+          <button type="button" class="link" (click)="setAllSections(!allOpen())">{{ allOpen() ? 'Collapse all' : 'Expand all' }}</button>
+        </div>
 
-        <h3 class="subhead">Relationships</h3>
-        @if (m.relationships.length) {
-          <ul class="rels">
-            @for (r of m.relationships; track $index) {
-              <li class="mono">
-                {{ r.fromTable }}[{{ r.fromColumn }}] <span class="arrow" aria-label="many to one">*→1</span> {{ r.toTable }}[{{ r.toColumn }}]
-                <span class="badge">{{ r.source === 'overlay' ? 'model file' : 'foreign key' }}</span>
-              </li>
-            }
-          </ul>
-          <p class="help">Filters flow from the “1” side to the “many” side, like Power BI's single cross-filter direction.</p>
-        } @else {
-          <p class="help">No relationships. Visuals on different tables won't filter each other.</p>
-        }
-
-        <h3 class="subhead">Measures</h3>
-        @if (m.measures.length) {
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th scope="col">Measure</th><th scope="col">Expression</th><th scope="col">Source</th></tr></thead>
-              <tbody>
-                @for (me of m.measures; track me.name) {
-                  <tr><td>{{ me.name }}</td><td class="mono">{{ me.expression }}</td><td><span class="badge">{{ me.origin === 'user' ? 'Created here' : 'Model file' }}</span></td></tr>
+        <h3 class="section-head">
+          <button type="button" class="section-toggle" [attr.aria-expanded]="layout().open.tables" aria-controls="bi-ds-tables" (click)="toggleSection('tables')">
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            Tables <span class="badge">{{ m.tables.length }}</span>
+          </button>
+        </h3>
+        @if (layout().open.tables) {
+          <div class="tables" id="bi-ds-tables">
+            @for (t of m.tables; track t.name) {
+              <div class="table-card">
+                <button type="button" class="table-toggle" [attr.aria-expanded]="openTable() === t.name" (click)="openTable.set(openTable() === t.name ? null : t.name)">
+                  <span class="mono">{{ t.name }}</span>
+                  <span class="help">{{ t.rowCount.toLocaleString('en-US') }} rows · {{ t.columns.length }} columns</span>
+                </button>
+                @if (openTable() === t.name) {
+                  <div class="table-wrap">
+                    <table class="data-table">
+                      <thead><tr><th scope="col">Column</th><th scope="col">Type</th><th scope="col">Notes</th></tr></thead>
+                      <tbody>
+                        @for (c of t.columns; track c.name) {
+                          <tr>
+                            <td class="mono">{{ c.name }}</td>
+                            <td><span class="badge primary">{{ c.dataType }}</span></td>
+                            <td class="help">
+                              @if (c.expression) { Calculated: <span class="mono">{{ c.expression }}</span>. }
+                              @if (c.expressionError) { <span class="badge danger">{{ c.expressionError }}</span> }
+                              @if (c.hidden) { Hidden. }
+                              @if (c.sortBy) { Sorted by {{ c.sortBy }}. }
+                              @if (c.format) { Format {{ c.format }}. }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 }
-              </tbody>
-            </table>
+              </div>
+            }
           </div>
-        } @else {
-          <p class="help">No measures yet.</p>
+        }
+
+        <h3 class="section-head">
+          <button type="button" class="section-toggle" [attr.aria-expanded]="layout().open.datasetFilters" aria-controls="bi-ds-filters" (click)="toggleSection('datasetFilters')">
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            Dataset filters <span class="badge" [class.accent]="datasetFilters().length > 0">{{ datasetFilters().length }}</span>
+          </button>
+        </h3>
+        @if (layout().open.datasetFilters) {
+          <div class="section-body" id="bi-ds-filters">
+            <p class="help">Applied on the server to every visual, table and slicer built on this source. Reports show them but can't remove them.</p>
+            @if (datasetFilters().length) {
+              <ul class="rels dataset-filters">
+                @for (f of datasetFilters(); track $index; let i = $index) {
+                  <li>
+                    <span class="badge accent">Always</span>
+                    <span class="filter-text">{{ describe(f) }}</span>
+                    <button type="button" class="link danger" [disabled]="savingFilters()" [attr.aria-label]="'Remove dataset filter: ' + describe(f)" (click)="removeDatasetFilter(i)">Remove</button>
+                  </li>
+                }
+              </ul>
+            }
+            @if (addingFilter()) {
+              <div class="table-card filter-card">
+                <bi-filter-editor [model]="m" (applied)="addDatasetFilter($event)" (cancelled)="addingFilter.set(false)" />
+              </div>
+            } @else {
+              <button type="button" class="btn sm add-filter" (click)="addingFilter.set(true)">+ Add dataset filter</button>
+            }
+          </div>
+        }
+
+        <h3 class="section-head">
+          <button type="button" class="section-toggle" [attr.aria-expanded]="layout().open.relationships" aria-controls="bi-ds-relationships" (click)="toggleSection('relationships')">
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            Relationships <span class="badge">{{ m.relationships.length }}</span>
+          </button>
+        </h3>
+        @if (layout().open.relationships) {
+          <div class="section-body" id="bi-ds-relationships">
+            @if (m.relationships.length) {
+              <ul class="rels">
+                @for (r of m.relationships; track $index) {
+                  <li class="mono">
+                    {{ r.fromTable }}[{{ r.fromColumn }}] <span class="arrow" aria-label="many to one">*→1</span> {{ r.toTable }}[{{ r.toColumn }}]
+                    <span class="badge">{{ r.source === 'overlay' ? 'model file' : 'foreign key' }}</span>
+                  </li>
+                }
+              </ul>
+              <p class="help">Filters flow from the “1” side to the “many” side, like Power BI's single cross-filter direction.</p>
+            } @else {
+              <p class="help">No relationships. Visuals on different tables won't filter each other.</p>
+            }
+          </div>
+        }
+
+        <h3 class="section-head">
+          <button type="button" class="section-toggle" [attr.aria-expanded]="layout().open.measures" aria-controls="bi-ds-measures" (click)="toggleSection('measures')">
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            Measures <span class="badge">{{ m.measures.length }}</span>
+          </button>
+        </h3>
+        @if (layout().open.measures) {
+          <div class="section-body" id="bi-ds-measures">
+            @if (m.measures.length) {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th scope="col">Measure</th><th scope="col">Expression</th><th scope="col">Source</th></tr></thead>
+                  <tbody>
+                    @for (me of m.measures; track me.name) {
+                      <tr><td>{{ me.name }}</td><td class="mono">{{ me.expression }}</td><td><span class="badge">{{ me.origin === 'user' ? 'Created here' : 'Model file' }}</span></td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="help">No measures yet.</p>
+            }
+          </div>
         }
       } @else if (model.isLoading()) {
         <p class="help" aria-busy="true">Loading model…</p>
