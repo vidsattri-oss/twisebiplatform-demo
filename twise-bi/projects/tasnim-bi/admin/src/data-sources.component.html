@@ -22,7 +22,7 @@
         <span class="label">File detected on the server</span>
         <select class="select" [value]="newFile()" (change)="newFile.set(valueOf($event))">
           @for (f of files.value() ?? []; track f) {
-            <option [value]="f">{{ f }}</option>
+            <option [value]="f" [selected]="f === newFile()">{{ f }}</option>
           } @empty {
             <option value="">{{ files.isLoading() ? 'Looking for files…' : 'No unconnected files found' }}</option>
           }

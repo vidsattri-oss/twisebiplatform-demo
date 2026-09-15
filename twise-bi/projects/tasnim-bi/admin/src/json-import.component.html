@@ -32,7 +32,7 @@
           <option value="">JSON imports (default)</option>
           @for (m of targets(); track m.id) {
             @if (m.fileName !== 'json-imports.db') {
-              <option [value]="m.id">{{ m.name }}</option>
+              <option [value]="m.id" [selected]="m.id === connectionId()">{{ m.name }}</option>
             }
           }
         </select>

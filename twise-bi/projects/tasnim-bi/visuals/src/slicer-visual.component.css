@@ -29,8 +29,11 @@
 .option input { accent-color: var(--bi-primary); margin: 0; }
 .blank { font-style: italic; color: var(--bi-muted); }
 
-.between { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.field { flex: 1 1 120px; min-width: 0; }
+/* One row even when narrow: a wrapped second input would spill into the visual below the slicer. */
+.between { display: flex; align-items: center; gap: 4px; }
+.field { flex: 1 1 0; min-width: 0; }
+.field input { padding-inline: 6px; }
+.hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash { color: var(--bi-soft); }
 .relative { display: flex; gap: 6px; flex-wrap: wrap; }
 .relative select { flex: 1 1 90px; width: auto; }

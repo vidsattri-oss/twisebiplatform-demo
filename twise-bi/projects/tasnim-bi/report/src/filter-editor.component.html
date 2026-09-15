@@ -7,7 +7,7 @@
         @for (t of tables(); track t.name) {
           <optgroup [label]="t.name">
             @for (c of t.columns; track c.name) {
-              <option [value]="fieldKey({ table: t.name, column: c.name })">{{ c.name }}</option>
+              <option [value]="fieldKey({ table: t.name, column: c.name })" [selected]="fieldKey({ table: t.name, column: c.name }) === fieldKey(target())">{{ c.name }}</option>
             }
           </optgroup>
         }
@@ -20,7 +20,7 @@
       <span class="label">Filter type</span>
       <select class="select" [value]="kind()" (change)="kind.set($any(valueOf($event)))">
         @for (k of kinds(); track k.value) {
-          <option [value]="k.value">{{ k.label }}</option>
+          <option [value]="k.value" [selected]="k.value === kind()">{{ k.label }}</option>
         }
       </select>
     </label>
@@ -59,7 +59,7 @@
             <select class="select" [attr.aria-label]="'Condition ' + (i + 1)" [value]="c.operator" (change)="setCondition(i, { operator: $any(valueOf($event)) })">
               @for (op of operators; track op.value) {
                 @if (!op.text || isText()) {
-                  <option [value]="op.value">{{ op.label }}</option>
+                  <option [value]="op.value" [selected]="op.value === c.operator">{{ op.label }}</option>
                 }
               }
             </select>
@@ -113,7 +113,7 @@
           <select class="select" [value]="topBy()" (change)="topBy.set(valueOf($event))">
             <option value="">Choose a measure…</option>
             @for (m of measures(); track m.name) {
-              <option [value]="m.name">{{ m.name }}</option>
+              <option [value]="m.name" [selected]="m.name === topBy()">{{ m.name }}</option>
             }
           </select>
         </label>

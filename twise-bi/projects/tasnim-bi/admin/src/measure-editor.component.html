@@ -13,7 +13,7 @@
         <span class="label">Data source</span>
         <select class="select" [value]="activeModelId() ?? ''" (change)="modelId.set(+valueOf($event)); table.set('')">
           @for (m of models.value() ?? []; track m.id) {
-            <option [value]="m.id" [disabled]="m.status !== 'connected'">{{ m.name }}</option>
+            <option [value]="m.id" [disabled]="m.status !== 'connected'" [selected]="m.id === activeModelId()">{{ m.name }}</option>
           }
         </select>
       </label>
@@ -21,7 +21,7 @@
         <span class="label">Home table</span>
         <select class="select" [value]="activeTable()" (change)="table.set(valueOf($event))">
           @for (t of model.value()?.tables ?? []; track t.name) {
-            <option [value]="t.name">{{ t.name }}</option>
+            <option [value]="t.name" [selected]="t.name === activeTable()">{{ t.name }}</option>
           }
         </select>
         <span class="help">The table whose rows the measure aggregates.</span>

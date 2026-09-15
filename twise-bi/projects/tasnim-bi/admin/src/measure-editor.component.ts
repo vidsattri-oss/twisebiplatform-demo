@@ -37,7 +37,16 @@ export class MeasureEditorComponent {
   protected readonly model = rxResource({ params: () => this.activeModelId() ?? undefined, stream: ({ params }) => this.ds.getModel(params) });
 
   protected readonly table = signal('');
-  protected readonly activeTable = computed(() => this.table() || this.model.value()?.tables[0]?.name || '');
+  /** Defaults to the table most existing measures live on — usually the fact table — rather than the alphabetical first. */
+  protected readonly activeTable = computed(() => {
+    if (this.table()) return this.table();
+    const model = this.model.value();
+    if (!model) return '';
+    const counts = new Map<string, number>();
+    for (const m of model.measures) counts.set(m.table, (counts.get(m.table) ?? 0) + 1);
+    const busiest = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    return busiest ?? model.tables[0]?.name ?? '';
+  });
   protected readonly columns = computed(() => this.model.value()?.tables.find((t) => t.name === this.activeTable())?.columns.filter((c) => !c.hidden) ?? []);
   protected readonly sameTableMeasures = computed(() => (this.model.value()?.measures ?? []).filter((m) => m.table === this.activeTable()));
 

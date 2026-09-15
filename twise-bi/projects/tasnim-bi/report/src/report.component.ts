@@ -34,8 +34,11 @@ export class ReportComponent {
   private readonly route = inject(ActivatedRoute, { optional: true });
 
   readonly reportId = input<number | undefined, unknown>(undefined, { transform: toId });
-  /** Hosts without edit permission for the current user pass false. */
-  readonly canEdit = input(true);
+  /**
+   * Hosts without edit permission for the current user pass false. Anything else
+   * means editable: router input binding sets unmatched inputs to undefined.
+   */
+  readonly canEdit = input<boolean, boolean | null | undefined>(true, { transform: (value) => value !== false });
 
   protected readonly base = this.route?.parent ?? null;
   private readonly routeId = toSignal(this.route ? this.route.paramMap.pipe(map((p) => toId(p.get('reportId')))) : of(undefined), { initialValue: undefined });

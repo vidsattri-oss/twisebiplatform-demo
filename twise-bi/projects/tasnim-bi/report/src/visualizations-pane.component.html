@@ -138,11 +138,11 @@
             <label class="interaction">
               <span class="interaction-name" [title]="other.title || other.type">{{ other.title || other.type }}</span>
               <select class="select mini" [value]="interaction(other)" (change)="setInteraction(other, $event)">
-                <option value="filter">Filter</option>
+                <option value="filter" [selected]="interaction(other) === 'filter'">Filter</option>
                 @if (canHighlight(other)) {
-                  <option value="highlight">Highlight</option>
+                  <option value="highlight" [selected]="interaction(other) === 'highlight'">Highlight</option>
                 }
-                <option value="none">None</option>
+                <option value="none" [selected]="interaction(other) === 'none'">None</option>
               </select>
             </label>
           }

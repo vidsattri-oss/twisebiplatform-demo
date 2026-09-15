@@ -22,7 +22,7 @@
         <span class="label">Data source</span>
         <select class="select" [value]="newModelId() ?? ''" (change)="newModelId.set(+valueOf($event))">
           @for (m of data.value()?.models ?? []; track m.id) {
-            <option [value]="m.id" [disabled]="m.status !== 'connected'">{{ m.name }}</option>
+            <option [value]="m.id" [disabled]="m.status !== 'connected'" [selected]="m.id === newModelId()">{{ m.name }}</option>
           }
         </select>
       </label>

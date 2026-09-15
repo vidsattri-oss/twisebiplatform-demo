@@ -15,7 +15,7 @@ import { GlobalFiltersService } from './global-filters.service';
         <select [value]="f.plant() ?? ''" (change)="f.plant.set(value($event) || null)">
           <option value="">All</option>
           @for (p of f.plants; track p) {
-            <option [value]="p">{{ p }}</option>
+            <option [value]="p" [selected]="p === f.plant()">{{ p }}</option>
           }
         </select>
       </label>
