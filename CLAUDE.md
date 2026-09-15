@@ -35,6 +35,7 @@ npm --prefix twise-bi run build                                   # host-harness
 - **Global CSS in the library.** No element, `:root` or `body` selectors. Theme only through `--bi-*` custom properties.
 - **Committing the Wells CSV or any `.db` file.** It's real well data; seed from `WELLS_CSV`.
 - **Running Angular 22 on Node < 24.15.** The CLI exits with a version error.
+- **Passing a directory to `node --test` on Windows.** It fails with "Cannot find module"; use a quoted glob (`"bi/test/*.test.js"`).
 
 ## Conventions
 

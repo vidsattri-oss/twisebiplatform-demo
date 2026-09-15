@@ -21,12 +21,15 @@ const DEV_ORIGIN = 'http://localhost:4200';
 app.use((req, res, next) => {
   if (req.headers.origin === DEV_ORIGIN) {
     res.setHeader('Access-Control-Allow-Origin', DEV_ORIGIN);
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
+
+// The contract the @tasnim/bi library speaks (docs/api/bi-contract.openapi.yaml).
+app.use('/api/bi', require('./bi/routes'));
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -491,14 +494,23 @@ app.delete('/api/dashboards/:dashboardId/charts/:chartId', (req, res, next) => {
 });
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
-  const status = err.status || 500;
-  if (status === 500) console.error(err);
-  res.status(status).json({ error: err.message || 'Internal error' });
+  // Body-parser errors carry a 4xx status; anything without one is ours, and its
+  // message (SQL, file paths) stays in the server log rather than the response.
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error(err);
+  res.status(status).json({
+    error: status >= 500 ? 'Something went wrong on the server. Check the server log for details.' : err.message,
+    ...(err.position !== undefined && { position: err.position }),
+  });
 });
 
-const PORT = process.env.PORT || 4173;
-app.listen(PORT, () => {
-  console.log(`Query builder prototype running at http://localhost:${PORT}`);
-  console.log(`SQLite file: ${DB_PATH}`);
-  console.log(`Connections directory: ${connections.CONNECTIONS_DIR}`);
-});
+module.exports = app;
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 4173;
+  app.listen(PORT, () => {
+    console.log(`Query builder prototype running at http://localhost:${PORT}`);
+    console.log(`SQLite file: ${DB_PATH}`);
+    console.log(`Connections directory: ${connections.CONNECTIONS_DIR}`);
+  });
+}

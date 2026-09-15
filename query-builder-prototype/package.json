@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test --test-reporter=spec bi/test/",
+    "test": "node --test --test-reporter=spec \"bi/test/*.test.js\"",
     "seed:wells": "node seed-wells.js"
   },
   "dependencies": {
