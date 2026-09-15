@@ -1,0 +1,38 @@
+/*
+ * Design tokens for every top-level @tasnim/bi component. Each token falls back
+ * to TWise's own CSS custom properties first, so inside TWise the library picks
+ * up the host theme with no configuration. Scoped to :host — the library never
+ * styles elements outside its own components.
+ */
+:host {
+  --bi-font: var(--font-family-base, Inter, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --bi-text: var(--color-text-primary, #101828);
+  --bi-muted: #475467;
+  --bi-soft: #98a2b3;
+  --bi-primary: var(--color-primary, #21409a);
+  --bi-primary-strong: #163a8a;
+  --bi-primary-tint: var(--color-primary-50, #f5f8ff);
+  --bi-accent: #e8822a;
+  --bi-border: var(--color-border, #dce3ed);
+  --bi-border-strong: #c5cfdc;
+  --bi-surface: var(--color-bg-card, #ffffff);
+  --bi-ground: var(--color-bg-app, #f8fafc);
+  --bi-sunk: #f2f5f9;
+  --bi-danger: #b42318;
+  --bi-danger-tint: #fef3f2;
+  --bi-success: #067647;
+  --bi-success-tint: #ecfdf3;
+  --bi-warning: #b54708;
+  --bi-warning-tint: #fffaeb;
+  --bi-radius-sm: var(--radius-sm, 6px);
+  --bi-radius: var(--radius-md, 10px);
+  --bi-radius-lg: var(--radius-lg, 12px);
+  --bi-shadow: var(--shadow-sm, 0 1px 3px rgba(16, 24, 40, 0.08));
+  --bi-shadow-lg: var(--shadow-lg, 0 8px 24px rgba(16, 24, 40, 0.12));
+  --bi-focus: 0 0 0 3px rgba(33, 64, 154, 0.25);
+
+  font-family: var(--bi-font);
+  color: var(--bi-text);
+  font-size: 14px;
+  line-height: 1.45;
+}

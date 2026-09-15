@@ -1,0 +1,6 @@
+.file { padding: 5px 8px; height: auto; }
+.modes { display: flex; gap: 16px; flex-wrap: wrap; margin: 0; padding: 0; border: 0; }
+.modes legend { width: 100%; margin-bottom: 4px; }
+.actions { display: flex; gap: 8px; }
+.plan-table { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius); padding: 10px; }
+.plan-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

@@ -1,0 +1,52 @@
+/* Shared controls for @tasnim/bi components. Class-scoped — never element or global selectors. */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px;
+  border-radius: var(--bi-radius-sm); border: 1px solid var(--bi-border); background: var(--bi-surface);
+  color: var(--bi-text); font: inherit; font-weight: 500; cursor: pointer; white-space: nowrap; text-decoration: none; box-sizing: border-box;
+}
+.btn:hover { border-color: var(--bi-border-strong); background: var(--bi-sunk); }
+.btn.primary { background: var(--bi-primary); border-color: var(--bi-primary); color: #fff; }
+.btn.primary:hover { background: var(--bi-primary-strong); border-color: var(--bi-primary-strong); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--bi-primary); }
+.btn.ghost:hover { background: var(--bi-primary-tint); }
+.btn.danger { background: var(--bi-danger); border-color: var(--bi-danger); color: #fff; }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn svg, .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.input, .select, .textarea {
+  width: 100%; box-sizing: border-box; height: 34px; padding: 0 10px; border: 1px solid var(--bi-border);
+  border-radius: var(--bi-radius-sm); background: var(--bi-surface); color: var(--bi-text); font: inherit; min-width: 0;
+}
+.textarea { height: auto; padding: 8px 10px; font-family: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px; line-height: 1.55; resize: vertical; }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--bi-border-strong); }
+.btn:focus-visible, .input:focus-visible, .select:focus-visible, .textarea:focus-visible, .link:focus-visible { outline: none; box-shadow: var(--bi-focus); border-color: var(--bi-primary); }
+.input[aria-invalid='true'], .textarea[aria-invalid='true'] { border-color: var(--bi-danger); }
+
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.label { font-size: 12px; font-weight: 600; color: var(--bi-muted); }
+.help { font-size: 12px; color: var(--bi-muted); }
+.check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.check input { accent-color: var(--bi-primary); margin: 0; }
+.link { border: 0; background: none; padding: 0; color: var(--bi-primary); font: inherit; font-weight: 500; cursor: pointer; text-decoration: none; border-radius: 4px; }
+.link:hover { text-decoration: underline; }
+
+.badge {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; background: var(--bi-sunk); color: var(--bi-muted); white-space: nowrap;
+}
+.badge.primary { background: var(--bi-primary-tint); color: var(--bi-primary); }
+.badge.success { background: var(--bi-success-tint); color: var(--bi-success); }
+.badge.warning { background: var(--bi-warning-tint); color: var(--bi-warning); }
+.badge.danger { background: var(--bi-danger-tint); color: var(--bi-danger); }
+
+.alert { padding: 10px 12px; border-radius: var(--bi-radius); font-size: 13px; border: 1px solid transparent; }
+.alert.error { background: var(--bi-danger-tint); color: var(--bi-danger); border-color: #fecdca; }
+.alert.success { background: var(--bi-success-tint); color: var(--bi-success); border-color: #abefc6; }
+.alert.info { background: var(--bi-primary-tint); color: var(--bi-primary-strong); border-color: #d1dcf5; }
+.alert.warning { background: var(--bi-warning-tint); color: var(--bi-warning); border-color: #fedf89; }
+
+.empty { padding: 32px 16px; text-align: center; color: var(--bi-muted); }
+.mono { font-family: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12.5px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

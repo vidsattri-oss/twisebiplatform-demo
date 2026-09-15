@@ -1,0 +1,68 @@
+<aside class="pane" aria-label="Filters">
+  <header class="pane-head">
+    <h2 class="pane-title">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5Z" /></svg>
+      Filters
+    </h2>
+    <button type="button" class="btn ghost sm" (click)="closed.emit()">
+      Close
+    </button>
+  </header>
+
+  <div class="pane-body">
+    @if (store.hostFilters().length) {
+      <section class="section">
+        <h3 class="section-title">From {{ store.hostLabel }}</h3>
+        @for (f of store.hostFilters(); track $index) {
+          <div class="card readonly">
+            <span class="card-text">{{ describe(f) }}</span>
+          </div>
+        }
+      </section>
+    }
+
+    @for (section of sections(); track section.scope) {
+      <section class="section">
+        <h3 class="section-title">{{ section.title }}</h3>
+
+        @for (f of section.filters; track $index; let i = $index) {
+          <div class="card" [class.open]="isEditing(section.scope, i)">
+            <div class="card-row">
+              <button type="button" class="card-text as-button" [attr.aria-expanded]="isEditing(section.scope, i)" (click)="editing.set(isEditing(section.scope, i) ? null : { scope: section.scope, index: i })">
+                {{ describe(f) }}
+              </button>
+              @if (store.editMode()) {
+                <button type="button" class="link danger" [attr.aria-label]="'Remove filter: ' + describe(f)" (click)="remove(section.scope, i)">Remove</button>
+              }
+            </div>
+            @if (isEditing(section.scope, i)) {
+              <bi-filter-editor
+                [model]="store.model()!"
+                [filter]="f"
+                [allowFieldChange]="false"
+                (applied)="apply(section.scope, i, $event)"
+                (cancelled)="editing.set(null)"
+              />
+            }
+          </div>
+        } @empty {
+          <p class="none">No filters.</p>
+        }
+
+        @if (store.editMode()) {
+          @if (isEditing(section.scope, null)) {
+            <div class="card open">
+              <bi-filter-editor [model]="store.model()!" (applied)="apply(section.scope, null, $event)" (cancelled)="editing.set(null)" />
+            </div>
+          } @else {
+            <button type="button" class="add" (click)="editing.set({ scope: section.scope, index: null })">+ Add a filter</button>
+          }
+        }
+      </section>
+    }
+
+    @if (!store.editMode()) {
+      <p class="help">Turn on Edit to add or remove filters. Selecting a visual while editing shows its own filters here.</p>
+    }
+  </div>
+</aside>

@@ -1,0 +1,15 @@
+.subhead { margin: 4px 0 6px; font-size: 12px; font-weight: 600; color: var(--bi-muted); }
+.insert-group { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.token {
+  padding: 3px 8px; border: 1px solid var(--bi-border); border-radius: 999px; background: var(--bi-surface);
+  font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace; font-size: 12px; color: var(--bi-text); cursor: pointer;
+}
+.token:hover { border-color: var(--bi-primary); color: var(--bi-primary); }
+.token:focus-visible { outline: none; box-shadow: var(--bi-focus); }
+.token.fn { color: var(--bi-primary); background: var(--bi-primary-tint); border-color: #d1dcf5; }
+.token.measure { color: var(--bi-success); }
+.format { flex: 0 0 150px !important; }
+.error-text { margin: 0; }
+.marker { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; color: var(--bi-text); }
+.marker mark { background: var(--bi-danger); color: #fff; border-radius: 2px; }
+.danger-text { color: var(--bi-danger); }

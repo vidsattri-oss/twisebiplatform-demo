@@ -1,0 +1,160 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Data sources</h1>
+      <p class="page-sub">Every connected source becomes a semantic model: typed columns, relationships from real foreign keys, and measures.</p>
+    </div>
+    <button type="button" class="btn primary" (click)="adding.set(!adding())">+ Add connection</button>
+  </div>
+  <bi-nav />
+
+  @if (message(); as m) {
+    <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">{{ m.text }}</p>
+  }
+
+  @if (adding()) {
+    <form class="panel form-row" (submit)="$event.preventDefault(); add()">
+      <label class="field">
+        <span class="label">Connection name</span>
+        <input class="input" [value]="newName()" (input)="newName.set(valueOf($event))" placeholder="e.g. Drilling operations" />
+      </label>
+      <label class="field">
+        <span class="label">File detected on the server</span>
+        <select class="select" [value]="newFile()" (change)="newFile.set(valueOf($event))">
+          @for (f of files.value() ?? []; track f) {
+            <option [value]="f">{{ f }}</option>
+          } @empty {
+            <option value="">{{ files.isLoading() ? 'Looking for files…' : 'No unconnected files found' }}</option>
+          }
+        </select>
+      </label>
+      <button type="submit" class="btn primary">Connect</button>
+      <button type="button" class="btn ghost" (click)="adding.set(false)">Cancel</button>
+    </form>
+  }
+
+  <div class="split">
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Connections</h2></div>
+      @if (listError(); as msg) {
+        <p class="alert error" role="alert">{{ msg }}</p>
+        <button type="button" class="btn sm" (click)="models.reload()">Try again</button>
+      } @else {
+        <ul class="sources">
+          @for (m of models.value() ?? []; track m.id) {
+            <li>
+              <button type="button" class="source" [class.active]="activeId() === m.id" [attr.aria-current]="activeId() === m.id" (click)="selectedId.set(m.id)">
+                <span class="source-name">{{ m.name }}</span>
+                <span class="source-meta">
+                  @if (m.status === 'connected') {
+                    <span class="badge success">Connected</span> {{ m.tableCount }} tables
+                  } @else {
+                    <span class="badge danger">Error</span>
+                  }
+                </span>
+              </button>
+              @if (confirmRemoveId() === m.id) {
+                <div class="confirm">
+                  <span>Remove this connection? Reports built on it stop working.</span>
+                  <button type="button" class="btn danger sm" (click)="remove(m.id)">Remove</button>
+                  <button type="button" class="btn ghost sm" (click)="confirmRemoveId.set(null)">Keep</button>
+                </div>
+              } @else {
+                <button type="button" class="link remove" (click)="confirmRemoveId.set(m.id)">Remove</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <h3 class="subhead">Planned connectors</h3>
+      <ul class="planned">
+        @for (p of planned; track p.name) {
+          <li>
+            <span class="source-name">{{ p.name }}</span>
+            <span class="badge warning">Not connected in this build</span>
+            <span class="help">{{ p.detail }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel model">
+      @if (modelError(); as msg) {
+        <p class="alert error" role="alert">{{ msg }}</p>
+      } @else if (model.value(); as m) {
+        <div class="panel-head">
+          <h2 class="panel-title">{{ m.name }}</h2>
+          <span class="help">{{ m.tables.length }} tables · {{ m.relationships.length }} relationships · {{ m.measures.length }} measures</span>
+        </div>
+
+        <h3 class="subhead">Tables</h3>
+        <div class="tables">
+          @for (t of m.tables; track t.name) {
+            <div class="table-card">
+              <button type="button" class="table-toggle" [attr.aria-expanded]="openTable() === t.name" (click)="openTable.set(openTable() === t.name ? null : t.name)">
+                <span class="mono">{{ t.name }}</span>
+                <span class="help">{{ t.rowCount.toLocaleString('en-US') }} rows · {{ t.columns.length }} columns</span>
+              </button>
+              @if (openTable() === t.name) {
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead><tr><th scope="col">Column</th><th scope="col">Type</th><th scope="col">Notes</th></tr></thead>
+                    <tbody>
+                      @for (c of t.columns; track c.name) {
+                        <tr>
+                          <td class="mono">{{ c.name }}</td>
+                          <td><span class="badge primary">{{ c.dataType }}</span></td>
+                          <td class="help">
+                            @if (c.hidden) { Hidden. }
+                            @if (c.sortBy) { Sorted by {{ c.sortBy }}. }
+                            @if (c.format) { Format {{ c.format }}. }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <h3 class="subhead">Relationships</h3>
+        @if (m.relationships.length) {
+          <ul class="rels">
+            @for (r of m.relationships; track $index) {
+              <li class="mono">
+                {{ r.fromTable }}[{{ r.fromColumn }}] <span class="arrow" aria-label="many to one">*→1</span> {{ r.toTable }}[{{ r.toColumn }}]
+                <span class="badge">{{ r.source === 'overlay' ? 'model file' : 'foreign key' }}</span>
+              </li>
+            }
+          </ul>
+          <p class="help">Filters flow from the “1” side to the “many” side, like Power BI's single cross-filter direction.</p>
+        } @else {
+          <p class="help">No relationships. Visuals on different tables won't filter each other.</p>
+        }
+
+        <h3 class="subhead">Measures</h3>
+        @if (m.measures.length) {
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th scope="col">Measure</th><th scope="col">Expression</th><th scope="col">Source</th></tr></thead>
+              <tbody>
+                @for (me of m.measures; track me.name) {
+                  <tr><td>{{ me.name }}</td><td class="mono">{{ me.expression }}</td><td><span class="badge">{{ me.origin === 'user' ? 'Created here' : 'Model file' }}</span></td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="help">No measures yet.</p>
+        }
+      } @else if (model.isLoading()) {
+        <p class="help" aria-busy="true">Loading model…</p>
+      } @else {
+        <p class="empty">Choose a connection to see its model.</p>
+      }
+    </section>
+  </div>
+</div>

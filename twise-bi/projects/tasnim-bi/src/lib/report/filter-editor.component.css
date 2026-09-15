@@ -1,0 +1,11 @@
+:host { display: block; }
+.editor { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
+.values { display: flex; flex-direction: column; max-height: 200px; overflow: auto; padding: 2px 0; }
+.value { padding: 4px 2px; font-size: 13px; }
+.blank { font-style: italic; color: var(--bi-muted); }
+.condition { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.condition > .select, .condition > .input { flex: 1 1 110px; }
+.condition > .count { flex: 0 0 76px; }
+.actions { display: flex; gap: 6px; }
+.help.error { color: var(--bi-danger); }

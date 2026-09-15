@@ -1,0 +1,110 @@
+<section
+  class="frame"
+  [class.editing]="store.editMode()"
+  [class.focused]="store.editMode() && store.focusedVisualId() === visual().id"
+  [class.slicer]="type()?.dataKind === 'slicer'"
+  [attr.aria-label]="title() || type()?.label"
+  (click)="onFrameClick()"
+>
+  <header class="head">
+    <div class="titles">
+      @if (title()) {
+        <h3 class="title">{{ title() }}</h3>
+      }
+      @if (subtitle()) {
+        <p class="subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+
+    <div class="actions" [class.pinned]="showFilters() || store.editMode() || selectedHere()">
+      @if (activeFilterCount() > 0) {
+        <button type="button" class="icon-btn" [class.on]="showFilters()" [attr.aria-expanded]="showFilters()" title="Filters and slicers affecting this visual" (click)="toggleFilters($event)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5Z" /></svg>
+          <span class="count">{{ activeFilterCount() }}</span>
+          <span class="sr-only">filters on this visual</span>
+        </button>
+      }
+      @if (isAggregate() && !missingFields()) {
+        <button type="button" class="icon-btn" title="See records" (click)="$event.stopPropagation(); seeRecords(null)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 5v14" /></svg>
+          <span class="sr-only">See records</span>
+        </button>
+      }
+      <button type="button" class="icon-btn" [title]="store.focusModeVisualId() === visual().id ? 'Back to report' : 'Focus mode'" (click)="$event.stopPropagation(); store.toggleFocusMode(visual().id)">
+        @if (store.focusModeVisualId() === visual().id) {
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+        } @else {
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+        }
+        <span class="sr-only">{{ store.focusModeVisualId() === visual().id ? 'Back to report' : 'Focus mode' }}</span>
+      </button>
+      @if (store.editMode()) {
+        <button type="button" class="icon-btn" title="Edit visual" (click)="edit($event)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4" /></svg>
+          <span class="sr-only">Edit visual</span>
+        </button>
+        <button type="button" class="icon-btn danger" title="Remove visual" (click)="$event.stopPropagation(); confirmRemove.set(true)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" /></svg>
+          <span class="sr-only">Remove visual</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (showFilters()) {
+    <div class="popover" role="region" aria-label="Filters on this visual" (click)="$event.stopPropagation()">
+      <ul>
+        @for (item of filterItems(); track $index) {
+          <li [class.ignored]="item.ignored">
+            <span class="scope">{{ item.scope }}</span>
+            <span class="text">{{ item.text }}</span>
+            @if (item.ignored) {
+              <span class="note">Doesn't apply — no relationship to this visual's data</span>
+            }
+          </li>
+        }
+        @if (highlightText()) {
+          <li>
+            <span class="scope">Highlight</span>
+            <span class="text">{{ highlightText() }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  @if (confirmRemove()) {
+    <div class="confirm" role="alertdialog" aria-label="Remove visual" (click)="$event.stopPropagation()">
+      <span>Remove “{{ title() || type()?.label }}” from this page?</span>
+      <button type="button" class="btn danger" (click)="remove()">Remove</button>
+      <button type="button" class="btn" (click)="confirmRemove.set(false)">Keep</button>
+    </div>
+  }
+
+  <div class="body">
+    @if (!type()) {
+      <p class="state">Unknown visual type “{{ visual().type }}”. Register it with provideBiVisual().</p>
+    } @else if (missingFields(); as message) {
+      <p class="state">{{ message }}</p>
+    } @else if (errorText(); as message) {
+      <div class="state error" role="alert">
+        <p>{{ message }}</p>
+        <button type="button" class="btn" (click)="data.reload()">Try again</button>
+      </div>
+    } @else {
+      @if (componentType.value(); as component) {
+        <ng-container *ngComponentOutlet="component; injector: childInjector" />
+      }
+      @if (showSkeleton()) {
+        <div class="skeleton" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      }
+      @if (isEmpty()) {
+        <p class="state overlay">No data for the current filters.</p>
+      }
+    }
+  </div>
+
+  @if (data.value()?.truncated) {
+    <p class="foot">Showing the first 5,000 categories. Add a filter to see the rest.</p>
+  }
+</section>

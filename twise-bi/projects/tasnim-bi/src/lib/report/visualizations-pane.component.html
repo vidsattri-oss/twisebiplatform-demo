@@ -1,0 +1,153 @@
+<aside class="pane" aria-label="Visualizations">
+  <header class="pane-head">
+    <h2 class="pane-title">Visualizations</h2>
+    @if (visual()) {
+      <button type="button" class="btn ghost sm" (click)="store.focusedVisualId.set(null)">Add another</button>
+    }
+  </header>
+
+  <div class="pane-body">
+    <section class="section">
+      <h3 class="section-title">{{ visual() ? 'Visual type' : 'Add a visual' }}</h3>
+      <div class="types" role="group" aria-label="Visual types">
+        @for (t of types; track t.type) {
+          <button
+            type="button"
+            class="type"
+            [class.active]="visual()?.type === t.type"
+            [attr.aria-pressed]="visual() ? visual()!.type === t.type : null"
+            [title]="t.label"
+            (click)="visual() ? store.changeVisualType(visual()!.id, t.type) : store.addVisual(t.type)"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="t.icon" /></svg>
+            <span class="type-label">{{ t.label }}</span>
+          </button>
+        }
+      </div>
+      @if (!visual()) {
+        <p class="help">Or select a visual on the canvas to edit it.</p>
+      }
+    </section>
+
+    @if (visual(); as v) {
+      <section class="section">
+        <label class="field">
+          <span class="label">Title</span>
+          <input class="input" [value]="v.title ?? ''" (change)="setTitle($event)" />
+        </label>
+      </section>
+
+      @if (type(); as t) {
+        <section class="section">
+          <h3 class="section-title">Fields</h3>
+          @for (role of t.roles; track role.name) {
+            <div class="well">
+              <div class="well-head">
+                <span class="label">{{ role.label }}</span>
+                <span class="help">{{ items(role).length }}/{{ role.max }}</span>
+              </div>
+              @for (item of items(role); track $index; let i = $index) {
+                <div class="chip">
+                  <span class="chip-text" [title]="itemLabel(item)">{{ itemLabel(item) }}</span>
+                  @if (isDateField(item) && role.kind === 'grouping' && t.dataKind === 'aggregate') {
+                    <select class="select mini" aria-label="Date level" [value]="dateLevel(item)" (change)="setDateLevel(role, i, valueOf($event))">
+                      <option value="">Date</option>
+                      <option value="year">Year</option>
+                      <option value="quarter">Quarter</option>
+                      <option value="month">Month</option>
+                    </select>
+                  }
+                  @if (items(role).length > 1) {
+                    <button type="button" class="chip-btn" [attr.aria-label]="'Move ' + itemLabel(item) + ' up'" [disabled]="i === 0" (click)="moveItem(role, i, -1)">↑</button>
+                  }
+                  <button type="button" class="chip-btn" [attr.aria-label]="'Remove ' + itemLabel(item)" (click)="removeItem(role, i)">×</button>
+                </div>
+              }
+              @if (items(role).length < role.max) {
+                <select class="select add" [attr.aria-label]="'Add to ' + role.label" (change)="addItem(role, $event)">
+                  <option value="">+ Add {{ role.kind === 'measure' ? 'a measure' : 'a field' }}</option>
+                  @if (role.kind === 'measure') {
+                    @for (g of measuresByTable(); track g.table) {
+                      <optgroup [label]="g.table">
+                        @for (m of g.measures; track m) {
+                          <option [value]="measureKey(m)">{{ m }}</option>
+                        }
+                      </optgroup>
+                    }
+                  } @else {
+                    @for (g of columnsByTable(); track g.table) {
+                      <optgroup [label]="g.table">
+                        @for (c of g.columns; track c.name) {
+                          <option [value]="columnKey(g.table, c.name)">{{ c.name }}</option>
+                        }
+                      </optgroup>
+                    }
+                  }
+                </select>
+              }
+            </div>
+          }
+          @if (!measuresByTable().length && t.roles.some((r) => r.kind === 'measure')) {
+            <p class="help">This model has no measures yet. Create one on the Measures page.</p>
+          }
+        </section>
+      }
+
+      <section class="section">
+        <h3 class="section-title">Format</h3>
+        @if (isChart()) {
+          <label class="field">
+            <span class="label">Subtitle</span>
+            <input class="input" [value]="option('subtitle') ?? ''" (change)="setOption('subtitle', valueOf($event))" />
+          </label>
+          <label class="check"><input type="checkbox" [checked]="option('dataLabels') !== false && (option('dataLabels') === true || v.type !== 'line')" (change)="setOption('dataLabels', checked($event))" /> Data labels</label>
+          @if (v.type === 'column' || v.type === 'bar') {
+            <label class="check"><input type="checkbox" [checked]="option('colorByPoint') === true" (change)="setOption('colorByPoint', checked($event))" /> Colour each category</label>
+          }
+          @if (v.type !== 'pie' && v.type !== 'donut') {
+            <label class="field">
+              <span class="label">Value axis title</span>
+              <input class="input" [value]="option('valueAxisTitle') ?? ''" (change)="setOption('valueAxisTitle', valueOf($event))" />
+            </label>
+          }
+        }
+        @if (v.type === 'slicer') {
+          <label class="field">
+            <span class="label">Slicer style</span>
+            <select class="select" [value]="option('mode') ?? ''" (change)="setOption('mode', valueOf($event) || undefined)">
+              <option value="">Automatic</option>
+              <option value="dropdown">Dropdown</option>
+              <option value="list">List</option>
+              <option value="between">Between</option>
+              <option value="relativeDate">Relative date</option>
+            </select>
+          </label>
+        }
+        <div class="layout">
+          <label class="field"><span class="label">Column</span><input class="input" type="number" min="0" max="11" [value]="v.layout?.x ?? 0" (change)="setLayout('x', $event)" /></label>
+          <label class="field"><span class="label">Row</span><input class="input" type="number" min="0" [value]="v.layout?.y ?? 0" (change)="setLayout('y', $event)" /></label>
+          <label class="field"><span class="label">Width</span><input class="input" type="number" min="1" max="12" [value]="v.layout?.w ?? 6" (change)="setLayout('w', $event)" /></label>
+          <label class="field"><span class="label">Height</span><input class="input" type="number" min="1" max="30" [value]="v.layout?.h ?? 6" (change)="setLayout('h', $event)" /></label>
+        </div>
+      </section>
+
+      @if (type()?.dataKind === 'aggregate' && others().length) {
+        <section class="section">
+          <h3 class="section-title">When you select data in this visual</h3>
+          @for (other of others(); track other.id) {
+            <label class="interaction">
+              <span class="interaction-name" [title]="other.title || other.type">{{ other.title || other.type }}</span>
+              <select class="select mini" [value]="interaction(other)" (change)="setInteraction(other, $event)">
+                <option value="filter">Filter</option>
+                @if (canHighlight(other)) {
+                  <option value="highlight">Highlight</option>
+                }
+                <option value="none">None</option>
+              </select>
+            </label>
+          }
+        </section>
+      }
+    }
+  </div>
+</aside>

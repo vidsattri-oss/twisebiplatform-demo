@@ -1,0 +1,83 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Reports</h1>
+      <p class="page-sub">Interactive reports with cross-highlighting, slicers and See records.</p>
+    </div>
+    <button type="button" class="btn primary" (click)="startCreate()">+ New report</button>
+  </div>
+  <bi-nav />
+
+  @if (actionError(); as message) {
+    <p class="alert error" role="alert">{{ message }}</p>
+  }
+
+  @if (creating()) {
+    <form class="panel form-row" (submit)="$event.preventDefault(); create()">
+      <label class="field">
+        <span class="label">Report name</span>
+        <input class="input" [value]="newName()" (input)="newName.set(valueOf($event))" placeholder="e.g. Wells delivery overview" />
+      </label>
+      <label class="field">
+        <span class="label">Data source</span>
+        <select class="select" [value]="newModelId() ?? ''" (change)="newModelId.set(+valueOf($event))">
+          @for (m of data.value()?.models ?? []; track m.id) {
+            <option [value]="m.id" [disabled]="m.status !== 'connected'">{{ m.name }}</option>
+          }
+        </select>
+      </label>
+      <button type="submit" class="btn primary">Create</button>
+      <button type="button" class="btn ghost" (click)="creating.set(false)">Cancel</button>
+    </form>
+  }
+
+  @if (loadError(); as message) {
+    <div class="panel">
+      <p class="alert error" role="alert">{{ message }}</p>
+      <button type="button" class="btn" (click)="data.reload()">Try again</button>
+    </div>
+  } @else if (data.isLoading() && !data.hasValue()) {
+    <div class="cards" aria-busy="true">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="card skeleton"></div>
+      }
+    </div>
+  } @else {
+    <div class="cards">
+      @for (r of data.value()?.reports ?? []; track r.id) {
+        <article class="card">
+          @if (base) {
+            <a class="card-link" [routerLink]="[r.id]" [relativeTo]="base">
+              <h2 class="card-title">{{ r.name }}</h2>
+            </a>
+          } @else {
+            <h2 class="card-title">{{ r.name }}</h2>
+          }
+          <p class="card-meta">
+            <span class="badge">{{ modelNames().get(r.modelId) ?? 'Unknown data source' }}</span>
+            @if (r.updatedAt) {
+              <span>Updated {{ r.updatedAt | date: 'd MMM yyyy, HH:mm' }}</span>
+            }
+          </p>
+          <div class="card-actions">
+            @if (confirmDeleteId() === r.id) {
+              <span class="confirm-text">Delete this report?</span>
+              <button type="button" class="btn danger sm" (click)="remove(r.id)">Delete</button>
+              <button type="button" class="btn ghost sm" (click)="confirmDeleteId.set(null)">Keep</button>
+            } @else {
+              @if (base) {
+                <a class="btn sm" [routerLink]="[r.id]" [relativeTo]="base">Open</a>
+              }
+              <button type="button" class="btn ghost sm danger-text" (click)="confirmDeleteId.set(r.id)">Delete</button>
+            }
+          </div>
+        </article>
+      } @empty {
+        <div class="panel empty">
+          <p>No reports yet.</p>
+          <button type="button" class="btn primary" (click)="startCreate()">Create the first report</button>
+        </div>
+      }
+    </div>
+  }
+</div>

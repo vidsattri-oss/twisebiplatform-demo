@@ -1,0 +1,147 @@
+@if (store.error(); as message) {
+  <div class="state">
+    <p class="alert error" role="alert">{{ message }}</p>
+    <div class="state-actions">
+      <button type="button" class="btn" (click)="retry()">Try again</button>
+      @if (base) {
+        <a class="btn ghost" [routerLink]="['./']" [relativeTo]="base">All reports</a>
+      }
+    </div>
+  </div>
+} @else if (!store.report() || !store.model()) {
+  <div class="loading" aria-busy="true" aria-live="polite">
+    <span class="sr-only">Loading report…</span>
+    <div class="bar w40"></div>
+    <div class="bar w25"></div>
+    <div class="blocks"><div></div><div></div><div></div></div>
+  </div>
+} @else {
+  @let report = store.report()!;
+  @let page = store.page();
+  <div class="report" [class.editing]="store.editMode()">
+    <header class="toolbar">
+      <div class="identity">
+        @if (base) {
+          <a class="crumb" [routerLink]="['./']" [relativeTo]="base">Reports</a>
+          <span class="crumb-sep" aria-hidden="true">/</span>
+        }
+        @if (store.editMode()) {
+          <input class="input name-input" aria-label="Report name" [value]="report.name" (change)="renameReport($event)" />
+        } @else {
+          <h1 class="name">{{ report.name }}</h1>
+        }
+        <span class="badge">{{ store.model()!.name }}</span>
+        @if (store.dirty()) {
+          <span class="badge warning">Unsaved changes</span>
+        }
+      </div>
+      <div class="tools">
+        @if (store.selection()) {
+          <button type="button" class="btn ghost sm" (click)="store.clearSelection()">Clear selection</button>
+        }
+        @if (activeSlicers()) {
+          <button type="button" class="btn ghost sm" (click)="store.resetSlicers()">Reset slicers</button>
+        }
+        <button type="button" class="btn sm" [class.on]="filterPaneOpen()" [attr.aria-expanded]="filterPaneOpen()" (click)="filterPaneOpen.set(!filterPaneOpen())">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5Z" /></svg>
+          Filters
+          @if (filterCount()) {
+            <span class="badge primary">{{ filterCount() }}</span>
+          }
+        </button>
+        @if (canEdit()) {
+          @if (store.editMode()) {
+            @if (store.dirty()) {
+              <button type="button" class="btn ghost sm" (click)="store.discardChanges()">Discard changes</button>
+            }
+            <button type="button" class="btn primary sm" [disabled]="!store.dirty() || store.saving()" (click)="store.save()">
+              {{ store.saving() ? 'Saving…' : 'Save' }}
+            </button>
+            <button type="button" class="btn sm" (click)="toggleEdit()">Done editing</button>
+          } @else {
+            <button type="button" class="btn sm" (click)="toggleEdit()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4" /></svg>
+              Edit
+            </button>
+          }
+        }
+      </div>
+    </header>
+
+    @if (store.saveError(); as message) {
+      <p class="alert error" role="alert">{{ message }}</p>
+    }
+
+    <nav class="pages" aria-label="Report pages">
+      @for (p of report.definition.pages; track p.id) {
+        @if (store.editMode() && renamingPage() && p.id === page?.id) {
+          <input class="input page-input" aria-label="Page name" [value]="p.name" (change)="renamePage(p.id, $event)" (blur)="renamingPage.set(false)" (keydown.escape)="renamingPage.set(false)" />
+        } @else {
+          <button
+            type="button"
+            class="page-tab"
+            [class.active]="p.id === page?.id"
+            [attr.aria-current]="p.id === page?.id ? 'page' : null"
+            (click)="store.goToPage(p.id)"
+            (dblclick)="store.editMode() && renamingPage.set(true)"
+          >
+            {{ p.name }}
+          </button>
+        }
+      }
+      @if (store.editMode()) {
+        <button type="button" class="page-tab add" (click)="store.addPage()">+ Add page</button>
+        @if (page && report.definition.pages.length > 1) {
+          <button type="button" class="btn ghost sm remove-page" (click)="store.removePage(page.id)">Remove this page</button>
+        }
+        <span class="hint">Double-click a page to rename it.</span>
+      }
+    </nav>
+
+    <div class="workspace">
+      @if (store.editMode()) {
+        <bi-visualizations-pane class="side viz" />
+      }
+
+      <main class="canvas" [attr.aria-label]="page?.name">
+        @if (focusVisual(); as fv) {
+          <div class="focus">
+            <button type="button" class="btn ghost sm back" (click)="store.toggleFocusMode(fv.id)">← Back to report</button>
+            <bi-visual class="focus-visual" [visual]="fv" />
+          </div>
+        } @else {
+          <div class="grid" [style.--bi-rows]="canvasRows()">
+            @for (v of visuals(); track v.id) {
+              @let l = layout(v);
+              <bi-visual
+                class="cell"
+                [visual]="v"
+                [style.--bi-col]="l.col"
+                [style.--bi-row]="l.row"
+                [style.--bi-w]="l.w"
+                [style.--bi-h]="l.h"
+              />
+            } @empty {
+              <div class="empty-page">
+                <p>This page has no visuals yet.</p>
+                @if (canEdit() && !store.editMode()) {
+                  <button type="button" class="btn primary sm" (click)="toggleEdit()">Add visuals</button>
+                } @else if (store.editMode()) {
+                  <p class="hint">Pick a visual type in the Visualizations pane.</p>
+                }
+              </div>
+            }
+          </div>
+        }
+      </main>
+
+      @if (filterPaneOpen()) {
+        <bi-filter-pane class="side filters" (closed)="filterPaneOpen.set(false)" />
+      }
+    </div>
+  </div>
+
+  @if (store.seeRecords(); as records) {
+    <bi-see-records-sheet [state]="records" (closed)="store.closeSeeRecords()" />
+  }
+}

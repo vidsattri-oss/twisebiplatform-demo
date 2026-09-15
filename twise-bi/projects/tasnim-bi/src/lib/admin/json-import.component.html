@@ -1,0 +1,113 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">JSON import</h1>
+      <p class="page-sub">Nested records become columns; lists become related child tables, so they can be counted and filtered in reports.</p>
+    </div>
+  </div>
+  <bi-nav />
+
+  <div class="split">
+    <section class="panel stack">
+      <div class="panel-head">
+        <h2 class="panel-title">Source</h2>
+        <button type="button" class="link" (click)="useSample()">Use sample FLAF/MOC events</button>
+      </div>
+      <label class="field">
+        <span class="label">Upload a .json file</span>
+        <input class="input file" type="file" accept=".json,application/json" (change)="onFile($event)" />
+      </label>
+      <label class="field">
+        <span class="label">Or paste JSON</span>
+        <textarea class="textarea" rows="14" spellcheck="false" [value]="text()" (input)="edit(valueOf($event))" [attr.aria-invalid]="!!parseError()"></textarea>
+      </label>
+      <label class="field">
+        <span class="label">Table name</span>
+        <input class="input" [value]="tableName()" (input)="tableName.set(valueOf($event))" placeholder="task_events" />
+        <span class="help">Created as json_&lt;name&gt;; lists become json_&lt;name&gt;__&lt;path&gt;.</span>
+      </label>
+      <label class="field">
+        <span class="label">Load into</span>
+        <select class="select" [value]="connectionId() ?? ''" (change)="connectionId.set(valueOf($event) ? +valueOf($event) : null)">
+          <option value="">JSON imports (default)</option>
+          @for (m of targets(); track m.id) {
+            @if (m.fileName !== 'json-imports.db') {
+              <option [value]="m.id">{{ m.name }}</option>
+            }
+          }
+        </select>
+      </label>
+      <fieldset class="modes">
+        <legend class="label">If the table already exists</legend>
+        <label class="check"><input type="radio" name="mode" [checked]="mode() === 'append'" (change)="mode.set('append')" /> Add rows</label>
+        <label class="check"><input type="radio" name="mode" [checked]="mode() === 'replace'" (change)="mode.set('replace')" /> Replace rows</label>
+      </fieldset>
+
+      @if (parseError(); as message) {
+        <p class="alert error" role="alert">{{ message }}</p>
+      }
+      @if (requestError(); as message) {
+        <p class="alert error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button type="button" class="btn" [disabled]="busy() || !text()" (click)="run(true)">Preview</button>
+        <button type="button" class="btn primary" [disabled]="busy() || !preview()" (click)="run(false)">Import</button>
+      </div>
+    </section>
+
+    <section class="panel stack">
+      <div class="panel-head">
+        <h2 class="panel-title">{{ imported() ? 'Imported' : 'Preview' }}</h2>
+        @if (preview() && !imported()) {
+          <span class="badge warning">Nothing written yet</span>
+        }
+      </div>
+
+      @if (imported(); as result) {
+        <p class="alert success" role="status">
+          Loaded {{ result.tables[0]?.rowCount }} record(s) into {{ result.tables.length }} table(s). They're now in Data sources and ready for reports.
+        </p>
+      }
+
+      @if (preview(); as result) {
+        @for (t of result.tables; track t.name) {
+          <article class="plan-table">
+            <header class="plan-head">
+              <span class="mono">{{ t.name }}</span>
+              <span class="help">{{ t.rowCount }} rows</span>
+              @if (t.parent) {
+                <span class="badge primary">child of {{ t.parent }}</span>
+              }
+              @if (t.addedColumns.length) {
+                <span class="badge warning">new columns: {{ t.addedColumns.join(', ') }}</span>
+              }
+            </header>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    @for (c of t.columns; track c.name) {
+                      <th scope="col"><span class="mono">{{ c.name }}</span> <span class="badge">{{ c.dataType }}</span></th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of t.sample; track $index) {
+                    <tr>
+                      @for (c of t.columns; track c.name) {
+                        <td>{{ cell(row[c.name]) }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </article>
+        }
+      } @else {
+        <p class="empty">Paste JSON or use the sample, then choose Preview to see the tables it creates.</p>
+      }
+    </section>
+  </div>
+</div>

@@ -1,0 +1,111 @@
+@switch (mode()) {
+  @case ('dropdown') {
+    <button
+      type="button"
+      class="trigger"
+      [attr.aria-expanded]="open()"
+      [attr.aria-controls]="uid + '-panel'"
+      aria-haspopup="true"
+      (click)="open.set(!open())"
+    >
+      <span class="trigger-text" [class.all]="!selected().size">{{ summary() }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    </button>
+    @if (open()) {
+      <div class="panel" [id]="uid + '-panel'">
+        <ng-container [ngTemplateOutlet]="valueList" />
+      </div>
+    }
+  }
+  @case ('list') {
+    <div class="inline-list">
+      <ng-container [ngTemplateOutlet]="valueList" />
+    </div>
+  }
+  @case ('between') {
+    <div class="between">
+      <label class="field">
+        <span class="sr-only">From</span>
+        <input
+          [type]="inputType()"
+          [value]="range().min ?? ''"
+          [attr.min]="values.value()?.min"
+          [attr.max]="values.value()?.max"
+          [attr.placeholder]="values.value()?.min ?? 'From'"
+          (change)="setRange('min', inputValue($event))"
+        />
+      </label>
+      <span class="dash" aria-hidden="true">–</span>
+      <label class="field">
+        <span class="sr-only">To</span>
+        <input
+          [type]="inputType()"
+          [value]="range().max ?? ''"
+          [attr.min]="values.value()?.min"
+          [attr.max]="values.value()?.max"
+          [attr.placeholder]="values.value()?.max ?? 'To'"
+          (change)="setRange('max', inputValue($event))"
+        />
+      </label>
+      @if (filter()) {
+        <button type="button" class="link" (click)="clear()">Clear</button>
+      }
+    </div>
+    @if (values.value(); as v) {
+      <p class="hint">Data from {{ label(v.min ?? null) }} to {{ label(v.max ?? null) }}</p>
+    }
+  }
+  @case ('relativeDate') {
+    <div class="relative">
+      <select aria-label="Period" [value]="relative()?.period ?? ''" (change)="inputValue($event) ? setRelative({ period: $any(inputValue($event)) }) : clear()">
+        <option value="">Any time</option>
+        <option value="last">Last</option>
+        <option value="this">This</option>
+        <option value="next">Next</option>
+      </select>
+      @if (relative(); as r) {
+        @if (r.period !== 'this') {
+          <input type="number" min="1" max="1000" aria-label="Count" class="count" [value]="r.count" (change)="setRelative({ count: +inputValue($event) })" />
+        }
+        <select aria-label="Unit" [value]="r.unit" (change)="setRelative({ unit: $any(inputValue($event)) })">
+          <option value="day">{{ r.period === 'this' || r.count === 1 ? 'day' : 'days' }}</option>
+          <option value="month">{{ r.period === 'this' || r.count === 1 ? 'month' : 'months' }}</option>
+          <option value="year">{{ r.period === 'this' || r.count === 1 ? 'year' : 'years' }}</option>
+        </select>
+      }
+    </div>
+  }
+}
+
+<ng-template #valueList>
+  <input
+    type="search"
+    class="search"
+    placeholder="Search"
+    aria-label="Search values"
+    [value]="search()"
+    (input)="search.set(inputValue($event))"
+  />
+  <div class="options" role="group" [attr.aria-label]="field()?.column">
+    <label class="option">
+      <input type="checkbox" [checked]="!selected().size" (change)="selectAll()" />
+      <span>Select all</span>
+    </label>
+    @for (value of options(); track $index) {
+      <label class="option">
+        <input type="checkbox" [checked]="isSelected(value)" (change)="toggle(value)" />
+        <span [class.blank]="value === null">{{ label(value) }}</span>
+      </label>
+    }
+    @if (values.isLoading() && !values.hasValue()) {
+      <p class="hint">Loading values…</p>
+    } @else if (valuesError(); as message) {
+      <p class="hint error" role="alert">{{ message }}</p>
+    } @else if (!options().length) {
+      <p class="hint">No values match.</p>
+    }
+    @if (values.value()?.truncated) {
+      <p class="hint">Showing the first {{ options().length }} values. Search to find others.</p>
+    }
+  </div>
+</ng-template>

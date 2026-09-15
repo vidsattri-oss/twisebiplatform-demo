@@ -1,0 +1,131 @@
+<div class="editor">
+  @if (allowFieldChange()) {
+    <label class="field">
+      <span class="label">Field</span>
+      <select class="select" [value]="fieldKey(target())" (change)="selectField(valueOf($event))">
+        <option value="">Choose a field…</option>
+        @for (t of tables(); track t.name) {
+          <optgroup [label]="t.name">
+            @for (c of t.columns; track c.name) {
+              <option [value]="fieldKey({ table: t.name, column: c.name })">{{ c.name }}</option>
+            }
+          </optgroup>
+        }
+      </select>
+    </label>
+  }
+
+  @if (target()) {
+    <label class="field">
+      <span class="label">Filter type</span>
+      <select class="select" [value]="kind()" (change)="kind.set($any(valueOf($event)))">
+        @for (k of kinds(); track k.value) {
+          <option [value]="k.value">{{ k.label }}</option>
+        }
+      </select>
+    </label>
+
+    @switch (kind()) {
+      @case ('basic') {
+        <div class="row">
+          <label class="check"><input type="radio" name="op" [checked]="basicOperator() === 'in'" (change)="basicOperator.set('in')" /> Is</label>
+          <label class="check"><input type="radio" name="op" [checked]="basicOperator() === 'notIn'" (change)="basicOperator.set('notIn')" /> Is not</label>
+        </div>
+        <input class="input" type="search" placeholder="Search values" aria-label="Search values" [value]="search()" (input)="search.set(valueOf($event))" />
+        <div class="values" role="group" aria-label="Values">
+          @for (v of values.value()?.values ?? []; track $index) {
+            <label class="check value">
+              <input type="checkbox" [checked]="basicValues().includes(v)" (change)="toggleValue(v)" />
+              <span [class.blank]="v === null">{{ label(v) }}</span>
+            </label>
+          }
+          @if (values.isLoading() && !values.hasValue()) {
+            <p class="help">Loading values…</p>
+          } @else if (valuesError(); as message) {
+            <p class="help error">{{ message }}</p>
+          }
+        </div>
+        <p class="help">{{ basicValues().length ? basicValues().length + ' selected' : 'Nothing selected — the filter shows everything.' }}</p>
+      }
+      @case ('advanced') {
+        @for (c of conditions(); track $index; let i = $index) {
+          @if (i === 1) {
+            <div class="row">
+              <label class="check"><input type="radio" name="logic" [checked]="logic() === 'and'" (change)="logic.set('and')" /> And</label>
+              <label class="check"><input type="radio" name="logic" [checked]="logic() === 'or'" (change)="logic.set('or')" /> Or</label>
+            </div>
+          }
+          <div class="condition">
+            <select class="select" [attr.aria-label]="'Condition ' + (i + 1)" [value]="c.operator" (change)="setCondition(i, { operator: $any(valueOf($event)) })">
+              @for (op of operators; track op.value) {
+                @if (!op.text || isText()) {
+                  <option [value]="op.value">{{ op.label }}</option>
+                }
+              }
+            </select>
+            @if (!noValue(c.operator)) {
+              <input class="input" [type]="inputType()" [attr.aria-label]="'Value ' + (i + 1)" [value]="c.value" (input)="setCondition(i, { value: valueOf($event) })" />
+            }
+            @if (conditions().length > 1) {
+              <button type="button" class="link" (click)="removeCondition(i)">Remove</button>
+            }
+          </div>
+        }
+        @if (conditions().length < 2) {
+          <button type="button" class="link" (click)="addCondition()">+ Add condition</button>
+        }
+      }
+      @case ('range') {
+        <div class="condition">
+          <input class="input" [type]="inputType()" aria-label="From" placeholder="From" [value]="rangeMin()" (input)="rangeMin.set(valueOf($event))" />
+          <input class="input" [type]="inputType()" aria-label="To" placeholder="To" [value]="rangeMax()" (input)="rangeMax.set(valueOf($event))" />
+        </div>
+        <p class="help">Both ends are included. Leave one empty for an open range.</p>
+      }
+      @case ('relativeDate') {
+        <div class="condition">
+          <select class="select" aria-label="Period" [value]="relPeriod()" (change)="relPeriod.set($any(valueOf($event)))">
+            <option value="last">In the last</option>
+            <option value="this">In this</option>
+            <option value="next">In the next</option>
+          </select>
+          @if (relPeriod() !== 'this') {
+            <input class="input count" type="number" min="1" aria-label="Count" [value]="relCount()" (input)="relCount.set(+valueOf($event))" />
+          }
+          <select class="select" aria-label="Unit" [value]="relUnit()" (change)="relUnit.set($any(valueOf($event)))">
+            <option value="day">days</option>
+            <option value="month">months</option>
+            <option value="year">years</option>
+          </select>
+        </div>
+        <p class="help">"Last" and "next" include today.</p>
+      }
+      @case ('topN') {
+        <div class="condition">
+          <select class="select" aria-label="Top or bottom" [value]="topDirection()" (change)="topDirection.set($any(valueOf($event)))">
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+          </select>
+          <input class="input count" type="number" min="1" aria-label="How many" [value]="topN()" (input)="topN.set(+valueOf($event))" />
+        </div>
+        <label class="field">
+          <span class="label">By value</span>
+          <select class="select" [value]="topBy()" (change)="topBy.set(valueOf($event))">
+            <option value="">Choose a measure…</option>
+            @for (m of measures(); track m.name) {
+              <option [value]="m.name">{{ m.name }}</option>
+            }
+          </select>
+        </label>
+      }
+    }
+  }
+
+  @if (error(); as message) {
+    <p class="help error" role="alert">{{ message }}</p>
+  }
+  <div class="actions">
+    <button type="button" class="btn primary sm" [disabled]="!target()" (click)="apply()">Apply filter</button>
+    <button type="button" class="btn ghost sm" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</div>
