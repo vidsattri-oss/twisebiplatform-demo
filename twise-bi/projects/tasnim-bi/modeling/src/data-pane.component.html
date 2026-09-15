@@ -1,0 +1,127 @@
+<aside class="pane" aria-label="Data">
+  <header class="pane-head">
+    <h2 class="pane-title">
+      @if (mode() === 'formula') {
+        <button type="button" class="back" (click)="mode.set('fields')" aria-label="Back to fields">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+        </button>
+        {{ formulaKind() === 'measure' ? 'New measure' : 'New column' }}
+      } @else {
+        Data
+      }
+    </h2>
+  </header>
+
+  <div class="pane-body">
+    @if (mode() === 'formula') {
+      <bi-formula-editor
+        [model]="model()"
+        [kind]="formulaKind()"
+        [initialTable]="formulaTable()"
+        [compact]="true"
+        [showCancel]="true"
+        (saved)="onFormulaSaved($event)"
+        (cancelled)="mode.set('fields')"
+      />
+    } @else {
+      <div class="new">
+        <button type="button" class="btn sm" (click)="startFormula('measure')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5H7l5 7-5 7h10" /></svg>
+          New measure
+        </button>
+        <button type="button" class="btn sm" (click)="startFormula('column')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM12 4v16" /></svg>
+          New column
+        </button>
+      </div>
+
+      <label class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
+        <span class="sr-only">Search fields</span>
+        <input type="search" placeholder="Search fields" [value]="search()" (input)="search.set(valueOf($event))" />
+      </label>
+
+      @if (note(); as message) {
+        <p class="note" role="status">{{ message }}</p>
+      }
+
+      <ul class="tables">
+        @for (t of tables(); track t.name) {
+          <li class="table">
+            <button type="button" class="table-head" [attr.aria-expanded]="isOpen(t.name)" (click)="toggle(t.name)">
+              <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+              <svg class="table-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 5v14" /></svg>
+              <span class="table-name" [title]="t.name">{{ t.name }}</span>
+              <span class="count">{{ t.total }}</span>
+            </button>
+            @if (isOpen(t.name)) {
+              <ul class="fields">
+                @for (m of t.measures; track m.name) {
+                  <li class="field-row">
+                    <button type="button" class="field-btn"[title]="m.expression" (click)="picked.emit({ measure: m.name })">
+                      <span class="glyph measure" aria-hidden="true">∑</span>
+                      <span class="field-name">{{ m.name }}</span>
+                    </button>
+                  </li>
+                }
+                @for (c of t.columns; track c.name) {
+                  @let key = propsKey(t.name, c.name);
+                  <li class="field-row" [class.hidden-col]="c.hidden">
+                    <button type="button" class="field-btn"[title]="c.expression ?? c.dataType" (click)="picked.emit({ table: t.name, column: c.name })">
+                      <span class="glyph" [class.calc]="!!c.expression" aria-hidden="true">{{ glyph(c) }}</span>
+                      <span class="field-name">{{ c.name }}</span>
+                      @if (c.hidden) {
+                        <span class="tag">hidden</span>
+                      }
+                    </button>
+                    <button type="button" class="props-btn" [attr.aria-expanded]="propsFor() === key" [attr.aria-label]="'Properties of ' + c.name" (click)="toggleProps(t.name, c.name)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg>
+                    </button>
+                    @if (propsFor() === key) {
+                      <form class="props" (submit)="$event.preventDefault(); saveProps(t.name, c, hid.checked, fmt.value, sort.value)">
+                        <label class="check"><input #hid type="checkbox" [checked]="!!c.hidden" /> Hide in reports</label>
+                        <label class="field-label">
+                          <span class="label">Format</span>
+                          <select #fmt class="select">
+                            @for (f of formats; track f.value) {
+                              <option [value]="f.value" [selected]="(c.format ?? '') === f.value">{{ f.label }}</option>
+                            }
+                          </select>
+                        </label>
+                        <label class="field-label">
+                          <span class="label">Sort by</span>
+                          <select #sort class="select">
+                            <option value="" [selected]="!c.sortBy">Its own values</option>
+                            @for (other of t.columns; track other.name) {
+                              @if (other.name !== c.name) {
+                                <option [value]="other.name" [selected]="other.name === c.sortBy">{{ other.name }}</option>
+                              }
+                            }
+                          </select>
+                        </label>
+                        @if (propsError(); as e) {
+                          <p class="help error" role="alert">{{ e }}</p>
+                        }
+                        <div class="props-actions">
+                          <button type="submit" class="btn primary sm" [disabled]="savingProps()">{{ savingProps() ? 'Saving…' : 'Save' }}</button>
+                          <button type="button" class="btn ghost sm" (click)="propsFor.set(null)">Cancel</button>
+                        </div>
+                      </form>
+                    }
+                  </li>
+                }
+                <li class="add-here">
+                  <button type="button" class="link" (click)="startFormula('measure', t.name)">+ Measure</button>
+                  <button type="button" class="link" (click)="startFormula('column', t.name)">+ Column</button>
+                </li>
+              </ul>
+            }
+          </li>
+        } @empty {
+          <li class="help">No field matches “{{ search() }}”.</li>
+        }
+      </ul>
+      <p class="help">Select a visual on the canvas, then click a field to add it.</p>
+    }
+  </div>
+</aside>

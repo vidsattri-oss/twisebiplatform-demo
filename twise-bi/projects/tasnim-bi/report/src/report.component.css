@@ -29,6 +29,13 @@
 .workspace { display: flex; gap: 12px; align-items: flex-start; }
 .canvas { flex: 1; min-width: 0; }
 .side { flex: 0 0 300px; position: sticky; top: 12px; max-height: calc(100vh - 24px); }
+.left-pane { display: flex; flex-direction: column; gap: 6px; }
+.left-body { flex: 1; min-height: 0; max-height: calc(100vh - 70px); }
+.side-tabs { display: flex; padding: 3px; gap: 2px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius); background: var(--bi-sunk); }
+.side-tabs button { flex: 1; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--bi-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.side-tabs button:hover { color: var(--bi-text); }
+.side-tabs button.on { background: var(--bi-surface); color: var(--bi-primary); box-shadow: 0 1px 2px rgba(29, 28, 33, 0.12), inset 0 -2px 0 var(--bi-accent); }
+.side-tabs button:focus-visible { outline: none; box-shadow: var(--bi-focus); }
 
 .grid {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));

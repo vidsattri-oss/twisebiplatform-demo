@@ -377,6 +377,15 @@ export interface MeasureInput {
   format?: string;
 }
 
+/** Column properties set from the report editor (E3). null clears a field back to the model file's value. */
+export interface ColumnPropertiesPatch {
+  table: string;
+  column: string;
+  hidden?: boolean | null;
+  format?: string | null;
+  sortBy?: string | null;
+}
+
 /** A measure aggregates rows; a calculated column is evaluated for each row. */
 export type ExpressionKind = 'measure' | 'column';
 

@@ -1,0 +1,158 @@
+<div class="formula" [class.compact]="compact()">
+  <aside class="reference">
+    <label class="field">
+      <span class="label">Home table</span>
+      <select class="select" (change)="table.set(valueOf($event))">
+        @for (t of model().tables; track t.name) {
+          @if (!t.hidden) {
+            <option [value]="t.name" [selected]="t.name === table()">{{ t.name }}</option>
+          }
+        }
+      </select>
+      <span class="help">{{ activeKind() === 'measure' ? 'The table whose rows the measure aggregates.' : 'The table that gets the new column.' }}</span>
+    </label>
+
+    <details class="group" [open]="!compact()">
+      <summary class="subhead">Columns{{ activeKind() === 'measure' && sameTableMeasures().length ? ' and measures' : '' }}</summary>
+      <div class="insert-group">
+        @for (c of columns(); track c.name) {
+          <button type="button" class="token" [class.calc]="!!c.expression" [title]="c.dataType + (c.expression ? ' · calculated' : '')" (click)="insert(editor, tableRef(table()) + '[' + c.name + ']')">{{ c.name }}</button>
+        }
+      </div>
+      @if (activeKind() === 'measure' && sameTableMeasures().length) {
+        <div class="insert-group">
+          @for (m of sameTableMeasures(); track m.name) {
+            <button type="button" class="token measure" (click)="insert(editor, '[' + m.name + ']')">[{{ m.name }}]</button>
+          }
+        </div>
+      }
+    </details>
+
+    <details class="group" [open]="!compact()">
+      <summary class="subhead">Functions</summary>
+      <input class="input" type="search" placeholder="Find a function" aria-label="Find a function" [value]="functionSearch()" (input)="functionSearch.set(valueOf($event))" />
+      @for (g of functionGroups(); track g.label) {
+        <h3 class="fn-heading">{{ g.label }}</h3>
+        <div class="insert-group">
+          @for (f of g.functions; track f.name) {
+            <button
+              type="button"
+              class="token fn"
+              [disabled]="activeKind() === 'column' && f.measureOnly"
+              [title]="f.help + (activeKind() === 'column' && f.measureOnly ? ' Measures only.' : '')"
+              (click)="insert(editor, f.snippet.replaceAll('Table', tableRef(table())))"
+            >{{ f.name }}</button>
+          }
+        </div>
+      } @empty {
+        <p class="help">No function matches.</p>
+      }
+    </details>
+  </aside>
+
+  <form class="editor" (submit)="$event.preventDefault(); save()">
+    <div class="segmented kind" role="group" aria-label="What to create">
+      <button type="button" [class.on]="activeKind() === 'measure'" [attr.aria-pressed]="activeKind() === 'measure'" (click)="setKind('measure')">Measure</button>
+      <button type="button" [class.on]="activeKind() === 'column'" [attr.aria-pressed]="activeKind() === 'column'" (click)="setKind('column')">Calculated column</button>
+    </div>
+    @if (!compact()) {
+      <p class="help">
+        @if (activeKind() === 'measure') {
+          A measure aggregates rows: a total, a ratio, or a KPI label such as IF([Productivity %] &gt;= 0.9, "On track", "At risk").
+        } @else {
+          A calculated column is worked out for each row, e.g. DATEDIFF(tasks[task_date], TODAY(), DAY). It can be an axis, a slicer or a filter.
+        }
+      </p>
+    }
+
+    <div class="name-row">
+      <label class="field">
+        <span class="label">{{ activeKind() === 'measure' ? 'Measure name' : 'Column name' }}</span>
+        <input class="input" [value]="name()" (input)="name.set(valueOf($event))" [placeholder]="activeKind() === 'measure' ? 'e.g. Completion %' : 'e.g. Delay Days'" />
+      </label>
+      <label class="field format">
+        <span class="label">Number format</span>
+        <select class="select" (change)="format.set(valueOf($event))">
+          <option value="" [selected]="format() === ''">General / text</option>
+          <option value="#,0" [selected]="format() === '#,0'">1,234</option>
+          <option value="#,0.0" [selected]="format() === '#,0.0'">1,234.5</option>
+          <option value="#,0.00" [selected]="format() === '#,0.00'">1,234.56</option>
+          <option value="0.0%" [selected]="format() === '0.0%'">12.3%</option>
+          <option value="0%" [selected]="format() === '0%'">12%</option>
+        </select>
+      </label>
+    </div>
+    <label class="field">
+      <span class="label">Expression</span>
+      <textarea
+        #editor
+        class="textarea"
+        [attr.rows]="compact() ? 4 : 5"
+        spellcheck="false"
+        [value]="expression()"
+        [attr.aria-invalid]="validation()?.ok === false"
+        aria-describedby="bi-formula-status"
+        (input)="expression.set(valueOf($event))"
+        [placeholder]="activeKind() === 'measure' ? 'IF([Productivity %] >= 0.9, &quot;On track&quot;, &quot;At risk&quot;)' : 'DATEDIFF(tasks[task_date], TODAY(), DAY)'"
+      ></textarea>
+    </label>
+
+    <div id="bi-formula-status" class="status" aria-live="polite">
+      @if (validation(); as v) {
+        @if (v.ok) {
+          <p class="alert success">
+            Valid — returns {{ typeLabel(v.dataType) }}.
+            @if (v.dependencies?.length) {
+              Uses {{ v.dependencies!.join(', ') }}.
+            }
+          </p>
+        } @else {
+          <div class="alert error">
+            <p class="error-text">{{ v.error?.error }}</p>
+            @if (errorMarker(); as m) {
+              <pre class="marker mono">{{ m.before }}<mark>{{ m.at }}</mark>{{ m.after }}</pre>
+            }
+          </div>
+        }
+      }
+      @if (check()?.preview; as p) {
+        <div class="preview">
+          <span class="label">Result preview</span>
+          @if (p.sample; as s) {
+            <div class="table-wrap">
+              <table class="sample">
+                <thead><tr>@for (c of s.columns; track $index) { <th scope="col" [class.result]="$last">{{ c }}</th> }</tr></thead>
+                <tbody>
+                  @for (r of s.rows; track $index) {
+                    <tr>@for (v of r; track $index) { <td [class.result]="$last">{{ cell(v) }}</td> }</tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="preview-value">{{ previewValue(p) }}</p>
+            <p class="help">Over every row of {{ table() }}, with dataset filters applied.</p>
+          }
+        </div>
+      } @else if (check()?.previewError; as e) {
+        <p class="help">{{ e }}</p>
+      }
+    </div>
+
+    @if (message(); as m) {
+      <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">{{ m.text }}</p>
+    }
+
+    <div class="actions">
+      <button type="submit" class="btn primary" [class.sm]="compact()" [disabled]="saving() || validation()?.ok === false">
+        {{ saving() ? 'Saving…' : activeKind() === 'measure' ? 'Save measure' : 'Add column' }}
+      </button>
+      @if (showCancel()) {
+        <button type="button" class="btn ghost" [class.sm]="compact()" (click)="cancelled.emit()">Back to fields</button>
+      }
+    </div>
+    @if (!compact()) {
+      <p class="help">Not supported yet: CALCULATE, RELATED and time intelligence (TOTALYTD, SAMEPERIODLASTYEAR). Formulas use the home table's columns.</p>
+    }
+  </form>
+</div>

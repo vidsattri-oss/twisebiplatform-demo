@@ -1,0 +1,42 @@
+:host { display: block; }
+.formula { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.formula.compact { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.formula.compact .editor { order: -1; }
+.reference, .editor { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.formula:not(.compact) .reference, .formula:not(.compact) .editor {
+  padding: 16px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius-lg); background: var(--bi-surface);
+}
+
+.group { display: flex; flex-direction: column; gap: 6px; }
+.subhead { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--bi-muted); cursor: pointer; }
+.fn-heading { margin: 8px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--bi-soft); }
+.insert-group { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.token {
+  padding: 3px 8px; border: 1px solid var(--bi-border); border-radius: 999px; background: var(--bi-surface);
+  font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace; font-size: 12px; color: var(--bi-text); cursor: pointer;
+}
+.token:hover:not(:disabled) { border-color: var(--bi-primary); color: var(--bi-primary); }
+.token:focus-visible { outline: none; box-shadow: var(--bi-focus); }
+.token:disabled { opacity: 0.4; cursor: not-allowed; }
+.token.fn { color: var(--bi-primary); background: var(--bi-primary-tint); border-color: #d1dcf5; }
+.token.measure { color: var(--bi-success); }
+.token.calc { color: var(--bi-accent-strong); border-color: #f3d3a6; background: var(--bi-accent-tint); }
+
+.kind { max-width: 380px; }
+.name-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 10px; }
+.compact .name-row { grid-template-columns: minmax(0, 1fr); }
+.status { display: flex; flex-direction: column; gap: 8px; }
+.error-text { margin: 0; }
+.marker { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; color: var(--bi-text); }
+.marker mark { background: var(--bi-danger); color: #fff; border-radius: 2px; }
+.preview { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--bi-border); border-left: 3px solid var(--bi-accent); border-radius: var(--bi-radius); background: var(--bi-ground); }
+.preview-value { margin: 0; font-size: 22px; font-weight: 600; color: var(--bi-primary); font-variant-numeric: tabular-nums; }
+.preview .help { margin: 0; }
+.table-wrap { overflow-x: auto; }
+.sample { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.sample th { text-align: left; font-size: 11px; color: var(--bi-muted); padding: 4px 6px; border-bottom: 1px solid var(--bi-border); white-space: nowrap; }
+.sample td { padding: 4px 6px; border-bottom: 1px solid var(--bi-border); }
+.result { color: var(--bi-accent-strong); font-weight: 600; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 860px) { .formula { grid-template-columns: minmax(0, 1fr); } }

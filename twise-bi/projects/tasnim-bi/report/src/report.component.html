@@ -101,7 +101,17 @@
 
     <div class="workspace">
       @if (store.editMode()) {
-        <bi-visualizations-pane class="side viz" />
+        <div class="side left-pane">
+          <div class="side-tabs" role="tablist" aria-label="Editor panes">
+            <button type="button" role="tab" [class.on]="leftTab() === 'visualizations'" [attr.aria-selected]="leftTab() === 'visualizations'" (click)="leftTab.set('visualizations')">Visualizations</button>
+            <button type="button" role="tab" [class.on]="leftTab() === 'data'" [attr.aria-selected]="leftTab() === 'data'" (click)="leftTab.set('data')">Data</button>
+          </div>
+          @if (leftTab() === 'visualizations') {
+            <bi-visualizations-pane class="left-body" />
+          } @else {
+            <bi-data-pane class="left-body" [model]="store.model()!" [note]="fieldNote()" (picked)="addField($event)" (modelChanged)="store.reloadModel()" />
+          }
+        </div>
       }
 
       <main class="canvas" [attr.aria-label]="page?.name">

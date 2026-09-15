@@ -5,6 +5,7 @@ import {
   BiFilter,
   CalculatedColumnInput,
   Column,
+  ColumnPropertiesPatch,
   ConnectionInput,
   ConnectionPatch,
   ConnectionTestResult,
@@ -58,6 +59,7 @@ export interface BiDataSource {
   deleteMeasure(modelId: number, measureId: number): Observable<unknown>;
   createColumn(modelId: number, column: CalculatedColumnInput): Observable<Column>;
   deleteColumn(modelId: number, columnId: number): Observable<unknown>;
+  updateColumnProperties(modelId: number, patch: ColumnPropertiesPatch): Observable<Column>;
   listReports(): Observable<ReportSummary[]>;
   getReport(reportId: number): Observable<Report>;
   createReport(report: ReportInput): Observable<Report>;
@@ -131,6 +133,9 @@ export class HttpBiDataSource implements BiDataSource {
   }
   deleteColumn(modelId: number, columnId: number) {
     return this.http.delete(`${this.base}/models/${modelId}/columns/${columnId}`);
+  }
+  updateColumnProperties(modelId: number, patch: ColumnPropertiesPatch) {
+    return this.http.put<Column>(`${this.base}/models/${modelId}/columns/properties`, patch);
   }
   listReports() {
     return this.http.get<ReportSummary[]>(`${this.base}/reports`);

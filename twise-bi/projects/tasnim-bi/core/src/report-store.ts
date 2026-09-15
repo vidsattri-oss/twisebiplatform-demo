@@ -9,11 +9,13 @@ import {
   Report,
   ReportDefinition,
   ReportInput,
+  RoleItem,
   RowsRequest,
   Scalar,
   SemanticModel,
   VisualDefinition,
   VisualInteraction,
+  isMeasureItem,
 } from './contract';
 import { BI_DATA_SOURCE, describeError } from './data-source';
 import { columnOf } from './describe-filter';
@@ -148,6 +150,38 @@ export class ReportStore {
 
   load(reportId: number): void {
     this.loads.next(reportId);
+  }
+
+  /** Refetches the model after a measure, column or property changes, keeping the report's unsaved edits (E1). */
+  reloadModel(): void {
+    const report = this.report();
+    if (!report) return;
+    this.ds.getModel(report.modelId).subscribe({
+      next: (model) => this.model.set(model),
+      error: (err: unknown) => this.saveError.set(describeError(err, "The model couldn't be reloaded.")),
+    });
+  }
+
+  /**
+   * Adds a field or measure from the Data pane to the focused visual's first role
+   * with room for it (E1). Returns null when added, or a message saying why not.
+   */
+  addFieldToFocused(item: RoleItem): string | null {
+    const visual = this.focusedVisual();
+    if (!visual) return 'Select a visual on the canvas first, then click a field.';
+    const type = this.registry.get(visual.type);
+    if (!type) return `“${visual.type}” isn't a registered visual.`;
+    const wantsMeasure = isMeasureItem(item);
+    const same = (a: RoleItem, b: RoleItem) => JSON.stringify(a) === JSON.stringify(b);
+    if (Object.values(visual.roles).some((items) => items.some((existing) => same(existing, item)))) {
+      return `It's already on ${visual.title || type.label}.`;
+    }
+    const role = type.roles.find((r) => (r.kind === 'measure') === wantsMeasure && (visual.roles[r.name]?.length ?? 0) < r.max);
+    if (!role) {
+      return `${visual.title || type.label} has no free ${wantsMeasure ? 'value' : 'field'} slot. Remove one in Visualizations, or pick ${wantsMeasure ? 'a column' : 'a measure'}.`;
+    }
+    this.updateVisual(visual.id, (v) => ({ ...v, roles: { ...v.roles, [role.name]: [...(v.roles[role.name] ?? []), item] } }));
+    return null;
   }
 
   private adopt(report: Report, resetView: boolean): void {

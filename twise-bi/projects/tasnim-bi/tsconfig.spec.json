@@ -20,6 +20,9 @@
       ],
       "@tasnim/bi/admin": [
         "./admin/src/public-api.ts"
+      ],
+      "@tasnim/bi/modeling": [
+        "./modeling/src/public-api.ts"
       ]
     }
   },

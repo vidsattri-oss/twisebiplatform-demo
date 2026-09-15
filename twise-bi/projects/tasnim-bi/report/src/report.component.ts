@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of } from 'rxjs';
-import { BI_REPORT_PREFERENCES, PluginVisuals, VisualDefinition, clampLayout } from '@tasnim/bi/core';
+import { BI_REPORT_PREFERENCES, PluginVisuals, RoleItem, VisualDefinition, clampLayout, isMeasureItem } from '@tasnim/bi/core';
+import { DataPaneComponent } from '@tasnim/bi/modeling';
 import { FilterPaneComponent } from './filter-pane.component';
 import { ReportStore } from '@tasnim/bi/core';
 import { SeeRecordsSheetComponent } from './see-records-sheet.component';
@@ -23,7 +24,7 @@ const toId = (value: unknown): number | undefined => {
  */
 @Component({
   selector: 'bi-report',
-  imports: [RouterLink, VisualHostComponent, FilterPaneComponent, SeeRecordsSheetComponent, VisualizationsPaneComponent],
+  imports: [RouterLink, VisualHostComponent, FilterPaneComponent, SeeRecordsSheetComponent, VisualizationsPaneComponent, DataPaneComponent],
   providers: [ReportStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -55,6 +56,9 @@ export class ReportComponent {
   protected readonly effectiveId = computed(() => this.reportId() ?? this.routeId());
 
   protected readonly filterPaneOpen = signal(false);
+  /** E1: the left side of the editor shows Visualizations or the Data pane. */
+  protected readonly leftTab = signal<'visualizations' | 'data'>('visualizations');
+  protected readonly fieldNote = signal<string | null>(null);
   protected readonly renamingPage = signal(false);
 
   protected readonly visuals = computed(() => this.store.page()?.visuals ?? []);
@@ -92,6 +96,13 @@ export class ReportComponent {
     const l = v.layout ?? { x: 0, y: 0, w: 6, h: 6 };
     const c = clampLayout(l);
     return { col: c.x + 1, row: c.y + 1, w: c.w, h: c.h };
+  }
+
+  protected addField(item: RoleItem): void {
+    const problem = this.store.addFieldToFocused(item);
+    const label = isMeasureItem(item) ? `[${item.measure}]` : item.column;
+    const target = this.store.focusedVisual();
+    this.fieldNote.set(problem ?? `Added ${label} to ${target?.title || target?.type}.`);
   }
 
   protected retry(): void {

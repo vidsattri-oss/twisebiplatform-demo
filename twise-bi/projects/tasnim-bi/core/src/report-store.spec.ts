@@ -10,7 +10,7 @@ const basic = (column: string, values: (string | null)[]): BiFilter => ({ kind: 
 const load = () => Promise.resolve(class {});
 const types: BiVisualType[] = [
   { type: 'column', label: 'Column', icon: '', dataKind: 'aggregate', roles: [], defaultInteraction: 'highlight', loadComponent: load },
-  { type: 'table', label: 'Table', icon: '', dataKind: 'rows', roles: [], defaultInteraction: 'filter', loadComponent: load },
+  { type: 'table', label: 'Table', icon: '', dataKind: 'rows', roles: [{ name: 'columns', label: 'Columns', kind: 'grouping', min: 1, max: 30 }], defaultInteraction: 'filter', loadComponent: load },
   { type: 'slicer', label: 'Slicer', icon: '', dataKind: 'slicer', roles: [], defaultInteraction: 'filter', loadComponent: load },
 ];
 
@@ -91,6 +91,17 @@ describe('ReportStore filter and cross-filter state', () => {
     expect(store.slicerFilters()).toEqual({ shift: basic('shift', ['Day']) });
     expect(store.selection()).toBeNull();
     expect(store.canReset()).toBe(false);
+  });
+
+  it('adds a Data pane field to the focused visual’s first role with room, and says why when it can’t (E1)', () => {
+    const store = setup();
+    expect(store.addFieldToFocused({ measure: 'Tasks' })).toMatch(/Select a visual/);
+
+    store.focusedVisualId.set('rows');
+    expect(store.addFieldToFocused({ table: T, column: 'shift' })).toBeNull();
+    expect(visual(store, 'rows').roles['columns']).toEqual([{ table: T, column: 'status' }, { table: T, column: 'crew' }, { table: T, column: 'shift' }]);
+    expect(store.addFieldToFocused({ table: T, column: 'shift' })).toMatch(/already on/);
+    expect(store.addFieldToFocused({ measure: 'Tasks' })).toMatch(/no free value slot/);
   });
 
   it('saves the current slicer selection as its default, or clears the default', () => {
