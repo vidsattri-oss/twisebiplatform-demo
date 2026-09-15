@@ -8,6 +8,7 @@ export * from './data-source';
 export * from './host-bridge';
 export * from './visual-registry';
 export * from './plugin-visuals';
+export * from './report-preferences';
 export * from './visual-context';
 export * from './report-store';
 export * from './theme';

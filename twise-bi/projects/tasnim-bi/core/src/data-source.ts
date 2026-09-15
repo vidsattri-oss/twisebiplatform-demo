@@ -13,6 +13,8 @@ import {
   ExcelUploadRequest,
   ExcelUploadResult,
   RefreshResult,
+  ReportCategory,
+  ReportPatch,
   ExpressionKind,
   ExpressionPreview,
   IngestRequest,
@@ -61,6 +63,10 @@ export interface BiDataSource {
   createReport(report: ReportInput): Observable<Report>;
   updateReport(reportId: number, report: ReportInput): Observable<Report>;
   deleteReport(reportId: number): Observable<unknown>;
+  patchReport(reportId: number, patch: ReportPatch): Observable<Report>;
+  duplicateReport(reportId: number): Observable<Report>;
+  listCategories(): Observable<ReportCategory[]>;
+  saveCategories(categories: ReportCategory[]): Observable<ReportCategory[]>;
   availableFiles(): Observable<string[]>;
   connectionTypes(): Observable<ConnectionTypeInfo[]>;
   addConnection(connection: ConnectionInput): Observable<{ id: number }>;
@@ -140,6 +146,18 @@ export class HttpBiDataSource implements BiDataSource {
   }
   deleteReport(reportId: number) {
     return this.http.delete(`${this.base}/reports/${reportId}`);
+  }
+  patchReport(reportId: number, patch: ReportPatch) {
+    return this.http.patch<Report>(`${this.base}/reports/${reportId}`, patch);
+  }
+  duplicateReport(reportId: number) {
+    return this.http.post<Report>(`${this.base}/reports/${reportId}/duplicate`, {});
+  }
+  listCategories() {
+    return this.http.get<ReportCategory[]>(`${this.base}/report-categories`);
+  }
+  saveCategories(categories: ReportCategory[]) {
+    return this.http.put<ReportCategory[]>(`${this.base}/report-categories`, { categories });
   }
   availableFiles() {
     return this.http.get<string[]>(`${this.base}/connections/available-files`);

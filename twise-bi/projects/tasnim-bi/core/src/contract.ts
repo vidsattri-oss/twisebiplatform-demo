@@ -326,7 +326,16 @@ export interface ReportDefinition {
   settings?: ReportSettings;
 }
 
-export interface ReportInput {
+export type ReportStatus = 'draft' | 'published';
+
+/** Category, description and status (R2). Omitted fields keep their current values. */
+export interface ReportMeta {
+  category?: string | null;
+  description?: string | null;
+  status?: ReportStatus;
+}
+
+export interface ReportInput extends ReportMeta {
   name: string;
   modelId: number;
   definition: ReportDefinition;
@@ -338,11 +347,27 @@ export interface Report extends ReportInput {
   updatedAt?: string;
 }
 
-export interface ReportSummary {
+export interface ReportSummary extends ReportMeta {
   id: number;
   name: string;
   modelId: number;
+  /** Visual types used, in first-use order — for the card preview glyph. */
+  visualTypes?: string[];
+  createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ReportPatch extends ReportMeta {
+  name?: string;
+}
+
+export interface ReportCategory {
+  name: string;
+  description?: string | null;
+  /** #RRGGBB accent for the category section and its cards. */
+  color: string;
+  order?: number;
+  reportCount?: number;
 }
 
 export interface MeasureInput {

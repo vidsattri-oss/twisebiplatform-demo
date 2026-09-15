@@ -3,6 +3,7 @@ import { provideHighcharts } from 'highcharts-angular';
 import { BI_API_BASE_URL, BI_DATA_SOURCE, BiDataSource, HttpBiDataSource } from '@tasnim/bi/core';
 import { BI_CHART_PALETTE, BI_FILTER_BRIDGE, BiFilterBridge } from '@tasnim/bi/core';
 import { BI_PLUGIN_COMPONENT, provideBiVisual } from '@tasnim/bi/core';
+import { BI_PREFERENCES_API, BI_REPORT_PREFERENCES, HttpReportPreferences, PreferencesApi, ReportPreferences } from '@tasnim/bi/core';
 import { BUILT_IN_VISUALS } from './built-in-visuals';
 
 export interface BiConfig {
@@ -16,6 +17,12 @@ export interface BiConfig {
   provideHighcharts?: boolean;
   /** Chart colours; defaults to the Al Tasnim logo palette (blue, orange, grey). */
   palette?: readonly string[];
+  /**
+   * Favorites and recent reports. Omit to keep them in the browser. Pass
+   * { url, userId } for a per-user preferences service, or a class that
+   * implements ReportPreferences (for example one that calls TWise's user API).
+   */
+  preferences?: PreferencesApi | Type<ReportPreferences>;
 }
 
 /**
@@ -32,6 +39,11 @@ export function provideBi(config: BiConfig = {}): EnvironmentProviders {
     { provide: BI_PLUGIN_COMPONENT, useValue: () => import('@tasnim/bi/visuals').then((m) => m.PluginVisualComponent) },
   ];
   if (config.filterBridge) providers.push({ provide: BI_FILTER_BRIDGE, useClass: config.filterBridge });
+  if (typeof config.preferences === 'function') {
+    providers.push({ provide: BI_REPORT_PREFERENCES, useClass: config.preferences });
+  } else if (config.preferences) {
+    providers.push({ provide: BI_PREFERENCES_API, useValue: config.preferences }, { provide: BI_REPORT_PREFERENCES, useClass: HttpReportPreferences });
+  }
   if (config.palette?.length) providers.push({ provide: BI_CHART_PALETTE, useValue: config.palette });
   if (config.provideHighcharts !== false) {
     providers.push(

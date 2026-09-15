@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of } from 'rxjs';
-import { PluginVisuals, VisualDefinition, clampLayout } from '@tasnim/bi/core';
+import { BI_REPORT_PREFERENCES, PluginVisuals, VisualDefinition, clampLayout } from '@tasnim/bi/core';
 import { FilterPaneComponent } from './filter-pane.component';
 import { ReportStore } from '@tasnim/bi/core';
 import { SeeRecordsSheetComponent } from './see-records-sheet.component';
@@ -44,6 +44,10 @@ export class ReportComponent {
    * means editable: router input binding sets unmatched inputs to undefined.
    */
   readonly canEdit = input<boolean, boolean | null | undefined>(true, { transform: (value) => value !== false });
+  /** Open straight into edit mode, e.g. the ?edit=1 the Reports home adds for Edit and New report. */
+  readonly edit = input<boolean, unknown>(false, { transform: (value) => value === true || value === '' || value === '1' || value === 'true' });
+  private readonly preferences = inject(BI_REPORT_PREFERENCES);
+  private editAppliedFor: number | null = null;
 
   /** Only a report opened through BI_ROUTES links back to the report list; an embedded report has no BI parent route. */
   protected readonly base = this.route?.routeConfig?.path === ':reportId' ? (this.route.parent ?? null) : null;
@@ -68,7 +72,19 @@ export class ReportComponent {
     void inject(PluginVisuals).ensureLoaded();
     effect(() => {
       const id = this.effectiveId();
-      if (id !== undefined) untracked(() => this.store.load(id));
+      if (id === undefined) return;
+      untracked(() => {
+        this.store.load(id);
+        // R3: recent reports. A preferences service that is down must never stop the report opening.
+        this.preferences.recordOpened(id).subscribe({ error: () => undefined });
+      });
+    });
+    // Enter edit mode once per opened report when asked; "Done editing" is not undone afterwards.
+    effect(() => {
+      const report = this.store.report();
+      if (!report || !this.edit() || !this.canEdit() || this.editAppliedFor === report.id) return;
+      this.editAppliedFor = report.id;
+      untracked(() => this.store.editMode.set(true));
     });
   }
 

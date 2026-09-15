@@ -1,83 +1,328 @@
 <div class="page">
-  <div class="page-head">
-    <div>
+  <header class="home-head">
+    <span class="head-tile" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6M3 20h18" /></svg>
+    </span>
+    <div class="head-text">
       <h1 class="page-title">Reports</h1>
-      <p class="page-sub">Interactive reports with cross-highlighting, slicers and See records.</p>
+      <p class="page-sub">Explore dashboards and reports</p>
     </div>
     <button type="button" class="btn primary" (click)="startCreate()">+ New report</button>
-  </div>
+  </header>
   <bi-nav />
 
-  @if (actionError(); as message) {
-    <p class="alert error" role="alert">{{ message }}</p>
+  @if (message(); as m) {
+    <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">{{ m.text }}</p>
+  }
+  @if (prefsNote(); as note) {
+    <p class="alert warning" role="status">{{ note }}</p>
   }
 
   @if (creating()) {
-    <form class="panel form-row" (submit)="$event.preventDefault(); create()">
+    <form class="panel create" (submit)="$event.preventDefault(); create()">
       <label class="field">
         <span class="label">Report name</span>
         <input class="input" [value]="newName()" (input)="newName.set(valueOf($event))" placeholder="e.g. Wells delivery overview" />
       </label>
       <label class="field">
         <span class="label">Data source</span>
-        <select class="select" [value]="newModelId() ?? ''" (change)="newModelId.set(+valueOf($event))">
+        <select class="select" (change)="newModelId.set(+valueOf($event))">
           @for (m of data.value()?.models ?? []; track m.id) {
             <option [value]="m.id" [disabled]="m.status !== 'connected'" [selected]="m.id === newModelId()">{{ m.name }}</option>
           }
         </select>
       </label>
-      <button type="submit" class="btn primary">Create</button>
-      <button type="button" class="btn ghost" (click)="creating.set(false)">Cancel</button>
+      <label class="field">
+        <span class="label">Category</span>
+        <select class="select" (change)="newCategory.set(valueOf($event) || null)">
+          <option value="" [selected]="!newCategory()">{{ 'Uncategorised' }}</option>
+          @for (c of categories(); track c.name) {
+            <option [value]="c.name" [selected]="c.name === newCategory()">{{ c.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="field wide">
+        <span class="label">Description</span>
+        <input class="input" maxlength="300" [value]="newDescription()" (input)="newDescription.set(valueOf($event))" placeholder="What this report answers" />
+      </label>
+      <div class="create-actions">
+        <button type="submit" class="btn primary">Create and edit</button>
+        <button type="button" class="btn ghost" (click)="creating.set(false)">Cancel</button>
+      </div>
     </form>
   }
 
-  @if (loadError(); as message) {
+  <div class="toolbar panel">
+    <div class="tabs" role="tablist" aria-label="Show reports">
+      @for (t of tabs; track t.id) {
+        <button type="button" role="tab" class="tab" [class.on]="tab() === t.id" [attr.aria-selected]="tab() === t.id" (click)="chooseTab(t.id)">
+          <span class="tab-icon" [class]="'tab-icon ' + t.id" aria-hidden="true">
+            @switch (t.id) {
+              @case ('all') { <svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5ZM3 13l9 5 9-5M3 17l9 5 9-5" /></svg> }
+              @case ('favorites') { <svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" /></svg> }
+              @case ('recent') { <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg> }
+            }
+          </span>
+          {{ t.label }}
+          <span class="count">{{ t.id === 'all' ? counts().all : t.id === 'favorites' ? counts().favorites : counts().recent }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="controls">
+      <label class="control search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
+        <span class="sr-only">Search reports</span>
+        <input type="search" placeholder="Search" [value]="search()" (input)="search.set(valueOf($event))" />
+      </label>
+      <label class="control">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+        <span class="sr-only">Category</span>
+        <select (change)="category.set(valueOf($event) || null)">
+          <option value="" [selected]="category() === null">Category</option>
+          @for (c of categoryOptions(); track c) {
+            <option [value]="c" [selected]="c === category()">{{ c }}</option>
+          }
+        </select>
+      </label>
+      <label class="control">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M8 20l-3-3M8 20l3-3M16 20V4M16 4l-3 3M16 4l3 3" /></svg>
+        <span class="sr-only">Sort</span>
+        <select (change)="sort.set($any(valueOf($event)))">
+          @for (s of sorts; track s.id) {
+            <option [value]="s.id" [selected]="s.id === sort()">{{ s.label }}</option>
+          }
+        </select>
+      </label>
+      <div class="views" role="group" aria-label="View">
+        <button type="button" [class.on]="view() === 'grid'" [attr.aria-pressed]="view() === 'grid'" title="Grid" (click)="view.set('grid')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>
+          <span class="sr-only">Grid</span>
+        </button>
+        <button type="button" [class.on]="view() === 'list'" [attr.aria-pressed]="view() === 'list'" title="List" (click)="view.set('list')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="5" cy="6" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="18" r="1" /></svg>
+          <span class="sr-only">List</span>
+        </button>
+        <button type="button" [class.on]="view() === 'compact'" [attr.aria-pressed]="view() === 'compact'" title="Compact" (click)="view.set('compact')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 9h16M4 14h16M4 19h16" /></svg>
+          <span class="sr-only">Compact</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (loadError(); as error) {
     <div class="panel">
-      <p class="alert error" role="alert">{{ message }}</p>
+      <p class="alert error" role="alert">{{ error }}</p>
       <button type="button" class="btn" (click)="data.reload()">Try again</button>
     </div>
   } @else if (data.isLoading() && !data.hasValue()) {
-    <div class="cards" aria-busy="true">
-      @for (i of [1, 2, 3]; track i) {
-        <div class="card skeleton"></div>
+    <div class="section skeleton" aria-busy="true"><span class="sr-only">Loading reports…</span></div>
+    <div class="section skeleton" aria-hidden="true"></div>
+  } @else if (!reports().length) {
+    <div class="panel empty">
+      <p>No reports yet.</p>
+      <button type="button" class="btn primary" (click)="startCreate()">Create the first report</button>
+    </div>
+  } @else if (!sections().length) {
+    <div class="panel empty">
+      @if (filtered()) {
+        <p>No reports match{{ search() ? ' “' + search() + '”' : '' }}{{ category() ? ' in ' + category() : '' }}.</p>
+        <button type="button" class="btn" (click)="clearFilters()">Clear search and category</button>
+      } @else if (tab() === 'favorites') {
+        <p>No favorites yet. Select the star on a report to keep it here.</p>
+      } @else {
+        <p>No recently opened reports yet.</p>
       }
     </div>
   } @else {
-    <div class="cards">
-      @for (r of data.value()?.reports ?? []; track r.id) {
-        <article class="card">
-          @if (base) {
-            <a class="card-link" [routerLink]="[r.id]" [relativeTo]="base">
-              <h2 class="card-title">{{ r.name }}</h2>
-            </a>
-          } @else {
-            <h2 class="card-title">{{ r.name }}</h2>
+    @for (s of sections(); track s.name) {
+      @let collapsed = isCollapsed(s.name);
+      <section class="section" [style.--accent]="s.color" [attr.aria-label]="s.name">
+        <button type="button" class="section-head" [attr.aria-expanded]="!collapsed" (click)="toggleSection(s.name)">
+          <span class="section-tile" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
+          </span>
+          <span class="section-text">
+            <span class="section-title">{{ s.name }}</span>
+            @if (s.description) {
+              <span class="section-desc">{{ s.description }}</span>
+            }
+          </span>
+          <span class="pill">{{ s.reports.length }} {{ s.reports.length === 1 ? 'Report' : 'Reports' }}</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
+        </button>
+
+        @if (!collapsed) {
+          @switch (view()) {
+            @case ('grid') {
+              <div class="carousel">
+                <button type="button" class="arrow prev" aria-label="Scroll left" (click)="scrollRow(row, -1)">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+                </button>
+                <div class="cards" #row>
+                  @for (r of s.reports; track r.id) {
+                    <article class="card" [class.lifted]="openMenu() === r.id">
+                      <div class="card-top">
+                        <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24"><path [attr.d]="iconOf(r)" /></svg></span>
+                        <span class="status" [class.published]="r.status === 'published'"><span class="dot"></span>{{ r.status === 'published' ? 'Published' : 'Draft' }}</span>
+                        <ng-container [ngTemplateOutlet]="starAndMenu" [ngTemplateOutletContext]="{ $implicit: r }" />
+                      </div>
+                      <ng-container [ngTemplateOutlet]="titleBlock" [ngTemplateOutletContext]="{ $implicit: r }" />
+                      <p class="card-desc" [title]="r.description ?? ''">{{ r.description || modelNames().get(r.modelId) }}</p>
+                      <svg class="glyph" viewBox="0 0 240 70" aria-hidden="true">
+                        @for (shape of shapes(r); track shape; let i = $index) {
+                          <g [attr.transform]="'translate(' + (12 + i * 80) + ' 0)'">
+                            @switch (shape) {
+                              @case ('bars') {
+                                <rect x="4" y="44" width="11" height="20" rx="2" opacity=".35" /><rect x="20" y="34" width="11" height="30" rx="2" opacity=".6" /><rect x="36" y="16" width="11" height="48" rx="2" />
+                              }
+                              @case ('line') {
+                                <path d="M2 56l14-14 12 9 22-30" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+                              }
+                              @case ('pie') {
+                                <circle cx="28" cy="38" r="24" opacity=".22" /><path d="M28 38V14a24 24 0 0 1 24 24Z" />
+                              }
+                              @case ('donut') {
+                                <circle cx="28" cy="38" r="19" fill="none" stroke="currentColor" stroke-width="9" opacity=".22" /><path d="M28 19a19 19 0 0 1 19 19" fill="none" stroke="currentColor" stroke-width="9" />
+                              }
+                              @case ('table') {
+                                <circle cx="5" cy="24" r="3" opacity=".6" /><rect x="14" y="21" width="42" height="6" rx="3" opacity=".45" /><circle cx="5" cy="40" r="3" opacity=".6" /><rect x="14" y="37" width="36" height="6" rx="3" opacity=".35" /><circle cx="5" cy="56" r="3" opacity=".6" /><rect x="14" y="53" width="40" height="6" rx="3" opacity=".25" />
+                              }
+                              @case ('card') {
+                                <rect x="2" y="18" width="54" height="40" rx="6" opacity=".2" /><rect x="10" y="28" width="30" height="10" rx="3" /><rect x="10" y="44" width="20" height="5" rx="2.5" opacity=".5" />
+                              }
+                              @default {
+                                <rect x="2" y="18" width="16" height="16" rx="3" opacity=".5" /><rect x="22" y="18" width="16" height="16" rx="3" /><rect x="2" y="38" width="16" height="16" rx="3" /><rect x="22" y="38" width="16" height="16" rx="3" opacity=".3" />
+                              }
+                            }
+                          </g>
+                        }
+                      </svg>
+                      <div class="card-foot">
+                        <span class="source" [title]="modelNames().get(r.modelId) ?? ''">{{ modelNames().get(r.modelId) }}</span>
+                        <span>Updated {{ when(r) }}</span>
+                      </div>
+                      <ng-container [ngTemplateOutlet]="deleteConfirm" [ngTemplateOutletContext]="{ $implicit: r }" />
+                    </article>
+                  }
+                </div>
+                <button type="button" class="arrow next" aria-label="Scroll right" (click)="scrollRow(row, 1)">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+              </div>
+            }
+            @case ('list') {
+              <ul class="rows">
+                @for (r of s.reports; track r.id) {
+                  <li class="row" [class.lifted]="openMenu() === r.id">
+                    <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24"><path [attr.d]="iconOf(r)" /></svg></span>
+                    <div class="row-main">
+                      <ng-container [ngTemplateOutlet]="titleBlock" [ngTemplateOutletContext]="{ $implicit: r }" />
+                      <p class="card-desc">{{ r.description || modelNames().get(r.modelId) }}</p>
+                    </div>
+                    <span class="status" [class.published]="r.status === 'published'"><span class="dot"></span>{{ r.status === 'published' ? 'Published' : 'Draft' }}</span>
+                    <span class="row-meta">{{ modelNames().get(r.modelId) }} · Updated {{ when(r) }}</span>
+                    <ng-container [ngTemplateOutlet]="starAndMenu" [ngTemplateOutletContext]="{ $implicit: r }" />
+                    <ng-container [ngTemplateOutlet]="deleteConfirm" [ngTemplateOutletContext]="{ $implicit: r }" />
+                  </li>
+                }
+              </ul>
+            }
+            @case ('compact') {
+              <div class="table-wrap">
+                <table class="data-table compact">
+                  <thead>
+                    <tr><th scope="col">Report</th><th scope="col">Status</th><th scope="col">Data source</th><th scope="col">Updated</th><th scope="col"><span class="sr-only">Favorite and actions</span></th></tr>
+                  </thead>
+                  <tbody>
+                    @for (r of s.reports; track r.id) {
+                      <tr [class.lifted]="openMenu() === r.id">
+                        <td><ng-container [ngTemplateOutlet]="titleBlock" [ngTemplateOutletContext]="{ $implicit: r }" /></td>
+                        <td><span class="status" [class.published]="r.status === 'published'"><span class="dot"></span>{{ r.status === 'published' ? 'Published' : 'Draft' }}</span></td>
+                        <td>{{ modelNames().get(r.modelId) }}</td>
+                        <td class="nowrap">{{ when(r) }}</td>
+                        <td class="actions-cell">
+                          <ng-container [ngTemplateOutlet]="starAndMenu" [ngTemplateOutletContext]="{ $implicit: r }" />
+                          <ng-container [ngTemplateOutlet]="deleteConfirm" [ngTemplateOutletContext]="{ $implicit: r }" />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
           }
-          <p class="card-meta">
-            <span class="badge">{{ modelNames().get(r.modelId) ?? 'Unknown data source' }}</span>
-            @if (r.updatedAt) {
-              <span>Updated {{ r.updatedAt | date: 'd MMM yyyy, HH:mm' }}</span>
-            }
-          </p>
-          <div class="card-actions">
-            @if (confirmDeleteId() === r.id) {
-              <span class="confirm-text">Delete this report?</span>
-              <button type="button" class="btn danger sm" (click)="remove(r.id)">Delete</button>
-              <button type="button" class="btn ghost sm" (click)="confirmDeleteId.set(null)">Keep</button>
-            } @else {
-              @if (base) {
-                <a class="btn sm" [routerLink]="[r.id]" [relativeTo]="base">Open</a>
-              }
-              <button type="button" class="btn ghost sm danger-text" (click)="confirmDeleteId.set(r.id)">Delete</button>
-            }
-          </div>
-        </article>
-      } @empty {
-        <div class="panel empty">
-          <p>No reports yet.</p>
-          <button type="button" class="btn primary" (click)="startCreate()">Create the first report</button>
-        </div>
-      }
-    </div>
+        }
+      </section>
+    }
   }
 </div>
+
+<ng-template #titleBlock let-r>
+  @if (renamingId() === r.id) {
+    <form class="rename" (submit)="$event.preventDefault(); rename(r, nameInput.value)">
+      <input #nameInput class="input" aria-label="Report name" maxlength="120" [value]="r.name" (keydown.escape)="renamingId.set(null)" />
+      <button type="submit" class="btn primary sm">Save</button>
+      <button type="button" class="btn ghost sm" (click)="renamingId.set(null)">Cancel</button>
+    </form>
+  } @else if (base) {
+    <h3 class="card-title"><a [routerLink]="[r.id]" [relativeTo]="base">{{ r.name }}</a></h3>
+  } @else {
+    <h3 class="card-title">{{ r.name }}</h3>
+  }
+</ng-template>
+
+<ng-template #starAndMenu let-r>
+  <span class="card-actions">
+    <button
+      type="button"
+      class="star"
+      [class.on]="isFavorite(r)"
+      [attr.aria-pressed]="isFavorite(r)"
+      [attr.aria-label]="(isFavorite(r) ? 'Remove from favorites: ' : 'Add to favorites: ') + r.name"
+      (click)="toggleFavorite(r, $event)"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" /></svg>
+    </button>
+    <span class="menu-wrap">
+      <button type="button" class="kebab" aria-haspopup="menu" [attr.aria-expanded]="openMenu() === r.id" [attr.aria-label]="'Actions for ' + r.name" (click)="toggleMenu(r.id, $event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" /></svg>
+      </button>
+      @if (openMenu() === r.id) {
+        <span class="menu" role="menu" (click)="$event.stopPropagation()">
+          <button type="button" role="menuitem" (click)="open(r)">Open</button>
+          <button type="button" role="menuitem" (click)="open(r, true)">Edit</button>
+          <button type="button" role="menuitem" (click)="duplicate(r)">Duplicate</button>
+          <button type="button" role="menuitem" (click)="startRename(r)">Rename</button>
+          @if (movingId() === r.id) {
+            <label class="menu-move">
+              <span class="sr-only">Move to category</span>
+              <select (change)="moveTo(r, valueOf($event))">
+                <option value="" disabled selected>Move to…</option>
+                @for (c of categories(); track c.name) {
+                  <option [value]="c.name" [disabled]="c.name === r.category">{{ c.name }}</option>
+                }
+                <option [value]="''" [disabled]="!r.category">Uncategorised</option>
+              </select>
+            </label>
+          } @else {
+            <button type="button" role="menuitem" (click)="movingId.set(r.id)">Move to category…</button>
+          }
+          <button type="button" role="menuitem" (click)="togglePublished(r)">{{ r.status === 'published' ? 'Unpublish (back to draft)' : 'Publish' }}</button>
+          <button type="button" role="menuitem" class="danger" (click)="askDelete(r)">Delete</button>
+        </span>
+      }
+    </span>
+  </span>
+</ng-template>
+
+<ng-template #deleteConfirm let-r>
+  @if (confirmDeleteId() === r.id) {
+    <div class="confirm" role="alertdialog" [attr.aria-label]="'Delete ' + r.name">
+      <span>Delete “{{ r.name }}”? This can't be undone.</span>
+      <button type="button" class="btn danger sm" (click)="remove(r)">Delete</button>
+      <button type="button" class="btn ghost sm" (click)="confirmDeleteId.set(null)">Keep</button>
+    </div>
+  }
+</ng-template>
