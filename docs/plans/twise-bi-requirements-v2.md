@@ -21,6 +21,13 @@ risks:
   - Sandboxed iframe plug-ins: verify postMessage round trip first (spike kill criterion).
   - Outbound pulls: SSRF; allow list enforced server-side with tests.
 
+progress:
+  - 2026-09-15 groups 1–7 landed as separate commits on feature/twise-bi-requirements-v2 with tests (backend 104, library 52, harness 5).
+  - Browser-checked: theme, Include / Exclude, Reset to default, table row selection, plug-in frames render, AppMasterDB report defaults. Formulas, JSON-column flattening, connectors and plug-in install checked through the API while the app window was hidden; UI pass listed in the verification guide.
+  - Verification guide published: https://claude.ai/artifact/DhFvYnf7bNKY3VQTZ1GgzL
+  - Needs an outside system: SQL Server / PostgreSQL (driver package + reachable server), SAP OData service, Google files shared by link.
+  - Open: independent QA in a fresh session; plug-in import must be restricted to editors in the TWise .NET API (no auth in the prototype).
+
 done_when:
   - Gap matrix rows all "live" or "needs <external system>".
   - Backend, library and harness suites pass; harness production build within budget.
