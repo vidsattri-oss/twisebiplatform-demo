@@ -1,0 +1,97 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "npm"
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "tasnim-bi": {
+      "projectType": "library",
+      "root": "projects/tasnim-bi",
+      "sourceRoot": "projects/tasnim-bi/src",
+      "prefix": "bi",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/tasnim-bi/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/tasnim-bi/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "projects/tasnim-bi/tsconfig.spec.json"
+          }
+        }
+      }
+    },
+    "host-harness": {
+      "projectType": "application",
+      "schematics": {},
+      "root": "projects/host-harness",
+      "sourceRoot": "projects/host-harness/src",
+      "prefix": "tw",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/host-harness/src/main.ts",
+            "tsConfig": "projects/host-harness/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/host-harness/public"
+              }
+            ],
+            "styles": ["projects/host-harness/src/styles.css"]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "host-harness:build:production"
+            },
+            "development": {
+              "buildTarget": "host-harness:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test"
+        }
+      }
+    }
+  }
+}

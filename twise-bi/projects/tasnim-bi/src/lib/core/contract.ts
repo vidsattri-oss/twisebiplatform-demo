@@ -1,0 +1,298 @@
+/**
+ * TypeScript mirror of docs/api/bi-contract.openapi.yaml — the only shape the
+ * library and any backend (Node reference, TWise .NET tenant API) agree on.
+ */
+
+export type DataType = 'text' | 'integer' | 'number' | 'date' | 'boolean';
+export type Scalar = string | number | boolean | null;
+
+export interface ModelSummary {
+  id: number;
+  name: string;
+  fileName: string;
+  driver?: string;
+  status: 'connected' | 'error';
+  tableCount: number;
+  error?: string | null;
+}
+
+export interface Column {
+  name: string;
+  dataType: DataType;
+  hidden?: boolean;
+  sortBy?: string;
+  format?: string;
+}
+
+export interface Table {
+  name: string;
+  rowCount: number;
+  hidden?: boolean;
+  columns: Column[];
+}
+
+/** Many-to-one; filters flow from toTable (the "one" side) to fromTable. */
+export interface Relationship {
+  fromTable: string;
+  fromColumn: string;
+  toTable: string;
+  toColumn: string;
+  source?: 'foreignKey' | 'overlay';
+}
+
+export interface Measure {
+  id?: number | null;
+  name: string;
+  table: string;
+  expression: string;
+  format?: string;
+  origin: 'model' | 'user';
+}
+
+export interface SemanticModel {
+  id: number;
+  name: string;
+  tables: Table[];
+  relationships: Relationship[];
+  measures: Measure[];
+}
+
+export interface FieldRef {
+  table: string;
+  column: string;
+}
+
+export type DateLevel = 'year' | 'quarter' | 'month';
+
+export interface GroupField extends FieldRef {
+  dateLevel?: DateLevel;
+}
+
+export type FilterScope = 'report' | 'page' | 'visual';
+
+interface FilterBase {
+  id?: string;
+  target: FieldRef;
+  scope?: FilterScope;
+}
+
+export interface BasicFilter extends FilterBase {
+  kind: 'basic';
+  operator: 'in' | 'notIn';
+  /** null means (Blank). */
+  values: Scalar[];
+}
+
+export type AdvancedOperator =
+  | 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte'
+  | 'contains' | 'notContains' | 'startsWith' | 'isBlank' | 'isNotBlank';
+
+export interface AdvancedCondition {
+  operator: AdvancedOperator;
+  value?: Scalar;
+}
+
+export interface AdvancedFilter extends FilterBase {
+  kind: 'advanced';
+  logic: 'and' | 'or';
+  conditions: AdvancedCondition[];
+}
+
+export interface RangeFilter extends FilterBase {
+  kind: 'range';
+  min?: Scalar;
+  max?: Scalar;
+}
+
+export interface RelativeDateFilter extends FilterBase {
+  kind: 'relativeDate';
+  period: 'last' | 'this' | 'next';
+  count: number;
+  unit: 'day' | 'month' | 'year';
+}
+
+export interface TopNFilter extends FilterBase {
+  kind: 'topN';
+  n: number;
+  by: string;
+  direction: 'top' | 'bottom';
+}
+
+export type BiFilter = BasicFilter | AdvancedFilter | RangeFilter | RelativeDateFilter | TopNFilter;
+
+export interface VisualQuery {
+  modelId: number;
+  groupBy: GroupField[];
+  measures: string[];
+  filters: BiFilter[];
+  highlight?: BiFilter[];
+  orderBy?: { by: 'category' | 'measure'; index?: number; direction?: 'asc' | 'desc' };
+  limit?: number;
+  asOf?: string;
+}
+
+export interface QueryColumn {
+  name: string;
+  role: 'group' | 'measure';
+  dataType: DataType;
+  format?: string;
+}
+
+export interface QueryRow {
+  keys: Scalar[];
+  values: (number | null)[];
+  highlights: (number | null)[] | null;
+}
+
+export interface QueryResult {
+  columns: QueryColumn[];
+  rows: QueryRow[];
+  truncated: boolean;
+  ignoredFilters: number[];
+  ignoredHighlight?: number[];
+}
+
+export interface RowsRequest {
+  modelId: number;
+  table?: string;
+  columns?: FieldRef[];
+  filters: BiFilter[];
+  offset?: number;
+  limit?: number;
+  asOf?: string;
+}
+
+export interface RowsResult {
+  columns: { table: string; name: string; dataType: DataType }[];
+  rows: Scalar[][];
+  total: number;
+  ignoredFilters: number[];
+}
+
+export interface ValuesRequest {
+  modelId: number;
+  target: FieldRef;
+  filters: BiFilter[];
+  search?: string;
+  limit?: number;
+  asOf?: string;
+}
+
+export interface ValuesResult {
+  values: Scalar[];
+  truncated: boolean;
+  min?: Scalar;
+  max?: Scalar;
+  ignoredFilters?: number[];
+}
+
+export interface MeasureRoleItem {
+  measure: string;
+}
+
+export type RoleItem = GroupField | MeasureRoleItem;
+
+export type VisualInteraction = 'filter' | 'highlight' | 'none';
+
+export interface VisualLayout {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface VisualDefinition {
+  id: string;
+  type: string;
+  title?: string;
+  roles: Record<string, RoleItem[]>;
+  filters: BiFilter[];
+  /** Target visual id → how this visual's selection affects it. */
+  interactions?: Record<string, VisualInteraction>;
+  options?: Record<string, unknown>;
+  layout?: VisualLayout;
+}
+
+export interface PageDefinition {
+  id: string;
+  name: string;
+  filters: BiFilter[];
+  visuals: VisualDefinition[];
+}
+
+export interface ReportDefinition {
+  filters: BiFilter[];
+  pages: PageDefinition[];
+}
+
+export interface ReportInput {
+  name: string;
+  modelId: number;
+  definition: ReportDefinition;
+}
+
+export interface Report extends ReportInput {
+  id: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ReportSummary {
+  id: number;
+  name: string;
+  modelId: number;
+  updatedAt?: string;
+}
+
+export interface MeasureInput {
+  table: string;
+  name: string;
+  expression: string;
+  format?: string;
+}
+
+export interface BiApiError {
+  error: string;
+  position?: number;
+}
+
+export interface MeasureValidateResult {
+  ok: boolean;
+  dependencies?: string[];
+  error?: BiApiError;
+}
+
+export interface IngestRequest {
+  connectionId?: number;
+  tableName: string;
+  records: Record<string, unknown> | Record<string, unknown>[];
+  mode?: 'append' | 'replace';
+  dryRun?: boolean;
+}
+
+export interface IngestTable {
+  name: string;
+  parent: string | null;
+  rowCount: number;
+  columns: { name: string; dataType: DataType }[];
+  addedColumns: string[];
+  sample: Record<string, Scalar>[];
+}
+
+export interface IngestResult {
+  connectionId: number;
+  written: boolean;
+  tables: IngestTable[];
+}
+
+export function isMeasureItem(item: RoleItem): item is MeasureRoleItem {
+  return typeof (item as MeasureRoleItem).measure === 'string';
+}
+
+export function fieldRef(field: FieldRef): FieldRef {
+  return { table: field.table, column: field.column };
+}
+
+export function sameField(a: FieldRef, b: FieldRef): boolean {
+  return a.table === b.table && a.column === b.column && (a as GroupField).dateLevel === (b as GroupField).dateLevel;
+}
