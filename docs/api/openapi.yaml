@@ -38,8 +38,8 @@ info:
   contact:
     name: Al Tasnim BI Prototype
 externalDocs:
-  description: Companion human-readable reference
-  url: ../diagrams/api-contract.html
+  description: Companion human-readable reference (architecture + this contract, one page)
+  url: ../diagrams/architecture-and-api-contract.html
 
 servers:
   - url: http://localhost:4173/api
