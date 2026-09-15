@@ -1,0 +1,17 @@
+{
+  "name": "Operations (Al Tasnim)",
+  "tables": {
+    "tasks": {
+      "columns": {
+        "task_date": { "dataType": "date", "format": "dd-MM-yyyy" }
+      }
+    }
+  },
+  "measures": [
+    { "table": "tasks", "name": "Task Count", "expression": "COUNTROWS(tasks)", "format": "#,0" },
+    { "table": "tasks", "name": "Actual Quantity", "expression": "SUM(tasks[actual_quantity])", "format": "#,0" },
+    { "table": "tasks", "name": "Planned Quantity", "expression": "SUM(tasks[planned_quantity])", "format": "#,0" },
+    { "table": "tasks", "name": "Productivity %", "expression": "DIVIDE([Actual Quantity], [Planned Quantity])", "format": "0.0%" },
+    { "table": "tasks", "name": "Actual Hours", "expression": "SUM(tasks[actual_hours])", "format": "#,0.0" }
+  ]
+}

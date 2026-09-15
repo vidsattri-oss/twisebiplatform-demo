@@ -1,0 +1,20 @@
+{
+  "name": "Wells Readiness - Plan vs Actual",
+  "tables": {
+    "WellsReadinessPlanVsActual": {
+      "columns": {
+        "Parameter": { "sortBy": "Parameter Sort Order" },
+        "Parameter Sort Order": { "hidden": true },
+        "Planned Completion Date (Date)": { "format": "dd-MM-yyyy" }
+      }
+    }
+  },
+  "measures": [
+    {
+      "table": "WellsReadinessPlanVsActual",
+      "name": "Well Count",
+      "expression": "COUNTROWS(WellsReadinessPlanVsActual)",
+      "format": "#,0"
+    }
+  ]
+}

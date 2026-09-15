@@ -1,0 +1,22 @@
+{
+  "name": "Sales (Software Co.)",
+  "tables": {
+    "deals": {
+      "columns": {
+        "created_date": { "dataType": "date", "format": "dd-MM-yyyy" },
+        "close_date": { "dataType": "date", "format": "dd-MM-yyyy" }
+      }
+    },
+    "invoices": {
+      "columns": {
+        "issued_date": { "dataType": "date", "format": "dd-MM-yyyy" },
+        "paid_date": { "dataType": "date", "format": "dd-MM-yyyy" }
+      }
+    }
+  },
+  "measures": [
+    { "table": "deals", "name": "Deal Count", "expression": "COUNTROWS(deals)", "format": "#,0" },
+    { "table": "deals", "name": "Deal Amount", "expression": "SUM(deals[amount])", "format": "#,0" },
+    { "table": "invoices", "name": "Invoice Amount", "expression": "SUM(invoices[amount])", "format": "#,0" }
+  ]
+}
