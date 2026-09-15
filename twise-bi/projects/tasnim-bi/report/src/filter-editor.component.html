@@ -27,32 +27,48 @@
 
     @switch (kind()) {
       @case ('basic') {
-        <div class="row">
-          <label class="check"><input type="radio" name="op" [checked]="basicOperator() === 'in'" (change)="basicOperator.set('in')" /> Is</label>
-          <label class="check"><input type="radio" name="op" [checked]="basicOperator() === 'notIn'" (change)="basicOperator.set('notIn')" /> Is not</label>
-        </div>
-        <input class="input" type="search" placeholder="Search values" aria-label="Search values" [value]="search()" (input)="search.set(valueOf($event))" />
-        <div class="values" role="group" aria-label="Values">
-          @for (v of values.value()?.values ?? []; track $index) {
-            <label class="check value">
-              <input type="checkbox" [checked]="basicValues().includes(v)" (change)="toggleValue(v)" />
-              <span [class.blank]="v === null">{{ label(v) }}</span>
-            </label>
-          }
-          @if (values.isLoading() && !values.hasValue()) {
-            <p class="help">Loading values…</p>
-          } @else if (valuesError(); as message) {
-            <p class="help error">{{ message }}</p>
-          }
-        </div>
-        <p class="help">{{ basicValues().length ? basicValues().length + ' selected' : 'Nothing selected — the filter shows everything.' }}</p>
+        @if (isBoolean()) {
+          <div class="segmented" role="group" aria-label="Show items where the value is">
+            <button type="button" [class.on]="booleanChoice() === 'all'" [attr.aria-pressed]="booleanChoice() === 'all'" (click)="setBoolean('all')">All</button>
+            <button type="button" [class.on]="booleanChoice() === true" [attr.aria-pressed]="booleanChoice() === true" (click)="setBoolean(true)">True</button>
+            <button type="button" [class.on]="booleanChoice() === false" [attr.aria-pressed]="booleanChoice() === false" (click)="setBoolean(false)">False</button>
+            <button type="button" [class.on]="booleanChoice() === null" [attr.aria-pressed]="booleanChoice() === null" (click)="setBoolean(null)">(Blank)</button>
+          </div>
+        } @else {
+          <div class="row">
+            <label class="check"><input type="radio" [name]="uid + '-op'" [checked]="basicOperator() === 'in'" (change)="basicOperator.set('in')" /> Is</label>
+            <label class="check"><input type="radio" [name]="uid + '-op'" [checked]="basicOperator() === 'notIn'" (change)="basicOperator.set('notIn')" /> Is not</label>
+          </div>
+          <input class="input" type="search" placeholder="Search values" aria-label="Search values" [value]="search()" (input)="search.set(valueOf($event))" />
+          <div class="values" role="group" aria-label="Values">
+            @for (v of values.value()?.values ?? []; track $index) {
+              <label class="check value">
+                <input type="checkbox" [checked]="basicValues().includes(v)" (change)="toggleValue(v)" />
+                <span [class.blank]="v === null">{{ label(v) }}</span>
+              </label>
+            }
+            @if (values.isLoading() && !values.hasValue()) {
+              <p class="help">Loading values…</p>
+            } @else if (valuesError(); as message) {
+              <p class="help error">{{ message }}</p>
+            }
+          </div>
+          <div class="row quick">
+            <button type="button" class="chip-toggle" [class.on]="basicOperator() === 'in' && basicValues().length === 1 && basicValues()[0] === null" (click)="setBlank('blank')">Blank</button>
+            <button type="button" class="chip-toggle" [class.on]="basicOperator() === 'notIn' && basicValues().length === 1 && basicValues()[0] === null" (click)="setBlank('notBlank')">Not blank</button>
+            @if (basicValues().length) {
+              <button type="button" class="link" (click)="basicValues.set([])">Clear</button>
+            }
+          </div>
+          <p class="help">{{ basicValues().length ? basicValues().length + ' selected' : 'Nothing selected — the filter shows everything.' }}</p>
+        }
       }
       @case ('advanced') {
         @for (c of conditions(); track $index; let i = $index) {
           @if (i === 1) {
             <div class="row">
-              <label class="check"><input type="radio" name="logic" [checked]="logic() === 'and'" (change)="logic.set('and')" /> And</label>
-              <label class="check"><input type="radio" name="logic" [checked]="logic() === 'or'" (change)="logic.set('or')" /> Or</label>
+              <label class="check"><input type="radio" [name]="uid + '-logic'" [checked]="logic() === 'and'" (change)="logic.set('and')" /> And</label>
+              <label class="check"><input type="radio" [name]="uid + '-logic'" [checked]="logic() === 'or'" (change)="logic.set('or')" /> Or</label>
             </div>
           }
           <div class="condition">
@@ -83,28 +99,50 @@
         <p class="help">Both ends are included. Leave one empty for an open range.</p>
       }
       @case ('relativeDate') {
+        <div class="presets" role="group" aria-label="Quick choices">
+          @for (p of presets; track p.label) {
+            <button type="button" class="chip-toggle" [class.on]="activePreset() === p.label" [attr.aria-pressed]="activePreset() === p.label" (click)="applyPreset(p)">{{ p.label }}</button>
+          }
+        </div>
         <div class="condition">
           <select class="select" aria-label="Period" [value]="relPeriod()" (change)="relPeriod.set($any(valueOf($event)))">
-            <option value="last">In the last</option>
-            <option value="this">In this</option>
-            <option value="next">In the next</option>
+            <option value="last" [selected]="relPeriod() === 'last'">In the last</option>
+            <option value="this" [selected]="relPeriod() === 'this'">In this</option>
+            <option value="next" [selected]="relPeriod() === 'next'">In the next</option>
           </select>
           @if (relPeriod() !== 'this') {
-            <input class="input count" type="number" min="1" aria-label="Count" [value]="relCount()" (input)="relCount.set(+valueOf($event))" />
+            <input class="input count" type="number" min="1" max="1000" aria-label="Count" [value]="relCount()" (input)="relCount.set(+valueOf($event))" />
           }
           <select class="select" aria-label="Unit" [value]="relUnit()" (change)="relUnit.set($any(valueOf($event)))">
-            <option value="day">days</option>
-            <option value="month">months</option>
-            <option value="year">years</option>
+            @for (u of dateUnits; track u.value) {
+              <option [value]="u.value" [selected]="u.value === relUnit()">{{ relPeriod() === 'this' || relCount() === 1 ? u.one : u.many }}</option>
+            }
           </select>
         </div>
-        <p class="help">"Last" and "next" include today.</p>
+        @if (relPeriod() !== 'this') {
+          <label class="check"><input type="checkbox" [checked]="relIncludeToday()" (change)="relIncludeToday.set(checked($event))" /> Include today</label>
+        }
+        <p class="help">Weeks run Monday to Sunday. Dates are compared in UTC.</p>
+      }
+      @case ('relativeTime') {
+        <div class="condition">
+          <select class="select" aria-label="Period" [value]="timePeriod()" (change)="timePeriod.set($any(valueOf($event)))">
+            <option value="last" [selected]="timePeriod() === 'last'">In the last</option>
+            <option value="next" [selected]="timePeriod() === 'next'">In the next</option>
+          </select>
+          <input class="input count" type="number" min="1" aria-label="Count" [value]="timeCount()" (input)="timeCount.set(+valueOf($event))" />
+          <select class="select" aria-label="Unit" [value]="timeUnit()" (change)="timeUnit.set($any(valueOf($event)))">
+            <option value="minute" [selected]="timeUnit() === 'minute'">{{ timeCount() === 1 ? 'minute' : 'minutes' }}</option>
+            <option value="hour" [selected]="timeUnit() === 'hour'">{{ timeCount() === 1 ? 'hour' : 'hours' }}</option>
+          </select>
+        </div>
+        <p class="help">Measured from the moment each visual queries, to the minute.</p>
       }
       @case ('topN') {
         <div class="condition">
           <select class="select" aria-label="Top or bottom" [value]="topDirection()" (change)="topDirection.set($any(valueOf($event)))">
-            <option value="top">Top</option>
-            <option value="bottom">Bottom</option>
+            <option value="top" [selected]="topDirection() === 'top'">Top</option>
+            <option value="bottom" [selected]="topDirection() === 'bottom'">Bottom</option>
           </select>
           <input class="input count" type="number" min="1" aria-label="How many" [value]="topN()" (input)="topN.set(+valueOf($event))" />
         </div>

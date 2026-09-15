@@ -62,12 +62,12 @@ export class ChartVisualComponent {
 
   attach(chart: Highcharts.Chart): void {
     this.chart = chart;
-    // Power BI opens See records from a data point's context menu.
+    // Power BI's data point context menu: Include, Exclude, See records.
     chart.container.addEventListener('contextmenu', (event) => {
       const keys = (chart.hoverPoint?.options.custom as { keys?: Scalar[] } | undefined)?.keys;
       if (!keys) return;
       event.preventDefault();
-      this.ctx.seeRecords(keys);
+      this.ctx.openDataPointMenu(keys, event);
     });
   }
 }

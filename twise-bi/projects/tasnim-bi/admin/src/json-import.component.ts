@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { rxResource } from '@angular/core/rxjs-interop';
 import { IngestResult } from '@tasnim/bi/core';
 import { BI_DATA_SOURCE, describeError } from '@tasnim/bi/core';
-import { BiNavComponent } from './bi-nav.component';
+import { BiNavComponent } from '@tasnim/bi/report';
 
 const MAX_BYTES = 15 * 1024 * 1024;
 

@@ -86,11 +86,14 @@ export class VisualHostComponent {
     const context = this.context();
     const model = this.store.model();
     const ignored = new Set(this.data.value()?.ignoredFilters ?? []);
-    return (context?.filters ?? []).map((filter, i) => ({
-      scope: SCOPE_LABELS[context?.origins[i]?.scope ?? 'visual'] ?? '',
-      text: describeFilter(filter, model),
-      ignored: ignored.has(i),
-    }));
+    return [
+      ...this.store.datasetFilters().map((filter) => ({ scope: 'Dataset', text: describeFilter(filter, model), ignored: false })),
+      ...(context?.filters ?? []).map((filter, i) => ({
+        scope: SCOPE_LABELS[context?.origins[i]?.scope ?? 'visual'] ?? '',
+        text: describeFilter(filter, model),
+        ignored: ignored.has(i),
+      })),
+    ];
   });
   readonly highlightText = computed(() => (this.context()?.highlight ?? []).map((f) => describeFilter(f, this.store.model())).join('; '));
   readonly activeFilterCount = computed(() => this.filterItems().length + (this.context()?.highlight ? 1 : 0));
@@ -99,6 +102,19 @@ export class VisualHostComponent {
   readonly showSkeleton = computed(() => this.isAggregate() && this.data.isLoading() && !this.data.hasValue());
   readonly isEmpty = computed(() => this.isAggregate() && this.data.hasValue() && !this.data.value()?.rows.length);
   readonly selectedHere = computed(() => this.store.selection()?.visualId === this.visual().id);
+  readonly menu = computed(() => {
+    const m = this.store.dataPointMenu();
+    return m?.visualId === this.visual().id ? m : null;
+  });
+
+  include(mode: 'include' | 'exclude', keys: Scalar[]): void {
+    this.store.includeExclude(this.visual(), keys, mode);
+  }
+
+  seeRecordsFromMenu(keys: Scalar[]): void {
+    this.store.closeDataPointMenu();
+    this.seeRecords(keys);
+  }
 
   private readonly visualContext: BiVisualContext = {
     definition: this.visual,
@@ -114,6 +130,14 @@ export class VisualHostComponent {
     format: formatValue,
     select: (keys, additive) => this.store.select(this.visual(), keys, additive),
     seeRecords: (keys) => this.seeRecords(keys),
+    openDataPointMenu: (keys, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      // Keep the menu inside the window; it is position: fixed at the pointer.
+      const x = Math.max(8, Math.min(event.clientX, window.innerWidth - 200));
+      const y = Math.max(8, Math.min(event.clientY, window.innerHeight - 140));
+      this.store.openDataPointMenu(this.visual().id, keys, x, y);
+    },
     setSlicerFilter: (filter) => this.store.setSlicerFilter(this.visual().id, filter),
   };
 

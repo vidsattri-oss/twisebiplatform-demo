@@ -3,7 +3,7 @@
  * library and any backend (Node reference, TWise .NET tenant API) agree on.
  */
 
-export type DataType = 'text' | 'integer' | 'number' | 'date' | 'boolean';
+export type DataType = 'text' | 'integer' | 'number' | 'date' | 'datetime' | 'boolean';
 export type Scalar = string | number | boolean | null;
 
 export interface ModelSummary {
@@ -22,6 +22,9 @@ export interface Column {
   hidden?: boolean;
   sortBy?: string;
   format?: string;
+  /** Present on calculated columns: the row-level formula that produces the value. */
+  expression?: string;
+  id?: number | null;
 }
 
 export interface Table {
@@ -55,6 +58,8 @@ export interface SemanticModel {
   tables: Table[];
   relationships: Relationship[];
   measures: Measure[];
+  /** Data-source level filters the server applies to every query on this model (I10). */
+  datasetFilters?: BiFilter[];
 }
 
 export interface FieldRef {
@@ -104,11 +109,22 @@ export interface RangeFilter extends FilterBase {
   max?: Scalar;
 }
 
+export type RelativeDateUnit = 'day' | 'week' | 'month' | 'quarter' | 'year';
+
 export interface RelativeDateFilter extends FilterBase {
   kind: 'relativeDate';
   period: 'last' | 'this' | 'next';
   count: number;
-  unit: 'day' | 'month' | 'year';
+  unit: RelativeDateUnit;
+  /** Default true. "Last 1 day" without today is Yesterday. */
+  includeToday?: boolean;
+}
+
+export interface RelativeTimeFilter extends FilterBase {
+  kind: 'relativeTime';
+  period: 'last' | 'next';
+  count: number;
+  unit: 'minute' | 'hour';
 }
 
 export interface TopNFilter extends FilterBase {
@@ -118,7 +134,7 @@ export interface TopNFilter extends FilterBase {
   direction: 'top' | 'bottom';
 }
 
-export type BiFilter = BasicFilter | AdvancedFilter | RangeFilter | RelativeDateFilter | TopNFilter;
+export type BiFilter = BasicFilter | AdvancedFilter | RangeFilter | RelativeDateFilter | RelativeTimeFilter | TopNFilter;
 
 export interface VisualQuery {
   modelId: number;
@@ -140,7 +156,8 @@ export interface QueryColumn {
 
 export interface QueryRow {
   keys: Scalar[];
-  values: (number | null)[];
+  /** Text measures (KPI labels) return strings. */
+  values: (number | string | null)[];
   highlights: (number | null)[] | null;
 }
 
@@ -220,9 +237,15 @@ export interface PageDefinition {
   visuals: VisualDefinition[];
 }
 
+export interface ReportSettings {
+  /** Power BI's "Multi-select without using Ctrl": every click adds to the selection. */
+  multiSelectWithoutCtrl?: boolean;
+}
+
 export interface ReportDefinition {
   filters: BiFilter[];
   pages: PageDefinition[];
+  settings?: ReportSettings;
 }
 
 export interface ReportInput {

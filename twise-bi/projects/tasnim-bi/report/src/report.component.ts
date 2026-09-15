@@ -26,6 +26,11 @@ const toId = (value: unknown): number | undefined => {
   imports: [RouterLink, VisualHostComponent, FilterPaneComponent, SeeRecordsSheetComponent, VisualizationsPaneComponent],
   providers: [ReportStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:click)': 'store.closeDataPointMenu()',
+    '(document:keydown.escape)': 'store.closeDataPointMenu()',
+    '(window:scroll)': 'store.closeDataPointMenu()',
+  },
   templateUrl: './report.component.html',
   styleUrls: ['../../styles/tokens.css', '../../styles/controls.css', './report.component.css'],
 })

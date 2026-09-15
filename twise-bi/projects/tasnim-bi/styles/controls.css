@@ -32,6 +32,18 @@
 .link { border: 0; background: none; padding: 0; color: var(--bi-primary); font: inherit; font-weight: 500; cursor: pointer; text-decoration: none; border-radius: 4px; }
 .link:hover { text-decoration: underline; }
 
+/* Mutually exclusive choices in one row, e.g. All / True / False. */
+.segmented { display: flex; padding: 2px; gap: 2px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius-sm); background: var(--bi-sunk); }
+.segmented button { flex: 1 1 0; min-width: 0; height: 28px; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: var(--bi-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.segmented button:hover { color: var(--bi-text); }
+.segmented button.on { background: var(--bi-surface); color: var(--bi-primary); box-shadow: 0 1px 2px rgba(29, 28, 33, 0.14), inset 0 -2px 0 var(--bi-accent); }
+.segmented button:focus-visible, .chip-toggle:focus-visible { outline: none; box-shadow: var(--bi-focus); }
+
+/* A small on/off choice, e.g. a relative date preset. */
+.chip-toggle { height: 26px; padding: 0 10px; border: 1px solid var(--bi-border); border-radius: 999px; background: var(--bi-surface); color: var(--bi-text); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.chip-toggle:hover { border-color: var(--bi-border-strong); }
+.chip-toggle.on { border-color: var(--bi-accent); background: var(--bi-accent-tint); color: var(--bi-accent-strong); font-weight: 600; }
+
 .badge {
   display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px;
   font-size: 11.5px; font-weight: 600; background: var(--bi-sunk); color: var(--bi-muted); white-space: nowrap;

@@ -25,6 +25,9 @@ interface PointCustom {
   highlight: number | null;
 }
 
+/** Charts plot numbers only; a text measure (a KPI label) plots as a gap. */
+const num = (v: number | string | null | undefined): number | null => (typeof v === 'number' ? v : null);
+
 export function dim(color: string, alpha = 0.3): string {
   const m = /^#([0-9a-f]{6})$/i.exec(color);
   if (!m) return color;
@@ -110,9 +113,9 @@ export function buildChartOptions(input: ChartBuildInput): Highcharts.Options {
           const highlight = r.highlights?.[0] ?? null;
           return {
             name: labels[j],
-            y: r.values[0],
+            y: num(r.values[0]),
             color: highlighted && !highlight ? dim(color) : color,
-            custom: { keys: r.keys, value: r.values[0], highlight } satisfies PointCustom,
+            custom: { keys: r.keys, value: num(r.values[0]), highlight } satisfies PointCustom,
           };
         }),
       }],
@@ -135,7 +138,7 @@ export function buildChartOptions(input: ChartBuildInput): Highcharts.Options {
       stack: stacked ? `m${i}` : undefined,
       dataLabels: lineLabels,
       data: rows.map((r, j) => {
-        const value = r.values[i];
+        const value = num(r.values[i]);
         const highlight = r.highlights?.[i] ?? null;
         const custom: PointCustom = { keys: r.keys, value, highlight };
         if (!highlighted) return { y: value, color: pointColor(j), custom };
@@ -160,7 +163,7 @@ export function buildChartOptions(input: ChartBuildInput): Highcharts.Options {
       data: rows.map((r, j) => ({
         y: highlighted ? (r.highlights?.[i] ?? null) : null,
         color: pointColor(j),
-        custom: { keys: r.keys, value: r.values[i], highlight: r.highlights?.[i] ?? null } satisfies PointCustom,
+        custom: { keys: r.keys, value: num(r.values[i]), highlight: r.highlights?.[i] ?? null } satisfies PointCustom,
       })),
     } as Highcharts.SeriesOptionsType);
   });

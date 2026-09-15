@@ -20,15 +20,19 @@ function numberFormat(decimals: number, grouping: boolean, percent: boolean): In
 }
 
 function formatDate(iso: string, format: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(iso);
   if (!m) return iso;
-  const [, yyyy, mm, dd] = m;
+  const [, yyyy, month, dd, hh = '00', min = '00', ss = '00'] = m;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Case matters: MM is the month, mm the minutes.
   return format
     .replace('yyyy', yyyy)
-    .replace('MMM', months[Number(mm) - 1] ?? mm)
-    .replace('MM', mm)
-    .replace('dd', dd);
+    .replace('MMM', months[Number(month) - 1] ?? month)
+    .replace('MM', month)
+    .replace('dd', dd)
+    .replace('HH', hh)
+    .replace('mm', min)
+    .replace('ss', ss);
 }
 
 /**
@@ -48,13 +52,18 @@ export function formatValue(value: Scalar | undefined, format?: string, dataType
     return numberFormat(Number.isInteger(value) ? 0 : 2, true, false).format(value);
   }
 
-  if (dataType === 'date' || (format && /[dMy]/.test(format))) {
-    return formatDate(value, format && /[dMy]/.test(format) ? format : 'dd-MM-yyyy');
+  if (dataType === 'date' || dataType === 'datetime' || (format && /[dMy]/.test(format))) {
+    return formatDate(value, format && /[dMy]/.test(format) ? format : dataType === 'datetime' ? 'dd-MM-yyyy HH:mm' : 'dd-MM-yyyy');
   }
   return value;
 }
 
 /** A compact label for a category key: blanks and booleans read like Power BI. */
 export function formatKey(value: Scalar | undefined, dataType?: DataType, format?: string): string {
-  return formatValue(value, dataType === 'date' ? format : undefined, dataType);
+  return formatValue(value, dataType === 'date' || dataType === 'datetime' ? format : undefined, dataType);
+}
+
+/** A stored date-time ("2026-09-14 10:30:00") in the form a datetime-local input accepts ("2026-09-14T10:30"). */
+export function toDateTimeInput(value: Scalar | undefined): string {
+  return typeof value === 'string' ? value.replace(' ', 'T').slice(0, 16) : '';
 }

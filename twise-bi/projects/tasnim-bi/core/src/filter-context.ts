@@ -54,6 +54,17 @@ export function categoryFields(visual: VisualDefinition): GroupField[] {
   return (visual.roles['category'] ?? []).filter((item): item is GroupField => !isMeasureItem(item));
 }
 
+/**
+ * The fields a data point's keys refer to: a chart's category fields, or a
+ * table's first column (a table row selects by its first value).
+ */
+export function selectionFields(visual: VisualDefinition): GroupField[] {
+  const categories = categoryFields(visual);
+  if (categories.length) return categories;
+  const first = (visual.roles['columns'] ?? []).find((item): item is GroupField => !isMeasureItem(item));
+  return first ? [fieldRef(first)] : [];
+}
+
 export function measureNames(visual: VisualDefinition, role = 'values'): string[] {
   return (visual.roles[role] ?? []).filter(isMeasureItem).map((m) => m.measure);
 }

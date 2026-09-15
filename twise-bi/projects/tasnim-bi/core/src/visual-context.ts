@@ -27,6 +27,11 @@ export interface BiVisualContext {
   select(keys: Scalar[], additive: boolean): void;
   /** Opens See records for a data point, or for the whole visual when keys is null. */
   seeRecords(keys: Scalar[] | null): void;
+  /**
+   * Power BI's data point context menu (Include, Exclude, See records) at the
+   * pointer position. Visuals call this from their contextmenu handler.
+   */
+  openDataPointMenu(keys: Scalar[], event: MouseEvent): void;
   /** Slicers publish their filter here; null clears it. */
   setSlicerFilter(filter: BiFilter | null): void;
 }

@@ -28,9 +28,9 @@
         <span class="sr-only">From</span>
         <input
           [type]="inputType()"
-          [value]="range().min ?? ''"
-          [attr.min]="values.value()?.min"
-          [attr.max]="values.value()?.max"
+          [value]="inputEdge(range().min)"
+          [attr.min]="inputEdge(values.value()?.min)"
+          [attr.max]="inputEdge(values.value()?.max)"
           [attr.placeholder]="values.value()?.min ?? 'From'"
           (change)="setRange('min', inputValue($event))"
         />
@@ -40,9 +40,9 @@
         <span class="sr-only">To</span>
         <input
           [type]="inputType()"
-          [value]="range().max ?? ''"
-          [attr.min]="values.value()?.min"
-          [attr.max]="values.value()?.max"
+          [value]="inputEdge(range().max)"
+          [attr.min]="inputEdge(values.value()?.min)"
+          [attr.max]="inputEdge(values.value()?.max)"
           [attr.placeholder]="values.value()?.max ?? 'To'"
           (change)="setRange('max', inputValue($event))"
         />
@@ -57,22 +57,54 @@
   }
   @case ('relativeDate') {
     <div class="relative">
-      <select aria-label="Period" [value]="relative()?.period ?? ''" (change)="inputValue($event) ? setRelative({ period: $any(inputValue($event)) }) : clear()">
-        <option value="">Any time</option>
-        <option value="last">Last</option>
-        <option value="this">This</option>
-        <option value="next">Next</option>
+      <select aria-label="Relative date" class="preset" (change)="choosePreset(inputValue($event))">
+        <option value="" [selected]="!relative()">Any time</option>
+        @for (p of presets; track p.label) {
+          <option [value]="p.label" [selected]="!showCustom() && presetChoice() === p.label">{{ p.label }}</option>
+        }
+        <option value="custom" [selected]="showCustom()">Custom…</option>
       </select>
-      @if (relative(); as r) {
+      @if (showCustom() && relative(); as r) {
+        <select aria-label="Period" (change)="setRelative({ period: $any(inputValue($event)) })">
+          <option value="last" [selected]="r.period === 'last'">Last</option>
+          <option value="this" [selected]="r.period === 'this'">This</option>
+          <option value="next" [selected]="r.period === 'next'">Next</option>
+        </select>
         @if (r.period !== 'this') {
           <input type="number" min="1" max="1000" aria-label="Count" class="count" [value]="r.count" (change)="setRelative({ count: +inputValue($event) })" />
         }
-        <select aria-label="Unit" [value]="r.unit" (change)="setRelative({ unit: $any(inputValue($event)) })">
-          <option value="day">{{ r.period === 'this' || r.count === 1 ? 'day' : 'days' }}</option>
-          <option value="month">{{ r.period === 'this' || r.count === 1 ? 'month' : 'months' }}</option>
-          <option value="year">{{ r.period === 'this' || r.count === 1 ? 'year' : 'years' }}</option>
+        <select aria-label="Unit" (change)="setRelative({ unit: $any(inputValue($event)) })">
+          @for (u of ['day', 'week', 'month', 'quarter', 'year']; track u) {
+            <option [value]="u" [selected]="r.unit === u">{{ r.period === 'this' || r.count === 1 ? u : u + 's' }}</option>
+          }
+        </select>
+        @if (r.period !== 'this') {
+          <label class="check"><input type="checkbox" [checked]="r.includeToday !== false" (change)="setRelative({ includeToday: checked($event) })" /> Include today</label>
+        }
+      }
+    </div>
+  }
+  @case ('relativeTime') {
+    <div class="relative">
+      <select aria-label="Period" (change)="inputValue($event) ? setRelativeTime({ period: $any(inputValue($event)) }) : clear()">
+        <option value="" [selected]="!relativeTime()">Any time</option>
+        <option value="last" [selected]="relativeTime()?.period === 'last'">Last</option>
+        <option value="next" [selected]="relativeTime()?.period === 'next'">Next</option>
+      </select>
+      @if (relativeTime(); as r) {
+        <input type="number" min="1" aria-label="Count" class="count" [value]="r.count" (change)="setRelativeTime({ count: +inputValue($event) })" />
+        <select aria-label="Unit" (change)="setRelativeTime({ unit: $any(inputValue($event)) })">
+          <option value="minute" [selected]="r.unit === 'minute'">{{ r.count === 1 ? 'minute' : 'minutes' }}</option>
+          <option value="hour" [selected]="r.unit === 'hour'">{{ r.count === 1 ? 'hour' : 'hours' }}</option>
         </select>
       }
+    </div>
+  }
+  @case ('boolean') {
+    <div class="segmented" role="group" [attr.aria-label]="field()?.column">
+      <button type="button" [class.on]="booleanChoice() === 'all'" [attr.aria-pressed]="booleanChoice() === 'all'" (click)="setBoolean('all')">All</button>
+      <button type="button" [class.on]="booleanChoice() === true" [attr.aria-pressed]="booleanChoice() === true" (click)="setBoolean(true)">True</button>
+      <button type="button" [class.on]="booleanChoice() === false" [attr.aria-pressed]="booleanChoice() === false" (click)="setBoolean(false)">False</button>
     </div>
   }
 }
@@ -87,13 +119,19 @@
     (input)="search.set(inputValue($event))"
   />
   <div class="options" role="group" [attr.aria-label]="field()?.column">
-    <label class="option">
-      <input type="checkbox" [checked]="!selected().size" (change)="selectAll()" />
-      <span>Select all</span>
-    </label>
-    @for (value of options(); track $index) {
+    @if (singleSelect()) {
+      @if (selected().size) {
+        <button type="button" class="link clear" (click)="selectAll()">Clear selection</button>
+      }
+    } @else {
       <label class="option">
-        <input type="checkbox" [checked]="isSelected(value)" (change)="toggle(value)" />
+        <input type="checkbox" [checked]="!selected().size" (change)="selectAll()" />
+        <span>Select all</span>
+      </label>
+    }
+    @for (value of options(); track $index) {
+      <label class="option" [class.single]="singleSelect()">
+        <input [type]="singleSelect() ? 'radio' : 'checkbox'" [name]="uid + '-value'" [checked]="isSelected(value)" (click)="toggle(value)" />
         <span [class.blank]="value === null">{{ label(value) }}</span>
       </label>
     }

@@ -8,4 +8,5 @@
 .condition > .select, .condition > .input { flex: 1 1 110px; }
 .condition > .count { flex: 0 0 76px; }
 .actions { display: flex; gap: 6px; }
+.presets, .row.quick { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .help.error { color: var(--bi-danger); }

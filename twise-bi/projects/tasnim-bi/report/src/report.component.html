@@ -36,12 +36,13 @@
         }
       </div>
       <div class="tools">
-        @if (store.selection()) {
-          <button type="button" class="btn ghost sm" (click)="store.clearSelection()">Clear selection</button>
+        @if (store.selection(); as sel) {
+          <button type="button" class="btn ghost sm" (click)="store.clearSelection()">Clear selection ({{ sel.values.length }})</button>
         }
-        @if (activeSlicers()) {
-          <button type="button" class="btn ghost sm" (click)="store.resetSlicers()">Reset slicers</button>
-        }
+        <button type="button" class="btn ghost sm" aria-label="Reset to default" title="Put filters, slicers and selections back to how the report was saved" [disabled]="!store.canReset()" (click)="store.resetToDefault()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4" /></svg>
+          Reset to default
+        </button>
         <button type="button" class="btn sm" [class.on]="filterPaneOpen()" [attr.aria-expanded]="filterPaneOpen()" (click)="filterPaneOpen.set(!filterPaneOpen())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5Z" /></svg>
           Filters

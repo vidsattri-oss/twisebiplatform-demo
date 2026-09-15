@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  BiFilter,
   IngestRequest,
   IngestResult,
   Measure,
@@ -44,6 +45,7 @@ export interface BiDataSource {
   addConnection(name: string, fileName: string): Observable<{ id: number }>;
   removeConnection(connectionId: number): Observable<unknown>;
   ingestJson(request: IngestRequest): Observable<IngestResult>;
+  saveDatasetFilters(modelId: number, filters: BiFilter[]): Observable<BiFilter[]>;
 }
 
 export const BI_DATA_SOURCE = new InjectionToken<BiDataSource>('BI_DATA_SOURCE');
@@ -106,6 +108,9 @@ export class HttpBiDataSource implements BiDataSource {
   }
   ingestJson(request: IngestRequest) {
     return this.http.post<IngestResult>(`${this.base}/ingest/json`, request);
+  }
+  saveDatasetFilters(modelId: number, filters: BiFilter[]) {
+    return this.http.put<BiFilter[]>(`${this.base}/models/${modelId}/dataset-filters`, { filters });
   }
 }
 

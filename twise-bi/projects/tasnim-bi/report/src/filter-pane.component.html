@@ -21,6 +21,18 @@
       </section>
     }
 
+    @if (store.datasetFilters().length) {
+      <section class="section">
+        <h3 class="section-title">Dataset filters · always applied</h3>
+        @for (f of store.datasetFilters(); track $index) {
+          <div class="card readonly">
+            <span class="card-text">{{ describe(f) }}</span>
+          </div>
+        }
+        <p class="none">Set on the data source. Reports can't remove them.</p>
+      </section>
+    }
+
     @for (section of sections(); track section.scope) {
       <section class="section">
         <h3 class="section-title">{{ section.title }}</h3>

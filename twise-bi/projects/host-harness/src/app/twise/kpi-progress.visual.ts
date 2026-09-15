@@ -31,7 +31,10 @@ export class KpiProgressVisualComponent {
 
   readonly label = computed(() => measureNames(this.ctx.definition())[0] ?? '');
   private readonly format = computed(() => this.ctx.model()?.measures.find((m) => m.name === this.label())?.format);
-  private readonly value = computed(() => this.ctx.result()?.rows[0]?.values[0] ?? null);
+  private readonly value = computed(() => {
+    const v = this.ctx.result()?.rows[0]?.values[0];
+    return typeof v === 'number' ? v : null;
+  });
   private readonly target = computed(() => {
     const t = Number(this.ctx.definition().options?.['target']);
     return Number.isFinite(t) && t > 0 ? t : null;

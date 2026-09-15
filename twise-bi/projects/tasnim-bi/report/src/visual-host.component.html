@@ -73,6 +73,22 @@
     </div>
   }
 
+  @if (menu(); as m) {
+    <div class="menu" role="menu" aria-label="Data point" [style.left.px]="m.x" [style.top.px]="m.y" (click)="$event.stopPropagation()" (contextmenu)="$event.preventDefault()">
+      <button type="button" role="menuitem" class="menu-item" (click)="include('include', m.keys)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10" /></svg> Include
+      </button>
+      <button type="button" role="menuitem" class="menu-item" (click)="include('exclude', m.keys)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg> Exclude
+      </button>
+      @if (isAggregate()) {
+        <button type="button" role="menuitem" class="menu-item" (click)="seeRecordsFromMenu(m.keys)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 5v14" /></svg> See records
+        </button>
+      }
+    </div>
+  }
+
   @if (confirmRemove()) {
     <div class="confirm" role="alertdialog" aria-label="Remove visual" (click)="$event.stopPropagation()">
       <span>Remove “{{ title() || type()?.label }}” from this page?</span>

@@ -3,7 +3,7 @@ import { rxResource, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, debounceTime, of, switchMap } from 'rxjs';
 import { MeasureValidateResult } from '@tasnim/bi/core';
 import { BI_DATA_SOURCE, describeError, errorPosition } from '@tasnim/bi/core';
-import { BiNavComponent } from './bi-nav.component';
+import { BiNavComponent } from '@tasnim/bi/report';
 
 const FUNCTIONS = [
   { name: 'COUNTROWS', snippet: 'COUNTROWS(Table)', help: 'Counts rows of the home table.' },

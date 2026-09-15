@@ -1,4 +1,5 @@
 /* @tasnim/bi/report — report pages, panes and See records. */
+export * from './bi-nav.component';
 export * from './report.component';
 export * from './report-list.component';
 export * from './filter-pane.component';

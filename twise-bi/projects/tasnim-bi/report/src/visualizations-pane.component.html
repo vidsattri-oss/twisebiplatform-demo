@@ -29,6 +29,14 @@
       }
     </section>
 
+    @if (!visual()) {
+      <section class="section">
+        <h3 class="section-title">Report settings</h3>
+        <label class="check"><input type="checkbox" [checked]="store.multiSelectWithoutCtrl()" (change)="store.setMultiSelectWithoutCtrl(checked($event))" /> Multi-select without Ctrl</label>
+        <p class="help">Each click adds a data point to the selection instead of replacing it. Click a selected point again to remove it.</p>
+      </section>
+    }
+
     @if (visual(); as v) {
       <section class="section">
         <label class="field">
@@ -115,13 +123,18 @@
           <label class="field">
             <span class="label">Slicer style</span>
             <select class="select" [value]="option('mode') ?? ''" (change)="setOption('mode', valueOf($event) || undefined)">
-              <option value="">Automatic</option>
-              <option value="dropdown">Dropdown</option>
-              <option value="list">List</option>
-              <option value="between">Between</option>
-              <option value="relativeDate">Relative date</option>
+              @for (m of slicerModes; track m.value) {
+                <option [value]="m.value" [selected]="(option('mode') ?? '') === m.value">{{ m.label }}</option>
+              }
             </select>
           </label>
+          <label class="check"><input type="checkbox" [checked]="option('singleSelect') === true" (change)="setOption('singleSelect', checked($event))" /> Single select</label>
+          <div class="field">
+            <span class="label">Default selection</span>
+            <p class="help">{{ slicerDefaultText() }}</p>
+            <button type="button" class="btn sm" (click)="store.setSlicerDefault(v.id)">{{ store.slicerFilters()[v.id] ? 'Set current selection as default' : 'Clear default' }}</button>
+            <p class="help">The slicer opens with this selection, and “Reset to default” returns to it.</p>
+          </div>
         }
         <div class="layout">
           <label class="field"><span class="label">Column</span><input class="input" type="number" min="0" max="11" [value]="v.layout?.x ?? 0" (change)="setLayout('x', $event)" /></label>

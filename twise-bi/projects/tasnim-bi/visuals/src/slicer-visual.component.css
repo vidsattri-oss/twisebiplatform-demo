@@ -35,9 +35,19 @@
 .field input { padding-inline: 6px; }
 .hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash { color: var(--bi-soft); }
-.relative { display: flex; gap: 6px; flex-wrap: wrap; }
+.relative { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .relative select { flex: 1 1 90px; width: auto; }
+.relative .preset { flex-basis: 100%; }
 .relative .count { flex: 0 0 72px; }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--bi-muted); cursor: pointer; }
+.check input { accent-color: var(--bi-primary); margin: 0; }
+.clear { align-self: flex-start; font-size: 12.5px; }
+
+.segmented { display: flex; padding: 2px; gap: 2px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius-sm); background: var(--bi-sunk); }
+.segmented button { flex: 1 1 0; min-width: 0; height: 28px; border: 0; border-radius: 5px; background: transparent; color: var(--bi-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.segmented button:hover { color: var(--bi-text); }
+.segmented button.on { background: var(--bi-surface); color: var(--bi-primary); box-shadow: 0 1px 2px rgba(29, 28, 33, 0.14), inset 0 -2px 0 var(--bi-accent); }
+.segmented button:focus-visible { outline: none; box-shadow: var(--bi-focus); }
 
 .link { border: 0; background: none; color: var(--bi-primary); font: inherit; font-weight: 500; cursor: pointer; padding: 4px; }
 .hint { margin: 6px 0 0; font-size: 12px; color: var(--bi-muted); }

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { DateLevel, GroupField, RoleItem, VisualDefinition, VisualInteraction, VisualLayout, clampLayout, isMeasureItem } from '@tasnim/bi/core';
+import { BiFilter, DateLevel, GroupField, RoleItem, VisualDefinition, VisualInteraction, VisualLayout, clampLayout, describeFilter, isMeasureItem } from '@tasnim/bi/core';
 import { columnOf } from '@tasnim/bi/core';
 import { DataRole, VisualRegistry } from '@tasnim/bi/core';
 import { ReportStore } from '@tasnim/bi/core';
@@ -26,6 +26,19 @@ export class VisualizationsPaneComponent {
     return v ? this.registry.get(v.type) : undefined;
   });
   protected readonly model = this.store.model;
+  protected readonly slicerModes = [
+    { value: '', label: 'Automatic' },
+    { value: 'dropdown', label: 'Dropdown' },
+    { value: 'list', label: 'List' },
+    { value: 'between', label: 'Between' },
+    { value: 'relativeDate', label: 'Relative date' },
+    { value: 'relativeTime', label: 'Relative time' },
+    { value: 'boolean', label: 'True / False toggle' },
+  ];
+  protected readonly slicerDefaultText = computed(() => {
+    const d = this.visual()?.options?.['defaultFilter'] as BiFilter | undefined;
+    return d ? describeFilter(d, this.model()) : 'None — the slicer opens showing all values.';
+  });
   protected readonly isChart = computed(() => ['column', 'bar', 'line', 'pie', 'donut'].includes(this.visual()?.type ?? ''));
   protected readonly others = computed(() => (this.store.page()?.visuals ?? []).filter((v) => v.id !== this.visual()?.id));
 
@@ -47,7 +60,8 @@ export class VisualizationsPaneComponent {
   }
 
   protected isDateField(item: RoleItem): item is GroupField {
-    return !isMeasureItem(item) && columnOf(this.model(), item)?.dataType === 'date';
+    const type = !isMeasureItem(item) ? columnOf(this.model(), item)?.dataType : undefined;
+    return type === 'date' || type === 'datetime';
   }
 
   protected dateLevel(item: RoleItem): string {

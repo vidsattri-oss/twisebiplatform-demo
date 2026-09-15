@@ -4,7 +4,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { BI_DATA_SOURCE, describeError } from '@tasnim/bi/core';
-import { BiNavComponent } from '@tasnim/bi/admin';
+import { BiNavComponent } from './bi-nav.component';
 
 /** All reports, with create and delete. */
 @Component({

@@ -2,6 +2,7 @@
 export * from './contract';
 export * from './format';
 export * from './filter-context';
+export * from './filter-actions';
 export * from './describe-filter';
 export * from './data-source';
 export * from './host-bridge';

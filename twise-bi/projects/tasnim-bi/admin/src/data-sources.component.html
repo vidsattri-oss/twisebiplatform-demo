@@ -120,6 +120,27 @@
           }
         </div>
 
+        <h3 class="subhead">Dataset filters</h3>
+        <p class="help">Applied on the server to every visual, table and slicer built on this source. Reports show them but can't remove them.</p>
+        @if (datasetFilters().length) {
+          <ul class="rels dataset-filters">
+            @for (f of datasetFilters(); track $index; let i = $index) {
+              <li>
+                <span class="badge accent">Always</span>
+                <span class="filter-text">{{ describe(f) }}</span>
+                <button type="button" class="link danger" [disabled]="savingFilters()" [attr.aria-label]="'Remove dataset filter: ' + describe(f)" (click)="removeDatasetFilter(i)">Remove</button>
+              </li>
+            }
+          </ul>
+        }
+        @if (addingFilter()) {
+          <div class="table-card filter-card">
+            <bi-filter-editor [model]="m" (applied)="addDatasetFilter($event)" (cancelled)="addingFilter.set(false)" />
+          </div>
+        } @else {
+          <button type="button" class="btn sm add-filter" (click)="addingFilter.set(true)">+ Add dataset filter</button>
+        }
+
         <h3 class="subhead">Relationships</h3>
         @if (m.relationships.length) {
           <ul class="rels">

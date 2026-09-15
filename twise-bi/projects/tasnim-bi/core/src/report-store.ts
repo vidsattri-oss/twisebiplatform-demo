@@ -17,6 +17,7 @@ import {
 } from './contract';
 import { BI_DATA_SOURCE, describeError } from './data-source';
 import { columnOf } from './describe-filter';
+import { includeExcludeFilters, restoreSavedFilters, slicerDefaults } from './filter-actions';
 import {
   Selection,
   VisualContext,
@@ -24,6 +25,7 @@ import {
   categoryFields,
   measureNames,
   seeRecordsFilters,
+  selectionFields,
   toggleSelection,
 } from './filter-context';
 import { formatKey } from './format';
@@ -42,7 +44,16 @@ export interface SeeRecordsState {
   columns: GridColumn[];
 }
 
+export interface DataPointMenuState {
+  visualId: string;
+  keys: Scalar[];
+  x: number;
+  y: number;
+}
+
 const toInput = (r: Report): ReportInput => ({ name: r.name, modelId: r.modelId, definition: r.definition });
+const activeSlicers = (filters: Record<string, BiFilter | null>) =>
+  JSON.stringify(Object.entries(filters).filter(([, f]) => f).sort(([a], [b]) => a.localeCompare(b)));
 
 function uniqueId(base: string, taken: Set<string>): string {
   for (let n = 1; ; n++) {
@@ -80,10 +91,23 @@ export class ReportStore {
   /** Power BI focus mode: one visual fills the canvas. */
   readonly focusModeVisualId = signal<string | null>(null);
   readonly seeRecords = signal<SeeRecordsState | null>(null);
+  /** One data point context menu at a time, across all visuals. */
+  readonly dataPointMenu = signal<DataPointMenuState | null>(null);
 
   readonly dirty = computed(() => {
     const r = this.report();
     return !!r && JSON.stringify(toInput(r)) !== this.savedSnapshot();
+  });
+  readonly datasetFilters = computed<BiFilter[]>(() => this.model()?.datasetFilters ?? []);
+  readonly multiSelectWithoutCtrl = computed(() => this.report()?.definition.settings?.multiSelectWithoutCtrl === true);
+  /** True when "Reset to default" would change something: a selection, a slicer off its default, or a filter off its saved value. */
+  readonly canReset = computed(() => {
+    const r = this.report();
+    if (!r) return false;
+    if (this.selection()) return true;
+    if (activeSlicers(this.slicerFilters()) !== activeSlicers(slicerDefaults(r.definition))) return true;
+    const saved = (JSON.parse(this.savedSnapshot() || 'null') as ReportInput | null)?.definition;
+    return !!saved && JSON.stringify(restoreSavedFilters(r.definition, saved)) !== JSON.stringify(r.definition);
   });
   readonly page = computed<PageDefinition | null>(() => {
     const pages = this.report()?.definition.pages ?? [];
@@ -132,9 +156,10 @@ export class ReportStore {
     if (resetView) {
       this.pageId.set(report.definition.pages[0]?.id ?? null);
       this.selection.set(null);
-      this.slicerFilters.set({});
+      this.slicerFilters.set(slicerDefaults(report.definition));
       this.focusedVisualId.set(null);
       this.focusModeVisualId.set(null);
+      this.dataPointMenu.set(null);
     }
   }
 
@@ -162,10 +187,12 @@ export class ReportStore {
 
   // --- Interacting ----------------------------------------------------------------
 
+  /** Click selects one point; Ctrl/Cmd (or the report's multi-select setting) adds or removes it. */
   select(visual: VisualDefinition, keys: Scalar[], additive: boolean): void {
-    const field = categoryFields(visual)[0];
+    const field = selectionFields(visual)[0];
     if (!field) return;
-    this.selection.update((current) => toggleSelection(current, visual.id, field, keys[0] ?? null, additive));
+    const add = additive || this.multiSelectWithoutCtrl();
+    this.selection.update((current) => toggleSelection(current, visual.id, field, keys[0] ?? null, add));
   }
 
   clearSelection(): void {
@@ -176,8 +203,36 @@ export class ReportStore {
     this.slicerFilters.update((s) => ({ ...s, [visualId]: filter }));
   }
 
-  resetSlicers(): void {
-    this.slicerFilters.set({});
+  /**
+   * Power BI "Reset to default": every report, page and visual filter back to its
+   * saved value, every slicer back to its default selection, and no selection.
+   */
+  resetToDefault(): void {
+    const report = this.report();
+    if (!report) return;
+    const saved = JSON.parse(this.savedSnapshot()) as ReportInput;
+    this.updateDefinition((d) => restoreSavedFilters(d, saved.definition));
+    this.slicerFilters.set(slicerDefaults(report.definition));
+    this.selection.set(null);
+    this.dataPointMenu.set(null);
+  }
+
+  openDataPointMenu(visualId: string, keys: Scalar[], x: number, y: number): void {
+    this.dataPointMenu.set({ visualId, keys, x, y });
+  }
+
+  closeDataPointMenu(): void {
+    if (this.dataPointMenu()) this.dataPointMenu.set(null);
+  }
+
+  /** Include keeps only this data point in the visual; Exclude removes it. Both add visual-level filters. */
+  includeExclude(visual: VisualDefinition, keys: Scalar[], mode: 'include' | 'exclude'): void {
+    const fields = selectionFields(visual);
+    if (!fields.length) return;
+    const added = includeExcludeFilters(fields, keys, mode).map((f) => ({ ...f, scope: 'visual' as const }));
+    this.updateVisual(visual.id, (v) => ({ ...v, filters: [...(v.filters ?? []), ...added] }));
+    if (this.selection()?.visualId === visual.id) this.selection.set(null);
+    this.dataPointMenu.set(null);
   }
 
   goToPage(pageId: string): void {
@@ -289,6 +344,19 @@ export class ReportStore {
     if (this.focusedVisualId() === visualId) this.focusedVisualId.set(null);
     if (this.focusModeVisualId() === visualId) this.focusModeVisualId.set(null);
     this.slicerFilters.update(({ [visualId]: _removed, ...rest }) => rest);
+  }
+
+  /** Saves the slicer's current selection (or none) as the selection it opens with. */
+  setSlicerDefault(visualId: string): void {
+    const current = this.slicerFilters()[visualId] ?? null;
+    this.updateVisual(visualId, (v) => {
+      const { defaultFilter: _old, ...options } = v.options ?? {};
+      return { ...v, options: current ? { ...options, defaultFilter: current } : options };
+    });
+  }
+
+  setMultiSelectWithoutCtrl(on: boolean): void {
+    this.updateDefinition((d) => ({ ...d, settings: { ...(d.settings ?? {}), multiSelectWithoutCtrl: on } }));
   }
 
   setInteraction(sourceId: string, targetId: string, mode: VisualInteraction): void {

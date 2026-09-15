@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { BI_DATA_SOURCE, describeError } from '@tasnim/bi/core';
-import { BiNavComponent } from './bi-nav.component';
+import { BI_DATA_SOURCE, BiFilter, describeError, describeFilter } from '@tasnim/bi/core';
+import { BiNavComponent, FilterEditorComponent } from '@tasnim/bi/report';
 
 const PLANNED_CONNECTORS = [
   { name: 'SQL Server (TWise tenant API)', detail: 'Served by the .NET tenant API implementing the same /api/bi contract.' },
@@ -12,7 +12,7 @@ const PLANNED_CONNECTORS = [
 /** Feature 01: connected sources and the semantic model each one exposes — tables, types, relationships, measures. */
 @Component({
   selector: 'bi-data-sources',
-  imports: [BiNavComponent],
+  imports: [BiNavComponent, FilterEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './data-sources.component.html',
   styleUrls: ['../../styles/tokens.css', '../../styles/controls.css', '../../styles/page.css', './data-sources.component.css'],
@@ -37,6 +37,11 @@ export class DataSourcesComponent {
   protected readonly confirmRemoveId = signal<number | null>(null);
   protected readonly openTable = signal<string | null>(null);
 
+  /** Dataset filters (L1): saved on the model, applied by the server to every query on it. */
+  protected readonly datasetFilters = linkedSignal<BiFilter[]>(() => this.model.value()?.datasetFilters ?? []);
+  protected readonly addingFilter = signal(false);
+  protected readonly savingFilters = signal(false);
+
   protected readonly listError = computed(() => (this.models.error() ? describeError(this.models.error(), "Data sources couldn't be loaded.") : null));
   protected readonly modelError = computed(() => (this.model.error() ? describeError(this.model.error(), "This model couldn't be loaded.") : null));
 
@@ -60,6 +65,37 @@ export class DataSourcesComponent {
         this.models.reload();
       },
       error: (err: unknown) => this.message.set({ kind: 'error', text: describeError(err, "The connection couldn't be added.") }),
+    });
+  }
+
+  protected describe(filter: BiFilter): string {
+    return describeFilter(filter, this.model.value());
+  }
+
+  protected addDatasetFilter(filter: BiFilter): void {
+    const { scope: _scope, ...unscoped } = filter;
+    this.saveDatasetFilters([...this.datasetFilters(), unscoped]);
+  }
+
+  protected removeDatasetFilter(index: number): void {
+    this.saveDatasetFilters(this.datasetFilters().filter((_, i) => i !== index));
+  }
+
+  private saveDatasetFilters(filters: BiFilter[]): void {
+    const id = this.activeId();
+    if (id === null) return;
+    this.savingFilters.set(true);
+    this.ds.saveDatasetFilters(id, filters).subscribe({
+      next: (saved) => {
+        this.savingFilters.set(false);
+        this.addingFilter.set(false);
+        this.datasetFilters.set(saved);
+        this.message.set({ kind: 'success', text: saved.length ? 'Dataset filters saved. Every report on this source now uses them.' : 'Dataset filters removed.' });
+      },
+      error: (err: unknown) => {
+        this.savingFilters.set(false);
+        this.message.set({ kind: 'error', text: describeError(err, "The dataset filters couldn't be saved.") });
+      },
     });
   }
 

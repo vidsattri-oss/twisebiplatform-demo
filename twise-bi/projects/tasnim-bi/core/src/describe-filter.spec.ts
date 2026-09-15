@@ -36,4 +36,14 @@ describe('describeFilter', () => {
       .toBe('Planned Completion Date (Date) is in the last 3 months');
     expect(describeFilter({ kind: 'topN', target: target('Plant Description'), n: 5, by: 'Well Count', direction: 'top' }, model)).toBe('Top 5 Plant Description by Well Count');
   });
+
+  it('names relative date presets and relative time windows', () => {
+    const d = target('Planned Completion Date (Date)');
+    expect(describeFilter({ kind: 'relativeDate', target: d, period: 'this', count: 1, unit: 'day' }, model)).toBe('Planned Completion Date (Date) is today');
+    expect(describeFilter({ kind: 'relativeDate', target: d, period: 'last', count: 1, unit: 'day', includeToday: false }, model)).toBe('Planned Completion Date (Date) is yesterday');
+    expect(describeFilter({ kind: 'relativeDate', target: d, period: 'last', count: 30, unit: 'day' }, model)).toBe('Planned Completion Date (Date) is in the last 30 days');
+    expect(describeFilter({ kind: 'relativeDate', target: d, period: 'last', count: 2, unit: 'quarter', includeToday: false }, model))
+      .toBe('Planned Completion Date (Date) is in the last 2 quarters (not including today)');
+    expect(describeFilter({ kind: 'relativeTime', target: d, period: 'last', count: 24, unit: 'hour' }, model)).toBe('Planned Completion Date (Date) is in the last 24 hours');
+  });
 });

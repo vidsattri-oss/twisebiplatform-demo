@@ -21,3 +21,8 @@
 .table-toggle:focus-visible { outline: none; box-shadow: inset var(--bi-focus); }
 .rels li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .arrow { color: var(--bi-primary); font-weight: 600; }
+.dataset-filters { margin-bottom: 8px; }
+.dataset-filters .filter-text { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+.link.danger { color: var(--bi-danger); font-size: 12px; }
+.filter-card { padding: 12px; max-width: 420px; }
+.add-filter { align-self: flex-start; }
