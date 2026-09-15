@@ -191,6 +191,11 @@ router.post('/values', wrap((req) => {
 // --- Reports -------------------------------------------------------------------
 
 router.get('/reports', wrap(() => reports.listReports()));
+// R2: categories, and report metadata changes that don't resend the definition.
+router.get('/report-categories', wrap(() => reports.listCategories()));
+router.put('/report-categories', wrap((req) => reports.saveCategories(req.body?.categories)));
+router.patch('/reports/:reportId', wrap((req) => reports.patchReport(intParam(req.params.reportId, 'reportId'), req.body || {})));
+router.post('/reports/:reportId/duplicate', wrap((req) => reports.duplicateReport(intParam(req.params.reportId, 'reportId'))));
 router.post('/reports', wrap((req) => reports.createReport(req.body)));
 router.get('/reports/:reportId', wrap((req) => reports.getReport(intParam(req.params.reportId, 'reportId'))));
 router.put('/reports/:reportId', wrap((req) => reports.updateReport(intParam(req.params.reportId, 'reportId'), req.body)));
@@ -286,5 +291,6 @@ ensureMetaSchema();
 connectors.ensureConnectorSchema();
 plugins.ensurePluginSchema();
 reports.seedReports();
+reports.seedCategories();
 
 module.exports = router;

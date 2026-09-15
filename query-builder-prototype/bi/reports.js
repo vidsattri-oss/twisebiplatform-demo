@@ -6,6 +6,8 @@ const { badRequest, notFound } = require('./errors');
 
 const FILTER_KINDS = new Set(['basic', 'advanced', 'range', 'relativeDate', 'relativeTime', 'topN']);
 const MAX_DEFINITION_BYTES = 1024 * 1024;
+const STATUSES = new Set(['draft', 'published']);
+const COLOR = /^#[0-9A-Fa-f]{6}$/;
 
 function ensureSchema(meta = getMetaDb()) {
   meta.exec(`
@@ -17,7 +19,23 @@ function ensureSchema(meta = getMetaDb()) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS bi_report_categories (
+      name TEXT PRIMARY KEY,
+      description TEXT,
+      color TEXT NOT NULL,
+      sort_order INTEGER NOT NULL
+    );
   `);
+  // R2: category, description and status arrived after reports existed; add them in place.
+  const have = new Set(meta.prepare('PRAGMA table_info(bi_reports)').all().map((c) => c.name));
+  for (const [name, type] of [['category', 'TEXT'], ['description', 'TEXT'], ['status', "TEXT NOT NULL DEFAULT 'draft'"]]) {
+    if (have.has(name)) continue;
+    try {
+      meta.exec(`ALTER TABLE bi_reports ADD COLUMN ${name} ${type}`);
+    } catch (e) {
+      if (!/duplicate column/i.test(e.message)) throw e;
+    }
+  }
 }
 
 function validateFilters(model, filters, where) {
@@ -74,21 +92,77 @@ function validateDefinition(model, def) {
 }
 
 function toReport(row) {
-  return { id: row.id, name: row.name, modelId: row.model_id, definition: JSON.parse(row.definition_json), createdAt: row.created_at, updatedAt: row.updated_at };
+  return {
+    id: row.id,
+    name: row.name,
+    modelId: row.model_id,
+    definition: JSON.parse(row.definition_json),
+    category: row.category ?? null,
+    description: row.description ?? null,
+    status: row.status ?? 'draft',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function checkName(value) {
+  const name = typeof value === 'string' ? value.trim() : '';
+  if (!name || name.length > 120) throw badRequest('Give the report a name of 1 to 120 characters.');
+  return name;
 }
 
 function checkInput(body) {
-  const name = typeof body?.name === 'string' ? body.name.trim() : '';
-  if (!name || name.length > 120) throw badRequest('Give the report a name of 1 to 120 characters.');
+  const name = checkName(body?.name);
   if (!Number.isInteger(body.modelId)) throw badRequest('modelId must be a model id.');
   validateDefinition(loadModel(body.modelId), body.definition);
   return { name, modelId: body.modelId, json: JSON.stringify(body.definition) };
 }
 
+/** R2: category, description and status; fields left out keep their current values. */
+function checkMeta(body, current = { category: null, description: null, status: 'draft' }) {
+  const next = { ...current };
+  if (body?.category !== undefined) {
+    if (body.category === null || body.category === '') next.category = null;
+    else if (typeof body.category !== 'string' || !getMetaDb().prepare('SELECT 1 FROM bi_report_categories WHERE name = ?').get(body.category)) {
+      throw badRequest(`There is no category "${body.category}". Add it to the categories first.`);
+    } else next.category = body.category;
+  }
+  if (body?.description !== undefined) {
+    if (body.description !== null && (typeof body.description !== 'string' || body.description.length > 300)) throw badRequest('description must be text of at most 300 characters.');
+    next.description = body.description?.trim() || null;
+  }
+  if (body?.status !== undefined) {
+    if (!STATUSES.has(body.status)) throw badRequest('status must be "draft" or "published".');
+    next.status = body.status;
+  }
+  return next;
+}
+
+/** The visual types a report uses, in first-use order — the report card's preview glyph. */
+function visualTypesOf(json) {
+  try {
+    return [...new Set(JSON.parse(json).pages.flatMap((p) => p.visuals.map((v) => v.type)))].slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
 function listReports() {
   ensureSchema();
-  return getMetaDb().prepare('SELECT id, name, model_id, updated_at FROM bi_reports ORDER BY id').all()
-    .map((r) => ({ id: r.id, name: r.name, modelId: r.model_id, updatedAt: r.updated_at }));
+  return getMetaDb()
+    .prepare('SELECT id, name, model_id, definition_json, category, description, status, created_at, updated_at FROM bi_reports ORDER BY id')
+    .all()
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      modelId: r.model_id,
+      category: r.category ?? null,
+      description: r.description ?? null,
+      status: r.status ?? 'draft',
+      visualTypes: visualTypesOf(r.definition_json),
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
 }
 
 function getReport(id) {
@@ -101,18 +175,112 @@ function getReport(id) {
 function createReport(body) {
   ensureSchema();
   const { name, modelId, json } = checkInput(body);
+  const meta = checkMeta(body);
   const now = new Date().toISOString();
-  const info = getMetaDb().prepare('INSERT INTO bi_reports (name, model_id, definition_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-    .run(name, modelId, json, now, now);
+  const info = getMetaDb()
+    .prepare('INSERT INTO bi_reports (name, model_id, definition_json, category, description, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(name, modelId, json, meta.category, meta.description, meta.status, now, now);
   return getReport(Number(info.lastInsertRowid));
 }
 
 function updateReport(id, body) {
-  getReport(id);
+  const current = getReport(id);
   const { name, modelId, json } = checkInput(body);
-  getMetaDb().prepare('UPDATE bi_reports SET name = ?, model_id = ?, definition_json = ?, updated_at = ? WHERE id = ?')
-    .run(name, modelId, json, new Date().toISOString(), Number(id));
+  const meta = checkMeta(body, current);
+  getMetaDb()
+    .prepare('UPDATE bi_reports SET name = ?, model_id = ?, definition_json = ?, category = ?, description = ?, status = ?, updated_at = ? WHERE id = ?')
+    .run(name, modelId, json, meta.category, meta.description, meta.status, new Date().toISOString(), Number(id));
   return getReport(id);
+}
+
+/** Rename, move to a category, describe, publish or unpublish without resending the definition. */
+function patchReport(id, body) {
+  const current = getReport(id);
+  const name = body?.name === undefined ? current.name : checkName(body.name);
+  const meta = checkMeta(body, current);
+  getMetaDb()
+    .prepare('UPDATE bi_reports SET name = ?, category = ?, description = ?, status = ?, updated_at = ? WHERE id = ?')
+    .run(name, meta.category, meta.description, meta.status, new Date().toISOString(), Number(id));
+  return getReport(id);
+}
+
+/** A draft copy in the same category. */
+function duplicateReport(id) {
+  const source = getReport(id);
+  const name = `${source.name} (copy)`.slice(0, 120);
+  return createReport({ name, modelId: source.modelId, definition: source.definition, category: source.category, description: source.description, status: 'draft' });
+}
+
+// --- Categories (R2) ---------------------------------------------------------------
+
+function listCategories() {
+  ensureSchema();
+  const counts = new Map(getMetaDb().prepare('SELECT category, COUNT(*) AS c FROM bi_reports WHERE category IS NOT NULL GROUP BY category').all().map((r) => [r.category, r.c]));
+  return getMetaDb()
+    .prepare('SELECT name, description, color, sort_order FROM bi_report_categories ORDER BY sort_order, name')
+    .all()
+    .map((c) => ({ name: c.name, description: c.description ?? null, color: c.color, order: c.sort_order, reportCount: counts.get(c.name) ?? 0 }));
+}
+
+/** Replaces the category list. Reports in a removed category become uncategorised; a renamed one is a remove plus an add. */
+function saveCategories(list) {
+  ensureSchema();
+  if (!Array.isArray(list) || list.length > 30) throw badRequest('categories must be a list of at most 30 categories.');
+  const seen = new Set();
+  const clean = list.map((c, i) => {
+    const name = typeof c?.name === 'string' ? c.name.trim() : '';
+    if (!name || name.length > 60) throw badRequest('Each category needs a name of 1 to 60 characters.');
+    if (seen.has(name.toLowerCase())) throw badRequest(`The category "${name}" appears twice.`);
+    seen.add(name.toLowerCase());
+    if (c.description !== undefined && c.description !== null && (typeof c.description !== 'string' || c.description.length > 200)) {
+      throw badRequest(`The description of "${name}" must be text of at most 200 characters.`);
+    }
+    const color = c.color ?? '#59585D';
+    if (typeof color !== 'string' || !COLOR.test(color)) throw badRequest(`The colour of "${name}" must look like #2841A3.`);
+    return { name, description: c.description?.trim() || null, color: color.toUpperCase(), order: i };
+  });
+  const meta = getMetaDb();
+  meta.exec('BEGIN');
+  try {
+    meta.exec('DELETE FROM bi_report_categories');
+    const insert = meta.prepare('INSERT INTO bi_report_categories (name, description, color, sort_order) VALUES (?, ?, ?, ?)');
+    for (const c of clean) insert.run(c.name, c.description, c.color, c.order);
+    const keep = clean.map((c) => c.name);
+    const reports = meta.prepare('SELECT id, category FROM bi_reports WHERE category IS NOT NULL').all();
+    const clear = meta.prepare('UPDATE bi_reports SET category = NULL WHERE id = ?');
+    for (const r of reports) if (!keep.includes(r.category)) clear.run(r.id);
+    meta.exec('COMMIT');
+  } catch (e) {
+    meta.exec('ROLLBACK');
+    throw e;
+  }
+  return listCategories();
+}
+
+const DEFAULT_CATEGORIES = [
+  { name: 'Operational Dashboard', description: 'Plan vs actual readiness, delivery and status across wells and clusters.', color: '#2841A3' },
+  { name: 'Productivity', description: 'Crew and equipment productivity against plan.', color: '#E38200' },
+  { name: 'Operational', description: 'Daily logs, work orders and field activity.', color: '#0E8A7E' },
+  { name: 'Commercial', description: 'Pipeline, customers and deals.', color: '#6A4BC4' },
+];
+
+/** Where the demo reports belong. Applied once, only to reports that have no category yet. */
+const DEMO_REPORT_META = {
+  'Wells Readiness - Plan vs Actual': { category: 'Operational Dashboard', description: 'Plan v/s actual readiness funnel: drilled, excluded, due and completed wells.' },
+  'Operations Overview': { category: 'Productivity', description: 'Productivity %, hours and task status by crew and region.' },
+  'Plug-in visuals demo': { category: 'Productivity', description: 'Bullet chart and heat map plug-ins with a KPI status card.' },
+  'AppMasterDB daily logs': { category: 'Operational', description: 'Daily logs with relative date, relative time and completion slicers.' },
+  'Sales Pipeline': { category: 'Commercial', description: 'Deal amount by stage, region and product category.' },
+};
+
+function seedCategories() {
+  ensureSchema();
+  const meta = getMetaDb();
+  if (meta.prepare('SELECT COUNT(*) AS c FROM bi_report_categories').get().c > 0) return;
+  const insert = meta.prepare('INSERT OR IGNORE INTO bi_report_categories (name, description, color, sort_order) VALUES (?, ?, ?, ?)');
+  DEFAULT_CATEGORIES.forEach((c, i) => insert.run(c.name, c.description, c.color, i));
+  const update = meta.prepare("UPDATE bi_reports SET category = ?, description = COALESCE(description, ?), status = 'published' WHERE name = ? AND category IS NULL");
+  for (const [name, m] of Object.entries(DEMO_REPORT_META)) update.run(m.category, m.description, name);
 }
 
 function deleteReport(id) {
@@ -220,4 +388,18 @@ function seedReports() {
   }
 }
 
-module.exports = { listReports, getReport, createReport, updateReport, deleteReport, validateDefinition, validateFilters, seedReports };
+module.exports = {
+  listReports,
+  getReport,
+  createReport,
+  updateReport,
+  patchReport,
+  duplicateReport,
+  deleteReport,
+  listCategories,
+  saveCategories,
+  seedCategories,
+  validateDefinition,
+  validateFilters,
+  seedReports,
+};

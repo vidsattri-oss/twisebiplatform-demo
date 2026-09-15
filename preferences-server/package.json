@@ -1,0 +1,11 @@
+{
+  "name": "preferences-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local stand-in for TWise's user service: per-user favorite and recently opened reports (spec R3).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-reporter=spec \"test/*.test.js\""
+  }
+}

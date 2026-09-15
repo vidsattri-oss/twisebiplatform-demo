@@ -8,6 +8,12 @@
       "port": 4173
     },
     {
+      "name": "preferences-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "preferences-server", "start"],
+      "port": 4175
+    },
+    {
       "name": "twise-bi-harness",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "twise-bi", "start"],

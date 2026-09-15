@@ -6,5 +6,7 @@ dist/
 # Real well data (Wells Readiness CSV) must never be committed — seed from WELLS_CSV.
 *.csv
 .env
+# Per-user favorites and recent reports stored by the local preferences server.
+preferences-server/data/
 .DS_Store
 *.log
