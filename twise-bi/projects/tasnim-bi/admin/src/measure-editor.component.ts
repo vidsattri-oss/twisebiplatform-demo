@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { debounceTime, of, switchMap } from 'rxjs';
+import { catchError, debounceTime, of, switchMap } from 'rxjs';
 import { MeasureValidateResult } from '@tasnim/bi/core';
 import { BI_DATA_SOURCE, describeError, errorPosition } from '@tasnim/bi/core';
 import { BiNavComponent } from './bi-nav.component';
@@ -62,7 +62,12 @@ export class MeasureEditorComponent {
     toObservable(this.validationInput).pipe(
       debounceTime(400),
       switchMap(({ modelId, table, expression }) =>
-        modelId !== null && table && expression.trim() ? this.ds.validateMeasure(modelId, table, expression) : of<MeasureValidateResult | null>(null),
+        modelId !== null && table && expression.trim()
+          ? this.ds.validateMeasure(modelId, table, expression).pipe(
+              // A failed request must not end the stream: toSignal would rethrow on every read and freeze the editor.
+              catchError((err: unknown) => of<MeasureValidateResult>({ ok: false, error: { error: describeError(err, "The expression couldn't be checked right now. Keep typing to try again.") } })),
+            )
+          : of<MeasureValidateResult | null>(null),
       ),
     ),
     { initialValue: null },

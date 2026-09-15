@@ -4,14 +4,17 @@
  * host without any configuration. The library itself adds no global styles.
  */
 :root {
-  --color-bg-app: #f8fafc;
+  /* Al Tasnim logo: blue #2841A3, orange #E38200, grey #59585D. */
+  --color-bg-app: #f7f7f9;
   --color-bg-card: #ffffff;
-  --color-border: #dce3ed;
-  --color-primary: #21409a;
-  --color-primary-50: #f5f8ff;
-  --color-text-primary: #101828;
+  --color-border: #dddce2;
+  --color-primary: #2841a3;
+  --color-primary-50: #eef1fa;
+  --color-accent: #e38200;
+  --color-neutral: #59585d;
+  --color-text-primary: #1d1c21;
   --font-family-base: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --gradient-primary: linear-gradient(180deg, #163a8a 0%, #21409a 100%);
+  --gradient-primary: linear-gradient(180deg, #1e3180 0%, #2841a3 100%);
   --navbar-height: 64px;
   --radius-sm: 4px;
   --radius-md: 10px;

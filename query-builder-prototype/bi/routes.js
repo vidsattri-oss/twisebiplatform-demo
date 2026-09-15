@@ -75,6 +75,24 @@ router.delete('/models/:modelId/measures/:measureId', wrap((req) => {
   return { ok: true };
 }));
 
+// --- Dataset (data-source level) filters ----------------------------------------
+
+router.get('/models/:modelId/dataset-filters', wrap((req) => loadModel(intParam(req.params.modelId, 'modelId'), { counts: false }).datasetFilters));
+
+router.put('/models/:modelId/dataset-filters', wrap((req) => {
+  const modelId = intParam(req.params.modelId, 'modelId');
+  const filters = req.body?.filters;
+  if (!Array.isArray(filters) || filters.length > 50) throw badRequest('filters must be an array of at most 50 filters.');
+  const { model, db } = openModel(modelId);
+  reports.validateFilters(model, filters, 'Dataset');
+  // Compile each filter against its own table so a bad value is rejected here, not in every report later.
+  for (const f of filters) runRows({ ...model, datasetFilters: [] }, db, { table: f.target.table, filters: [f], limit: 1 });
+  getMetaDb()
+    .prepare('INSERT INTO bi_dataset_filters (model_id, filters_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(model_id) DO UPDATE SET filters_json = excluded.filters_json, updated_at = excluded.updated_at')
+    .run(modelId, JSON.stringify(filters), new Date().toISOString());
+  return filters;
+}));
+
 router.post('/measures/validate', wrap((req) => {
   const model = loadModel(modelIdOf(req.body));
   findTable(model, req.body.table);

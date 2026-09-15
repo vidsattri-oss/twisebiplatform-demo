@@ -9,9 +9,10 @@
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
 .logo {
-  display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px;
-  background: #fff; color: var(--color-primary); font-weight: 800; font-size: 18px;
+  display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 9px;
+  background: #fff; padding: 5px; box-sizing: border-box;
 }
+.logo svg { width: 100%; height: 100%; display: block; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand-text strong { font-size: 14px; letter-spacing: 0.04em; }
 .brand-text small { font-size: 12px; opacity: 0.75; }
@@ -22,7 +23,7 @@
 }
 .menu-link svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .menu-link:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-.menu-link.active { background: #fff; color: var(--color-primary); }
+.menu-link.active { background: #fff; color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-accent); }
 .menu-link:focus-visible, .toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5); }
 
 .main { display: flex; flex-direction: column; min-width: 0; }

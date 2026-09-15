@@ -5,19 +5,22 @@
  * styles elements outside its own components.
  */
 :host {
+  /* Al Tasnim logo: blue #2841A3, orange #E38200, grey #59585D. */
   --bi-font: var(--font-family-base, Inter, system-ui, -apple-system, 'Segoe UI', sans-serif);
-  --bi-text: var(--color-text-primary, #101828);
-  --bi-muted: #475467;
-  --bi-soft: #98a2b3;
-  --bi-primary: var(--color-primary, #21409a);
-  --bi-primary-strong: #163a8a;
-  --bi-primary-tint: var(--color-primary-50, #f5f8ff);
-  --bi-accent: #e8822a;
-  --bi-border: var(--color-border, #dce3ed);
-  --bi-border-strong: #c5cfdc;
+  --bi-text: var(--color-text-primary, #1d1c21);
+  --bi-muted: var(--color-neutral, #59585d);
+  --bi-soft: #8e8d93;
+  --bi-primary: var(--color-primary, #2841a3);
+  --bi-primary-strong: #1e3180;
+  --bi-primary-tint: var(--color-primary-50, #eef1fa);
+  --bi-accent: var(--color-accent, #e38200);
+  --bi-accent-strong: #a35e00;
+  --bi-accent-tint: #fdf3e6;
+  --bi-border: var(--color-border, #dddce2);
+  --bi-border-strong: #c6c5cc;
   --bi-surface: var(--color-bg-card, #ffffff);
-  --bi-ground: var(--color-bg-app, #f8fafc);
-  --bi-sunk: #f2f5f9;
+  --bi-ground: var(--color-bg-app, #f7f7f9);
+  --bi-sunk: #f1f1f4;
   --bi-danger: #b42318;
   --bi-danger-tint: #fef3f2;
   --bi-success: #067647;
@@ -29,7 +32,7 @@
   --bi-radius-lg: var(--radius-lg, 12px);
   --bi-shadow: var(--shadow-sm, 0 1px 3px rgba(16, 24, 40, 0.08));
   --bi-shadow-lg: var(--shadow-lg, 0 8px 24px rgba(16, 24, 40, 0.12));
-  --bi-focus: 0 0 0 3px rgba(33, 64, 154, 0.25);
+  --bi-focus: 0 0 0 3px rgba(40, 65, 163, 0.28);
 
   font-family: var(--bi-font);
   color: var(--bi-text);

@@ -19,10 +19,10 @@ import { BI_VISUAL_CONTEXT, BiVisualType, measureNames } from '@tasnim/bi';
   styles: `
     :host { display: flex; flex-direction: column; justify-content: center; gap: 6px; height: 100%; }
     .value { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .track { height: 8px; border-radius: 999px; background: #eaecf0; overflow: hidden; }
-    .fill { height: 100%; border-radius: 999px; background: var(--bi-accent, #e8822a); transition: width 0.2s ease; }
-    .fill.met { background: #17b26a; }
-    .meta { font-size: 12px; color: var(--bi-muted, #475467); }
+    .track { height: 8px; border-radius: 999px; background: var(--bi-sunk, #f1f1f4); overflow: hidden; }
+    .fill { height: 100%; border-radius: 999px; background: var(--bi-accent, #e38200); transition: width 0.2s ease; }
+    .fill.met { background: var(--bi-primary, #2841a3); }
+    .meta { font-size: 12px; color: var(--bi-muted, #59585d); }
     @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
   `,
 })

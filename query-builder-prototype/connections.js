@@ -35,6 +35,8 @@ function getDb(connectionId, fileName) {
   if (dbHandles.has(connectionId)) return dbHandles.get(connectionId);
   const filePath = resolveFilePath(fileName);
   const db = new DatabaseSync(filePath);
+  // Wait for concurrent writers (ingest, parallel test processes) instead of failing with SQLITE_BUSY.
+  db.exec('PRAGMA busy_timeout = 5000');
   dbHandles.set(connectionId, db);
   return db;
 }

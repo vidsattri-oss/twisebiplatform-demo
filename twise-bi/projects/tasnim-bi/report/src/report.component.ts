@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of } from 'rxjs';
-import { VisualDefinition } from '@tasnim/bi/core';
+import { VisualDefinition, clampLayout } from '@tasnim/bi/core';
 import { FilterPaneComponent } from './filter-pane.component';
 import { ReportStore } from '@tasnim/bi/core';
 import { SeeRecordsSheetComponent } from './see-records-sheet.component';
@@ -67,7 +67,8 @@ export class ReportComponent {
 
   protected layout(v: VisualDefinition) {
     const l = v.layout ?? { x: 0, y: 0, w: 6, h: 6 };
-    return { col: Math.min(Math.max(l.x, 0), 11) + 1, row: Math.max(l.y, 0) + 1, w: Math.min(Math.max(l.w, 1), 12), h: Math.max(l.h, 1) };
+    const c = clampLayout(l);
+    return { col: c.x + 1, row: c.y + 1, w: c.w, h: c.h };
   }
 
   protected retry(): void {

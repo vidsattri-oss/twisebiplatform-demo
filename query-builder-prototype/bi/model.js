@@ -26,6 +26,7 @@ function quoteIdent(name) {
 function dataTypeOf(declared) {
   const t = String(declared || '').toUpperCase();
   if (t.includes('BOOL')) return 'boolean';
+  if (t.includes('DATETIME') || t.includes('TIMESTAMP')) return 'datetime';
   if (t.includes('INT')) return 'integer';
   if (t.includes('DATE') || t.includes('TIME')) return 'date';
   if (/REAL|FLOA|DOUB|NUM|DEC/.test(t)) return 'number';
@@ -44,6 +45,11 @@ function ensureMetaSchema(meta = getMetaDb()) {
       created_at TEXT NOT NULL,
       UNIQUE (model_id, name)
     );
+    CREATE TABLE IF NOT EXISTS bi_dataset_filters (
+      model_id INTEGER PRIMARY KEY,
+      filters_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 }
 
@@ -58,16 +64,18 @@ function readOverlay(fileName) {
  * (sort-by, hidden, type overrides, extra relationships, measures) and user
  * measures. Pure over its inputs so tests can pass an in-memory database.
  */
-function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasures = [] }) {
-  const tableNames = db
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasures = [], counts = true }) {
+  const tableRows = db
+    .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
     .all()
-    .map((r) => r.name)
-    .filter((n) => !exclude.has(n));
+    .filter((r) => !exclude.has(r.name));
+  const tableNames = tableRows.map((r) => r.name);
 
-  const tables = tableNames.map((tableName) => ({
+  // Row counts scan every table; only the model browser needs them, never the query path.
+  const tables = tableRows.map(({ name: tableName, sql }) => ({
     name: tableName,
-    rowCount: db.prepare(`SELECT COUNT(*) AS c FROM ${quoteIdent(tableName)}`).get().c,
+    rowCount: counts ? db.prepare(`SELECT COUNT(*) AS c FROM ${quoteIdent(tableName)}`).get().c : null,
+    ...(/WITHOUT\s+ROWID/i.test(sql || '') && { withoutRowid: true }),
     hidden: false,
     columns: db.prepare(`PRAGMA table_info(${quoteIdent(tableName)})`).all().map((c) => ({
       name: c.name,
@@ -133,24 +141,29 @@ function connectionRow(modelId) {
 }
 
 /** Loads the live model for a registered connection (model id = connection id). */
-function loadModel(modelId) {
+function loadModel(modelId, { counts = true } = {}) {
   const row = connectionRow(modelId);
   ensureMetaSchema();
   const db = connections.getDb(row.id, row.file_name);
-  return buildModel({
+  const model = buildModel({
     id: row.id,
     name: row.name,
     db,
+    counts,
     exclude: row.file_name === connections.ROOT_DB_FILE ? INTERNAL_TABLES : new Set(),
     overlay: readOverlay(row.file_name),
     userMeasures: getMetaDb().prepare('SELECT * FROM bi_measures WHERE model_id = ? ORDER BY name').all(row.id),
   });
+  // Dataset (data-source level) filters: applied by the query compiler to every request on this model.
+  const stored = getMetaDb().prepare('SELECT filters_json FROM bi_dataset_filters WHERE model_id = ?').get(row.id);
+  model.datasetFilters = stored ? JSON.parse(stored.filters_json) : [];
+  return model;
 }
 
 /** Model plus the database handle its queries run on. */
 function openModel(modelId) {
   const row = connectionRow(modelId);
-  return { model: loadModel(modelId), db: connections.getDb(row.id, row.file_name) };
+  return { model: loadModel(modelId, { counts: false }), db: connections.getDb(row.id, row.file_name) };
 }
 
 function listModels() {
@@ -159,7 +172,7 @@ function listModels() {
     .all()
     .map((row) => {
       try {
-        const model = loadModel(row.id);
+        const model = loadModel(row.id, { counts: false });
         return { id: row.id, name: model.name, fileName: row.file_name, driver: 'node:sqlite', status: 'connected', tableCount: model.tables.length, error: null };
       } catch (e) {
         return { id: row.id, name: row.name, fileName: row.file_name, driver: 'node:sqlite', status: 'error', tableCount: 0, error: e.message };

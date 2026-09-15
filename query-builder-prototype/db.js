@@ -203,6 +203,8 @@ function seedConnectionsAndDashboards(db) {
 function getDb() {
   if (dbInstance) return dbInstance;
   const db = new DatabaseSync(DB_PATH);
+  // Wait for a concurrent writer (another server process, a parallel test file) instead of failing with SQLITE_BUSY.
+  db.exec('PRAGMA busy_timeout = 5000');
   db.exec(SCHEMA_SQL);
   const crewCount = db.prepare('SELECT COUNT(*) AS c FROM crews').get().c;
   if (crewCount === 0) seed(db);

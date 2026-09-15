@@ -18,7 +18,8 @@ const RESERVED = new Set(['_id', '_parent_id']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function sanitizeName(name) {
-  const cleaned = String(name ?? '').replace(/[^A-Za-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+  // Runs of underscores collapse to one, so "__" only ever means parent__child and names can't collide.
+  const cleaned = String(name ?? '').replace(/[^A-Za-z0-9_]+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
   if (!cleaned) throw badRequest('Give the table a name made of letters, digits or underscores.');
   return cleaned;
 }

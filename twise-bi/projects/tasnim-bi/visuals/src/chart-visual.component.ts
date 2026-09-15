@@ -4,7 +4,7 @@ import type Highcharts from 'highcharts/esm/highcharts';
 import { Scalar } from '@tasnim/bi/core';
 import { columnOf } from '@tasnim/bi/core';
 import { categoryFields, measureNames } from '@tasnim/bi/core';
-import { BI_VISUAL_CONTEXT } from '@tasnim/bi/core';
+import { BI_CHART_PALETTE, BI_VISUAL_CONTEXT } from '@tasnim/bi/core';
 import { ChartKind, buildChartOptions } from './chart-options';
 
 const KINDS = new Set<ChartKind>(['column', 'bar', 'line', 'pie', 'donut']);
@@ -27,6 +27,7 @@ const KINDS = new Set<ChartKind>(['column', 'bar', 'line', 'pie', 'donut']);
 export class ChartVisualComponent {
   private readonly ctx = inject(BI_VISUAL_CONTEXT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly palette = inject(BI_CHART_PALETTE);
   private chart: Highcharts.Chart | null = null;
 
   readonly options = computed(() => {
@@ -46,6 +47,7 @@ export class ChartVisualComponent {
       categoryType: category?.dateLevel ? 'text' : categoryColumn?.dataType,
       categoryFormat: categoryColumn?.format,
       options: visual.options ?? {},
+      palette: this.palette,
       onSelect: (keys, additive) => this.ctx.select(keys, additive),
     });
   });

@@ -1,11 +1,11 @@
 import type Highcharts from 'highcharts/esm/highcharts';
-import { DataType, QueryResult, Scalar } from '@tasnim/bi/core';
+import { BI_LOGO_PALETTE, DataType, QueryResult, Scalar } from '@tasnim/bi/core';
 import { formatKey, formatValue } from '@tasnim/bi/core';
 
 export type ChartKind = 'column' | 'bar' | 'line' | 'pie' | 'donut';
 
-/** Matches the Wells Readiness Power BI report's category colours first, then extends. */
-export const DEFAULT_PALETTE = ['#21409A', '#6CCB7A', '#E6A12E', '#C9302C', '#5DB5EE', '#7A5AF8', '#0E9384', '#DD2590'];
+/** The Al Tasnim logo palette (blue, orange, grey, then their lighter and deeper steps). */
+export const DEFAULT_PALETTE: readonly string[] = BI_LOGO_PALETTE;
 
 export interface ChartBuildInput {
   kind: ChartKind;
@@ -15,7 +15,7 @@ export interface ChartBuildInput {
   categoryType?: DataType;
   categoryFormat?: string;
   options: Record<string, unknown>;
-  palette?: string[];
+  palette?: readonly string[];
   onSelect: (keys: Scalar[], additive: boolean) => void;
 }
 
@@ -68,7 +68,7 @@ export function buildChartOptions(input: ChartBuildInput): Highcharts.Options {
     },
     title: { text: undefined },
     credits: { enabled: false },
-    colors: palette,
+    colors: [...palette],
     accessibility: { enabled: true },
     tooltip: {
       outside: true,
@@ -165,7 +165,8 @@ export function buildChartOptions(input: ChartBuildInput): Highcharts.Options {
     } as Highcharts.SeriesOptionsType);
   });
 
-  const first = formatter(0);
+  // One value axis serves every measure: use their format only when they all share it.
+  const first = input.measureFormats.every((f) => f === input.measureFormats[0]) ? formatter(0) : (v: number | null | undefined) => formatValue(v ?? null);
   return {
     ...common,
     legend: { enabled: input.measureNames.length > 1, itemStyle: { color: AXIS_TEXT, fontWeight: '500' } },
@@ -189,7 +190,9 @@ export function buildChartOptions(input: ChartBuildInput): Highcharts.Options {
         enabled: showLabels && stacked,
         style: { color: AXIS_TEXT, fontWeight: '500', textOutline: 'none' },
         formatter: function () {
-          return first(this.total);
+          // Each stack is one measure ("m0", "m1"…): label its total in that measure's own format.
+          const stackKey = (this as unknown as { stack?: string }).stack ?? 'm0';
+          return formatter(Number(stackKey.slice(1)) || 0)(this.total);
         },
       },
     },

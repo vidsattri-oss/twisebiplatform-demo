@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { DateLevel, GroupField, RoleItem, VisualDefinition, VisualInteraction, VisualLayout, isMeasureItem } from '@tasnim/bi/core';
+import { DateLevel, GroupField, RoleItem, VisualDefinition, VisualInteraction, VisualLayout, clampLayout, isMeasureItem } from '@tasnim/bi/core';
 import { columnOf } from '@tasnim/bi/core';
 import { DataRole, VisualRegistry } from '@tasnim/bi/core';
 import { ReportStore } from '@tasnim/bi/core';
@@ -118,11 +118,9 @@ export class VisualizationsPaneComponent {
   protected setLayout(key: keyof VisualLayout, event: Event): void {
     const v = this.visual();
     if (!v) return;
-    const raw = Math.round(Number((event.target as HTMLInputElement).value));
-    const limits: Record<keyof VisualLayout, [number, number]> = { x: [0, 11], y: [0, 200], w: [1, 12], h: [1, 30] };
-    const [min, max] = limits[key];
-    const value = Math.min(max, Math.max(min, Number.isFinite(raw) ? raw : min));
-    this.store.updateVisual(v.id, (current) => ({ ...current, layout: { ...(current.layout ?? { x: 0, y: 0, w: 6, h: 6 }), [key]: value } }));
+    const raw = Number((event.target as HTMLInputElement).value);
+    // clampLayout keeps column + width inside the 12-column grid whichever field changed.
+    this.store.updateVisual(v.id, (current) => ({ ...current, layout: clampLayout({ ...(current.layout ?? { x: 0, y: 0, w: 6, h: 6 }), [key]: raw }) }));
   }
 
   protected interaction(target: VisualDefinition): VisualInteraction {

@@ -1,7 +1,7 @@
 import { EnvironmentProviders, Provider, Type, makeEnvironmentProviders } from '@angular/core';
 import { provideHighcharts } from 'highcharts-angular';
 import { BI_API_BASE_URL, BI_DATA_SOURCE, BiDataSource, HttpBiDataSource } from '@tasnim/bi/core';
-import { BI_FILTER_BRIDGE, BiFilterBridge } from '@tasnim/bi/core';
+import { BI_CHART_PALETTE, BI_FILTER_BRIDGE, BiFilterBridge } from '@tasnim/bi/core';
 import { provideBiVisual } from '@tasnim/bi/core';
 import { BUILT_IN_VISUALS } from './built-in-visuals';
 
@@ -14,6 +14,8 @@ export interface BiConfig {
   filterBridge?: Type<BiFilterBridge>;
   /** Set to false when the host already calls provideHighcharts(). */
   provideHighcharts?: boolean;
+  /** Chart colours; defaults to the Al Tasnim logo palette (blue, orange, grey). */
+  palette?: readonly string[];
 }
 
 /**
@@ -28,6 +30,7 @@ export function provideBi(config: BiConfig = {}): EnvironmentProviders {
     ...BUILT_IN_VISUALS.map(provideBiVisual),
   ];
   if (config.filterBridge) providers.push({ provide: BI_FILTER_BRIDGE, useClass: config.filterBridge });
+  if (config.palette?.length) providers.push({ provide: BI_CHART_PALETTE, useValue: config.palette });
   if (config.provideHighcharts !== false) {
     providers.push(
       provideHighcharts({

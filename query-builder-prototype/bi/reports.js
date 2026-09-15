@@ -4,7 +4,7 @@ const { getDb: getMetaDb } = require('../db');
 const { loadModel, findColumn, findMeasure } = require('./model');
 const { badRequest, notFound } = require('./errors');
 
-const FILTER_KINDS = new Set(['basic', 'advanced', 'range', 'relativeDate', 'topN']);
+const FILTER_KINDS = new Set(['basic', 'advanced', 'range', 'relativeDate', 'relativeTime', 'topN']);
 const MAX_DEFINITION_BYTES = 1024 * 1024;
 
 function ensureSchema(meta = getMetaDb()) {
@@ -34,6 +34,11 @@ function validateDefinition(model, def) {
   if (!def || typeof def !== 'object') throw badRequest('definition must be an object with filters and pages.');
   if (Buffer.byteLength(JSON.stringify(def)) > MAX_DEFINITION_BYTES) throw badRequest('The report definition is larger than 1 MB.');
   validateFilters(model, def.filters, 'Report');
+  if (def.settings !== undefined) {
+    if (!def.settings || typeof def.settings !== 'object' || Array.isArray(def.settings)) throw badRequest('Report settings must be an object.');
+    const { multiSelectWithoutCtrl } = def.settings;
+    if (multiSelectWithoutCtrl !== undefined && typeof multiSelectWithoutCtrl !== 'boolean') throw badRequest('settings.multiSelectWithoutCtrl must be true or false.');
+  }
   if (!Array.isArray(def.pages) || !def.pages.length) throw badRequest('A report needs at least one page.');
 
   const visualIds = new Set();
@@ -62,6 +67,8 @@ function validateDefinition(model, def) {
         }
       }
       validateFilters(model, v.filters ?? [], where);
+      const defaultFilter = v.options?.defaultFilter;
+      if (defaultFilter !== undefined && defaultFilter !== null) validateFilters(model, [defaultFilter], `${where} default selection`);
     }
   }
 }
@@ -213,4 +220,4 @@ function seedReports() {
   }
 }
 
-module.exports = { listReports, getReport, createReport, updateReport, deleteReport, validateDefinition, seedReports };
+module.exports = { listReports, getReport, createReport, updateReport, deleteReport, validateDefinition, validateFilters, seedReports };

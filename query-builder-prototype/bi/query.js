@@ -86,6 +86,12 @@ function coerce(col, value, where) {
     case 'date':
       if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value))) return value;
       break;
+    case 'datetime': {
+      // Stored and compared as "YYYY-MM-DD HH:MM:SS" (UTC); accepts the ISO "T" form and a bare date.
+      const m = typeof value === 'string' && /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2})(?::(\d{2}))?(?:\.\d+)?Z?)?$/.exec(value);
+      if (m && !Number.isNaN(Date.parse(m[1]))) return `${m[1]} ${m[2] ?? '00:00'}:${m[3] ?? '00'}`;
+      break;
+    }
     case 'boolean':
       if (typeof value === 'boolean') return value ? 1 : 0;
       if (value === 0 || value === 1) return value;
@@ -93,28 +99,42 @@ function coerce(col, value, where) {
     default:
       if (['string', 'number', 'boolean'].includes(typeof value)) return String(value);
   }
-  const hint = col.dataType === 'date' ? ' (use YYYY-MM-DD)' : '';
+  const hint = col.dataType === 'date' ? ' (use YYYY-MM-DD)' : col.dataType === 'datetime' ? ' (use YYYY-MM-DD HH:MM:SS)' : '';
   throw badRequest(`${where}: ${JSON.stringify(value)} isn't a valid ${col.dataType}${hint}.`);
 }
 
 const likeEscape = (s) => s.replace(/[\\%_]/g, '\\$&');
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+const isoDateTime = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+const DAY_MS = 86400000;
 
-function resolveAsOf(asOf) {
+/**
+ * "Now" for relative date and time filters. asOf may be a date ("2026-09-14",
+ * today at the current UTC time of day) or a UTC date-time ("2026-09-14T12:00:00"),
+ * so tests and saved "as of" views are deterministic.
+ */
+function resolveClock(asOf) {
   if (asOf === undefined || asOf === null) {
-    const d = new Date();
-    return isoDay(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const now = Date.now();
+    return { asOf: isoDay(now), now };
   }
-  if (typeof asOf !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(asOf) || Number.isNaN(Date.parse(asOf))) {
-    throw badRequest('asOf must be a date like 2026-09-14.');
-  }
-  return asOf;
+  const m = typeof asOf === 'string' && /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}(?::\d{2})?))?$/.exec(asOf);
+  if (!m || Number.isNaN(Date.parse(m[1]))) throw badRequest('asOf must be a date like 2026-09-14 or a UTC date-time like 2026-09-14T12:00:00.');
+  const now = m[2] ? Date.parse(`${m[1]}T${m[2].length === 5 ? `${m[2]}:00` : m[2]}Z`) : Date.parse(`${m[1]}T00:00:00Z`) + (Date.now() % DAY_MS);
+  return { asOf: m[1], now };
 }
 
-/** Power BI relative dates: "last N units" and "next N units" include today; "this unit" is the calendar unit. */
+/**
+ * Power BI relative dates. "last N units" ends today, or yesterday when
+ * includeToday is false (so "last 1 day" without today = Yesterday); "next N
+ * units" starts today or tomorrow; "this unit" is the calendar day, ISO week
+ * (Monday–Sunday), month, quarter or year.
+ */
 function relativeRange(f, asOf) {
   if (!['last', 'this', 'next'].includes(f.period)) throw badRequest('Relative date period must be last, this or next.');
-  if (!['day', 'month', 'year'].includes(f.unit)) throw badRequest('Relative date unit must be day, month or year.');
+  if (!['day', 'week', 'month', 'quarter', 'year'].includes(f.unit)) throw badRequest('Relative date unit must be day, week, month, quarter or year.');
+  if (f.includeToday !== undefined && typeof f.includeToday !== 'boolean') throw badRequest('includeToday must be true or false.');
+  const includeToday = f.includeToday !== false;
   const count = f.period === 'this' ? 1 : f.count;
   if (!Number.isInteger(count) || count < 1 || count > 1000) throw badRequest('Relative date count must be a whole number from 1 to 1000.');
 
@@ -123,17 +143,32 @@ function relativeRange(f, asOf) {
   const DAY = 86400000;
   const add = (ms, unit, k) => {
     if (unit === 'day') return ms + k * DAY;
+    if (unit === 'week') return ms + 7 * k * DAY;
     const dt = new Date(ms);
-    const months = unit === 'year' ? 12 * k : k;
+    const months = unit === 'year' ? 12 * k : unit === 'quarter' ? 3 * k : k;
     const first = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + months, 1));
     const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
     return Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(dt.getUTCDate(), lastDay));
   };
 
-  if (f.period === 'last') return [isoDay(add(today, f.unit, -count) + DAY), isoDay(today)];
-  if (f.period === 'next') return [isoDay(today), isoDay(add(today, f.unit, count) - DAY)];
+  if (f.period === 'last') {
+    const end = includeToday ? today : today - DAY;
+    return [isoDay(add(end, f.unit, -count) + DAY), isoDay(end)];
+  }
+  if (f.period === 'next') {
+    const start = includeToday ? today : today + DAY;
+    return [isoDay(start), isoDay(add(start, f.unit, count) - DAY)];
+  }
   if (f.unit === 'day') return [isoDay(today), isoDay(today)];
+  if (f.unit === 'week') {
+    const monday = today - ((new Date(today).getUTCDay() + 6) % 7) * DAY;
+    return [isoDay(monday), isoDay(monday + 6 * DAY)];
+  }
   if (f.unit === 'month') return [isoDay(Date.UTC(y, m - 1, 1)), isoDay(Date.UTC(y, m, 0))];
+  if (f.unit === 'quarter') {
+    const q0 = Math.floor((m - 1) / 3) * 3;
+    return [isoDay(Date.UTC(y, q0, 1)), isoDay(Date.UTC(y, q0 + 3, 0))];
+  }
   return [isoDay(Date.UTC(y, 0, 1)), isoDay(Date.UTC(y, 11, 31))];
 }
 
@@ -199,7 +234,7 @@ function compileFilter(ctx, f) {
     }
 
     case 'range': {
-      if (!['integer', 'number', 'date'].includes(col.dataType)) throw badRequest(`${where}: range filters need a number or date column.`);
+      if (!['integer', 'number', 'date', 'datetime'].includes(col.dataType)) throw badRequest(`${where}: range filters need a number, date or date-time column.`);
       const parts = [];
       if (f.min !== undefined && f.min !== null) parts.push(`${ref} >= ${bind(f.min)}`);
       if (f.max !== undefined && f.max !== null) parts.push(`${ref} <= ${bind(f.max)}`);
@@ -207,9 +242,24 @@ function compileFilter(ctx, f) {
     }
 
     case 'relativeDate': {
-      if (col.dataType !== 'date') throw badRequest(`${where}: relative date filters need a date column.`);
+      if (col.dataType !== 'date' && col.dataType !== 'datetime') throw badRequest(`${where}: relative date filters need a date or date-time column.`);
       const [from, to] = relativeRange(f, ctx.asOf);
+      if (col.dataType === 'datetime') {
+        // Whole days: everything from the first day's midnight up to (not including) the midnight after the last day.
+        const endExclusive = isoDateTime(Date.parse(`${to}T00:00:00Z`) + DAY_MS);
+        return `(${ref} >= ${ctx.params.add(`${from} 00:00:00`)} AND ${ref} < ${ctx.params.add(endExclusive)})`;
+      }
       return `(${ref} >= ${ctx.params.add(from)} AND ${ref} <= ${ctx.params.add(to)})`;
+    }
+
+    case 'relativeTime': {
+      if (col.dataType !== 'datetime') throw badRequest(`${where}: relative time filters need a date-time column.`);
+      if (f.period !== 'last' && f.period !== 'next') throw badRequest(`${where}: relative time period must be last or next.`);
+      if (f.unit !== 'minute' && f.unit !== 'hour') throw badRequest(`${where}: relative time unit must be minute or hour.`);
+      if (!Number.isInteger(f.count) || f.count < 1 || f.count > 100000) throw badRequest(`${where}: count must be a whole number from 1 to 100000.`);
+      const span = f.count * (f.unit === 'hour' ? 3600000 : 60000);
+      const [from, to] = f.period === 'last' ? [ctx.now - span, ctx.now] : [ctx.now, ctx.now + span];
+      return `(${ref} >= ${ctx.params.add(isoDateTime(from))} AND ${ref} <= ${ctx.params.add(isoDateTime(to))})`;
     }
 
     case 'topN': {
@@ -231,7 +281,7 @@ function compileFilter(ctx, f) {
     }
 
     default:
-      throw badRequest(`Unknown filter kind "${f.kind}". Use basic, advanced, range, relativeDate or topN.`);
+      throw badRequest(`Unknown filter kind "${f.kind}". Use basic, advanced, range, relativeDate, relativeTime or topN.`);
   }
 }
 
@@ -259,7 +309,7 @@ function groupExpr(ctx, g) {
   const alias = ctx.plan.alias(g.table);
   const ref = `${alias}.${quoteIdent(col.name)}`;
   if (g.dateLevel !== undefined) {
-    if (col.dataType !== 'date') throw badRequest(`dateLevel needs a date column; "${col.name}" is ${col.dataType}.`);
+    if (col.dataType !== 'date' && col.dataType !== 'datetime') throw badRequest(`dateLevel needs a date or date-time column; "${col.name}" is ${col.dataType}.`);
     const sql = {
       year: `strftime('%Y', ${ref})`,
       quarter: `(strftime('%Y', ${ref}) || '-Q' || ((CAST(strftime('%m', ${ref}) AS INTEGER) + 2) / 3))`,
@@ -295,11 +345,12 @@ function runQuery(model, db, q) {
 
   const plan = createPlan(model, base);
   const params = new Params();
-  const ctx = { model, plan, params, asOf: resolveAsOf(q.asOf) };
+  const ctx = { model, plan, params, ...resolveClock(q.asOf) };
   const aliasFor = (t) => plan.alias(t);
 
   const groups = groupBy.map((g) => groupExpr(ctx, g));
   const where = compileFilters(ctx, q.filters);
+  where.parts.unshift(...compileFilters(ctx, model.datasetFilters).parts); // I10: dataset filters always apply
   const highlight = q.highlight === undefined ? null : compileFilters(ctx, q.highlight);
   const highlightSql = highlight?.parts.length ? `(${highlight.parts.join(' AND ')})` : null;
 
@@ -374,15 +425,19 @@ function runRows(model, db, r) {
   if (!plan) throw badRequest(`These columns come from tables that aren't linked by many-to-one relationships: ${tables.join(', ')}.`);
 
   const params = new Params();
-  const ctx = { model, plan, params, asOf: resolveAsOf(r.asOf) };
+  const ctx = { model, plan, params, ...resolveClock(r.asOf) };
   const select = fields.map((f, i) => `${plan.alias(f.ref.table)}.${quoteIdent(f.col.name)} AS c${i}`);
   const where = compileFilters(ctx, r.filters);
+  where.parts.unshift(...compileFilters(ctx, model.datasetFilters).parts); // I10: dataset filters always apply
   const offset = boundedInt(r.offset, 0, 0, Number.MAX_SAFE_INTEGER, 'offset');
   const limit = boundedInt(r.limit, LIMITS.defaultRows, 1, LIMITS.rows, 'limit');
   const from = plan.fromSql();
   const whereSql = whereOf(where.parts);
 
-  const rowsSql = `SELECT ${select.join(', ')} ${from} ${whereSql} ORDER BY t0.rowid LIMIT ${limit} OFFSET ${offset}`;
+  // WITHOUT ROWID tables have no rowid; their primary key already gives a stable order.
+  const baseTable = model.tables.find((t) => t.name === plan.base);
+  const orderBy = baseTable?.withoutRowid ? '' : 'ORDER BY t0.rowid';
+  const rowsSql = `SELECT ${select.join(', ')} ${from} ${whereSql} ${orderBy} LIMIT ${limit} OFFSET ${offset}`;
   const countSql = `SELECT COUNT(*) AS c ${from} ${whereSql}`;
   return {
     columns: fields.map((f) => ({ table: f.ref.table, name: f.col.name, dataType: f.col.dataType })),
@@ -397,10 +452,11 @@ function runValues(model, db, v) {
   const col = findColumn(model, v.target);
   const plan = createPlan(model, v.target.table);
   const params = new Params();
-  const ctx = { model, plan, params, asOf: resolveAsOf(v.asOf) };
+  const ctx = { model, plan, params, ...resolveClock(v.asOf) };
   const alias = plan.alias(v.target.table);
   const ref = `${alias}.${quoteIdent(col.name)}`;
   const where = compileFilters(ctx, v.filters);
+  where.parts.unshift(...compileFilters(ctx, model.datasetFilters).parts); // I10: dataset filters always apply
   const rangeWhere = whereOf(where.parts);
 
   if (v.search !== undefined && v.search !== '') {
@@ -415,7 +471,7 @@ function runValues(model, db, v) {
 
   let min = null;
   let max = null;
-  if (['integer', 'number', 'date'].includes(col.dataType)) {
+  if (['integer', 'number', 'date', 'datetime'].includes(col.dataType)) {
     const rangeSql = `SELECT MIN(${ref}) AS mn, MAX(${ref}) AS mx ${from} ${rangeWhere}`;
     const mm = db.prepare(rangeSql).get(params.for(rangeSql));
     min = mm.mn;

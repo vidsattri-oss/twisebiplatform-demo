@@ -8,3 +8,5 @@ export * from './host-bridge';
 export * from './visual-registry';
 export * from './visual-context';
 export * from './report-store';
+export * from './theme';
+export * from './layout';

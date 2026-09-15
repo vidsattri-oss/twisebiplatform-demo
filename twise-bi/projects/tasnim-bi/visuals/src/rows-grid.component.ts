@@ -9,17 +9,18 @@ import { GridColumn } from '@tasnim/bi/core';
 
 const PAGE_SIZE = 100;
 
-/** Styled to TWise's tables: navy header, white text, light borders. */
+/** Styled to the Al Tasnim logo: logo-blue header, white text, neutral grey borders. */
 export const BI_GRID_THEME = themeQuartz.withParams({
   fontFamily: 'inherit',
   fontSize: 13,
-  accentColor: '#21409A',
-  headerBackgroundColor: '#21409A',
+  accentColor: '#2841A3',
+  headerBackgroundColor: '#2841A3',
   headerTextColor: '#FFFFFF',
   headerFontWeight: 600,
-  borderColor: '#DCE3ED',
-  rowHoverColor: '#F5F8FF',
-  oddRowBackgroundColor: '#FAFBFD',
+  borderColor: '#DDDCE2',
+  foregroundColor: '#1D1C21',
+  rowHoverColor: '#EEF1FA',
+  oddRowBackgroundColor: '#F9F9FB',
   wrapperBorderRadius: 8,
 });
 
