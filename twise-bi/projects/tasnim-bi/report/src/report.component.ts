@@ -40,7 +40,8 @@ export class ReportComponent {
    */
   readonly canEdit = input<boolean, boolean | null | undefined>(true, { transform: (value) => value !== false });
 
-  protected readonly base = this.route?.parent ?? null;
+  /** Only a report opened through BI_ROUTES links back to the report list; an embedded report has no BI parent route. */
+  protected readonly base = this.route?.routeConfig?.path === ':reportId' ? (this.route.parent ?? null) : null;
   private readonly routeId = toSignal(this.route ? this.route.paramMap.pipe(map((p) => toId(p.get('reportId')))) : of(undefined), { initialValue: undefined });
   protected readonly effectiveId = computed(() => this.reportId() ?? this.routeId());
 

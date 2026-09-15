@@ -115,6 +115,7 @@
               @let l = layout(v);
               <bi-visual
                 class="cell"
+                [class.wide]="l.w > 6"
                 [visual]="v"
                 [style.--bi-col]="l.col"
                 [style.--bi-row]="l.row"

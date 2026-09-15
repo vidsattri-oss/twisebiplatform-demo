@@ -53,12 +53,30 @@
 .state { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .state-actions { display: flex; gap: 8px; }
 
-@media (max-width: 1100px) {
+/*
+ * Layout responds to the space the host gives the report, not the browser
+ * window: inside TWise a sidebar and an open pane can leave far less room
+ * than the viewport suggests.
+ */
+.report { container: bi-report / inline-size; }
+.canvas { container: bi-canvas / inline-size; }
+
+@container bi-report (max-width: 1000px) {
   .workspace { flex-direction: column; align-items: stretch; }
   .side { flex-basis: auto; position: static; max-height: none; order: -1; }
 }
-@media (max-width: 760px) {
-  .grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: auto; }
-  .cell { grid-column: 1; grid-row: auto; height: calc(var(--bi-h) * 40px + (var(--bi-h) - 1) * 12px); min-height: 110px; max-height: 420px; }
+
+/* Medium: two columns in reading order; visuals wider than half the page take the full row. */
+@container bi-canvas (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: auto; }
+  .cell { grid-column: auto; grid-row: auto; height: calc(var(--bi-h) * 40px + (var(--bi-h) - 1) * 12px); min-height: 110px; max-height: 440px; }
+  .cell.wide { grid-column: 1 / -1; }
+  .loading .blocks { grid-template-columns: 1fr 1fr; }
+}
+
+/* Narrow: one column. */
+@container bi-canvas (max-width: 560px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .cell, .cell.wide { grid-column: 1; max-height: 420px; }
   .loading .blocks { grid-template-columns: 1fr; }
 }
