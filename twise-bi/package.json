@@ -3,10 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "start": "ng build tasnim-bi --configuration development && ng serve host-harness",
+    "build:lib": "ng build tasnim-bi",
+    "watch:lib": "ng build tasnim-bi --watch --configuration development",
+    "build": "ng build tasnim-bi && ng build host-harness",
+    "test": "ng test tasnim-bi --watch=false && ng build tasnim-bi && ng test host-harness --watch=false"
   },
   "private": true,
   "packageManager": "npm@11.6.2",

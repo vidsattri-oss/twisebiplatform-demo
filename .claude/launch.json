@@ -2,6 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "bi-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "query-builder-prototype", "start"],
+      "port": 4173
+    },
+    {
+      "name": "twise-bi-harness",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "twise-bi", "start"],
+      "port": 4200
+    },
+    {
       "name": "angular-bi",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "angular-bi", "start"],

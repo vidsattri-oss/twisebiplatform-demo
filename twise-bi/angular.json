@@ -9,7 +9,7 @@
     "tasnim-bi": {
       "projectType": "library",
       "root": "projects/tasnim-bi",
-      "sourceRoot": "projects/tasnim-bi/src",
+      "sourceRoot": "projects/tasnim-bi",
       "prefix": "bi",
       "architect": {
         "build": {
@@ -50,7 +50,9 @@
                 "input": "projects/host-harness/public"
               }
             ],
-            "styles": ["projects/host-harness/src/styles.css"]
+            "styles": [
+              "projects/host-harness/src/styles.css"
+            ]
           },
           "configurations": {
             "production": {

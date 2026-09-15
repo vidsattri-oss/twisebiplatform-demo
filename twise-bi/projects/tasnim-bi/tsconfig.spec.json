@@ -1,10 +1,30 @@
-/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
-/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "../../out-tsc/spec",
-    "types": ["vitest/globals"]
+    "types": [
+      "vitest/globals"
+    ],
+    "paths": {
+      "@tasnim/bi": [
+        "./src/public-api.ts"
+      ],
+      "@tasnim/bi/core": [
+        "./core/src/public-api.ts"
+      ],
+      "@tasnim/bi/visuals": [
+        "./visuals/src/public-api.ts"
+      ],
+      "@tasnim/bi/report": [
+        "./report/src/public-api.ts"
+      ],
+      "@tasnim/bi/admin": [
+        "./admin/src/public-api.ts"
+      ]
+    }
   },
-  "include": ["src/**/*.d.ts", "src/**/*.spec.ts"]
+  "include": [
+    "**/*.spec.ts",
+    "**/*.d.ts"
+  ]
 }

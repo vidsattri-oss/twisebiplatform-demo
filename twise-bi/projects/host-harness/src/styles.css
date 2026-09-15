@@ -1,1 +1,32 @@
-/* You can add global styles to this file, and also import other style files */
+/*
+ * Host (TWise) global styles. These tokens are copied from TWise's stylesheet;
+ * @tasnim/bi reads them through its --bi-* fallbacks, so the module matches the
+ * host without any configuration. The library itself adds no global styles.
+ */
+:root {
+  --color-bg-app: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-border: #dce3ed;
+  --color-primary: #21409a;
+  --color-primary-50: #f5f8ff;
+  --color-text-primary: #101828;
+  --font-family-base: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --gradient-primary: linear-gradient(180deg, #163a8a 0%, #21409a 100%);
+  --navbar-height: 64px;
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --sidebar-width: 252px;
+  --sidebar-collapsed-width: 64px;
+}
+
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
