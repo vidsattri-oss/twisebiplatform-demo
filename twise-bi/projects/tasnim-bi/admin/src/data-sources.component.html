@@ -106,6 +106,8 @@
                           <td class="mono">{{ c.name }}</td>
                           <td><span class="badge primary">{{ c.dataType }}</span></td>
                           <td class="help">
+                            @if (c.expression) { Calculated: <span class="mono">{{ c.expression }}</span>. }
+                            @if (c.expressionError) { <span class="badge danger">{{ c.expressionError }}</span> }
                             @if (c.hidden) { Hidden. }
                             @if (c.sortBy) { Sorted by {{ c.sortBy }}. }
                             @if (c.format) { Format {{ c.format }}. }

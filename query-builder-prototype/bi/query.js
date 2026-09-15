@@ -15,7 +15,7 @@
 
 const { badRequest } = require('./errors');
 const { quoteIdent, findTable, findColumn, findMeasure } = require('./model');
-const { compileExpression } = require('./dax');
+const { compileExpression, columnSql } = require('./dax');
 
 const LIMITS = { groups: 5000, rows: 1000, defaultRows: 100, values: 500, defaultValues: 200, filters: 200, inValues: 1000 };
 
@@ -103,6 +103,19 @@ function coerce(col, value, where) {
   throw badRequest(`${where}: ${JSON.stringify(value)} isn't a valid ${col.dataType}${hint}.`);
 }
 
+/** What formula compilation needs from a query: this plan's table aliases, bound parameters and "now". */
+const exprContext = (ctx) => ({ aliasFor: (t) => ctx.plan.alias(t), bind: (v) => ctx.params.add(v), now: ctx.now });
+
+/** SQL for a column: the physical column, or a calculated column's row expression (F5). */
+const colRef = (ctx, table, col) => columnSql(ctx.model, table, col, exprContext(ctx));
+
+/** How categories sort: by the model's sort-by column when it sets one. */
+function sortRef(ctx, table, col, ref) {
+  if (!col.sortBy) return ref;
+  const sortCol = findTable(ctx.model, table).columns.find((c) => c.name === col.sortBy);
+  return `MIN(${colRef(ctx, table, sortCol)})`;
+}
+
 const likeEscape = (s) => s.replace(/[\\%_]/g, '\\$&');
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
 const isoDateTime = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
@@ -177,7 +190,7 @@ function compileFilter(ctx, f) {
   if (!f || typeof f !== 'object') throw badRequest('Each filter must be an object with kind and target.');
   const col = findColumn(ctx.model, f.target);
   if (!ctx.plan.reaches(f.target.table)) return null;
-  const ref = `${ctx.plan.alias(f.target.table)}.${quoteIdent(col.name)}`;
+  const ref = colRef(ctx, f.target.table, col);
   const where = `Filter on "${f.target.table}"."${col.name}"`;
   const bind = (v) => ctx.params.add(coerce(col, v, where));
 
@@ -272,9 +285,9 @@ function compileFilter(ctx, f) {
       // Ranked under the other (non-Top N) filters, like Power BI. Blank categories are not ranked.
       const inner = createPlan(ctx.model, ctx.plan.base);
       const innerCtx = { ...ctx, plan: inner };
-      const innerRef = `${inner.alias(f.target.table)}.${quoteIdent(col.name)}`;
+      const innerRef = colRef(innerCtx, f.target.table, col);
       const others = ctx.filters.filter((o) => o !== f && o?.kind !== 'topN').map((o) => compileFilter(innerCtx, o)).filter(Boolean);
-      const m = compileExpression(ctx.model, measure.table, measure.expression, { aliasFor: (t) => inner.alias(t) }, [measure.name]).sql;
+      const m = compileExpression(ctx.model, measure.table, measure.expression, exprContext(innerCtx), [measure.name]).sql;
       const innerWhere = [`${innerRef} IS NOT NULL`, ...others].join(' AND ');
       const dir = f.direction === 'top' ? 'DESC' : 'ASC';
       return `${ref} IN (SELECT ${innerRef} ${inner.fromSql()} WHERE ${innerWhere} GROUP BY ${innerRef} ORDER BY ${m} IS NULL, ${m} ${dir} LIMIT ${f.n})`;
@@ -306,8 +319,7 @@ function groupExpr(ctx, g) {
   if (!ctx.plan.reaches(g.table)) {
     throw badRequest(`Can't group by "${g.table}"."${g.column}": no many-to-one relationship path from "${ctx.plan.base}" to "${g.table}".`);
   }
-  const alias = ctx.plan.alias(g.table);
-  const ref = `${alias}.${quoteIdent(col.name)}`;
+  const ref = colRef(ctx, g.table, col);
   if (g.dateLevel !== undefined) {
     if (col.dataType !== 'date' && col.dataType !== 'datetime') throw badRequest(`dateLevel needs a date or date-time column; "${col.name}" is ${col.dataType}.`);
     const sql = {
@@ -318,7 +330,7 @@ function groupExpr(ctx, g) {
     if (!sql) throw badRequest('dateLevel must be year, quarter or month.');
     return { col, dateLevel: g.dateLevel, sql, sortSql: sql };
   }
-  return { col, sql: ref, sortSql: col.sortBy ? `MIN(${alias}.${quoteIdent(col.sortBy)})` : ref };
+  return { col, sql: ref, sortSql: sortRef(ctx, g.table, col, ref) };
 }
 
 function boundedInt(value, fallback, min, max, name) {
@@ -327,8 +339,14 @@ function boundedInt(value, fallback, min, max, name) {
   return value;
 }
 
-const toNumber = (v) => (v === null || v === undefined ? null : Number(v));
-const outValue = (dataType, v) => (dataType === 'boolean' && v !== null ? Boolean(v) : v);
+/** A measure's contract dataType: counts and blanks read as numbers; text, dates and true/false keep theirs (F6). */
+const measureType = (t) => (t === 'integer' || t === 'blank' ? 'number' : t);
+const outMeasure = (type, v) => {
+  if (v === null || v === undefined) return null;
+  if (type === 'text' || type === 'date' || type === 'datetime') return String(v);
+  return type === 'boolean' ? Boolean(v) : Number(v);
+};
+const outValue =(dataType, v) => (dataType === 'boolean' && v !== null ? Boolean(v) : v);
 
 function runQuery(model, db, q) {
   if (!q || typeof q !== 'object') throw badRequest('Send a VisualQuery object.');
@@ -346,7 +364,7 @@ function runQuery(model, db, q) {
   const plan = createPlan(model, base);
   const params = new Params();
   const ctx = { model, plan, params, ...resolveClock(q.asOf) };
-  const aliasFor = (t) => plan.alias(t);
+  const exprCtx = exprContext(ctx);
 
   const groups = groupBy.map((g) => groupExpr(ctx, g));
   const where = compileFilters(ctx, q.filters);
@@ -354,10 +372,12 @@ function runQuery(model, db, q) {
   const highlight = q.highlight === undefined ? null : compileFilters(ctx, q.highlight);
   const highlightSql = highlight?.parts.length ? `(${highlight.parts.join(' AND ')})` : null;
 
+  const compiled = measures.map((m) => compileExpression(model, base, m.expression, exprCtx, [m.name]));
+  const types = compiled.map((c) => measureType(c.dataType));
   const select = [
     ...groups.map((g, i) => `${g.sql} AS k${i}`),
-    ...measures.map((m, i) => `${compileExpression(model, base, m.expression, { aliasFor }, [m.name]).sql} AS v${i}`),
-    ...(highlightSql ? measures.map((m, i) => `${compileExpression(model, base, m.expression, { aliasFor, highlight: highlightSql }, [m.name]).sql} AS h${i}`) : []),
+    ...compiled.map((c, i) => `${c.sql} AS v${i}`),
+    ...(highlightSql ? measures.map((m, i) => `${compileExpression(model, base, m.expression, { ...exprCtx, highlight: highlightSql }, [m.name]).sql} AS h${i}`) : []),
   ];
 
   let order = '';
@@ -388,12 +408,12 @@ function runQuery(model, db, q) {
   return {
     columns: [
       ...groups.map((g) => ({ name: g.dateLevel ? `${g.col.name} (${g.dateLevel})` : g.col.name, role: 'group', dataType: g.dateLevel ? 'text' : g.col.dataType })),
-      ...measures.map((m) => ({ name: m.name, role: 'measure', dataType: 'number', format: m.format })),
+      ...measures.map((m, i) => ({ name: m.name, role: 'measure', dataType: types[i], format: m.format })),
     ],
     rows: raw.slice(0, limit).map((r) => ({
       keys: groups.map((g, i) => outValue(g.dateLevel ? 'text' : g.col.dataType, r[`k${i}`])),
-      values: measures.map((_, i) => toNumber(r[`v${i}`])),
-      highlights: highlightSql ? measures.map((_, i) => toNumber(r[`h${i}`])) : null,
+      values: measures.map((_, i) => outMeasure(types[i], r[`v${i}`])),
+      highlights: highlightSql ? measures.map((_, i) => outMeasure(types[i], r[`h${i}`])) : null,
     })),
     truncated: raw.length > limit,
     ignoredFilters: where.ignored,
@@ -426,7 +446,7 @@ function runRows(model, db, r) {
 
   const params = new Params();
   const ctx = { model, plan, params, ...resolveClock(r.asOf) };
-  const select = fields.map((f, i) => `${plan.alias(f.ref.table)}.${quoteIdent(f.col.name)} AS c${i}`);
+  const select = fields.map((f, i) => `${colRef(ctx, f.ref.table, f.col)} AS c${i}`);
   const where = compileFilters(ctx, r.filters);
   where.parts.unshift(...compileFilters(ctx, model.datasetFilters).parts); // I10: dataset filters always apply
   const offset = boundedInt(r.offset, 0, 0, Number.MAX_SAFE_INTEGER, 'offset');
@@ -453,8 +473,7 @@ function runValues(model, db, v) {
   const plan = createPlan(model, v.target.table);
   const params = new Params();
   const ctx = { model, plan, params, ...resolveClock(v.asOf) };
-  const alias = plan.alias(v.target.table);
-  const ref = `${alias}.${quoteIdent(col.name)}`;
+  const ref = colRef(ctx, v.target.table, col);
   const where = compileFilters(ctx, v.filters);
   where.parts.unshift(...compileFilters(ctx, model.datasetFilters).parts); // I10: dataset filters always apply
   const rangeWhere = whereOf(where.parts);
@@ -464,7 +483,7 @@ function runValues(model, db, v) {
     where.parts.push(`CAST(${ref} AS TEXT) LIKE ${params.add(`%${likeEscape(v.search)}%`)} ESCAPE '\\'`);
   }
   const limit = boundedInt(v.limit, LIMITS.defaultValues, 1, LIMITS.values, 'limit');
-  const order = col.sortBy ? `MIN(${alias}.${quoteIdent(col.sortBy)})` : ref;
+  const order = sortRef(ctx, v.target.table, col, ref);
   const from = plan.fromSql();
   const valuesSql = `SELECT ${ref} AS v ${from} ${whereOf(where.parts)} GROUP BY ${ref} ORDER BY ${order} LIMIT ${limit + 1}`;
   const raw = db.prepare(valuesSql).all(params.for(valuesSql));

@@ -25,6 +25,10 @@ export interface Column {
   /** Present on calculated columns: the row-level formula that produces the value. */
   expression?: string;
   id?: number | null;
+  /** Calculated columns: defined in the model file or created by a user. */
+  origin?: 'model' | 'user';
+  /** A calculated column whose formula no longer compiles. */
+  expressionError?: string;
 }
 
 export interface Table {
@@ -156,8 +160,8 @@ export interface QueryColumn {
 
 export interface QueryRow {
   keys: Scalar[];
-  /** Text measures (KPI labels) return strings. */
-  values: (number | string | null)[];
+  /** Text measures (KPI labels) return strings; true/false measures return booleans. */
+  values: Scalar[];
   highlights: (number | null)[] | null;
 }
 
@@ -274,6 +278,24 @@ export interface MeasureInput {
   format?: string;
 }
 
+/** A measure aggregates rows; a calculated column is evaluated for each row. */
+export type ExpressionKind = 'measure' | 'column';
+
+export interface CalculatedColumnInput {
+  table: string;
+  name: string;
+  expression: string;
+  format?: string;
+}
+
+export interface ExpressionPreview {
+  dataType: DataType;
+  /** Measures: the value over the whole home table, dataset filters applied. */
+  value?: Scalar;
+  /** Calculated columns: the first rows, with the result as the last column. */
+  sample?: { columns: string[]; rows: Scalar[][] };
+}
+
 export interface BiApiError {
   error: string;
   position?: number;
@@ -281,6 +303,8 @@ export interface BiApiError {
 
 export interface MeasureValidateResult {
   ok: boolean;
+  /** What the formula returns: number, text, true/false or a date. */
+  dataType?: DataType;
   dependencies?: string[];
   error?: BiApiError;
 }

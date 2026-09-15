@@ -16,6 +16,7 @@ const reports = require('./reports');
 const { badRequest, notFound } = require('./errors');
 
 const IMPORTS_FILE = 'json-imports.db';
+const PREVIEW = '__preview__';
 const router = express.Router();
 const wrap = (fn) => (req, res, next) => {
   try {
@@ -34,6 +35,23 @@ const modelIdOf = (body) => {
   if (!body || !Number.isInteger(body.modelId)) throw badRequest('modelId must be a model id.');
   return body.modelId;
 };
+
+const expressionKind = (kind) => {
+  if (kind === undefined || kind === 'measure') return 'measure';
+  if (kind === 'column') return 'column';
+  throw badRequest('kind must be "measure" or "column".');
+};
+const draftName = (name) => (typeof name === 'string' && name.trim() ? name.trim() : undefined);
+
+/** The model with an unsaved measure or calculated column added, so self-references and type checks can see it. */
+function withDraft(model, kind, { table, name, expression, dataType }) {
+  if (!name) return model;
+  if (kind === 'measure') return { ...model, measures: [...model.measures.filter((m) => m.name !== name), { name, table, expression }] };
+  return {
+    ...model,
+    tables: model.tables.map((t) => (t.name === table ? { ...t, columns: [...t.columns.filter((c) => c.name !== name), { name, dataType: dataType || 'text', expression }] } : t)),
+  };
+}
 
 /** The default target for JSON imports — a separate file, never the metadata database. */
 function ensureImportsConnection() {
@@ -94,9 +112,56 @@ router.put('/models/:modelId/dataset-filters', wrap((req) => {
 }));
 
 router.post('/measures/validate', wrap((req) => {
-  const model = loadModel(modelIdOf(req.body));
-  findTable(model, req.body.table);
-  return validateExpression(model, req.body.table, req.body.expression);
+  const model = loadModel(modelIdOf(req.body), { counts: false });
+  const { table, expression } = req.body;
+  findTable(model, table);
+  const kind = expressionKind(req.body.kind);
+  const name = draftName(req.body.name);
+  return validateExpression(withDraft(model, kind, { table, name, expression }), table, expression, kind, name);
+}));
+
+/** F6: what a formula returns — a measure's value over the whole table, or a calculated column's first rows. */
+router.post('/measures/preview', wrap((req) => {
+  const { model, db } = openModel(modelIdOf(req.body));
+  const { table, expression } = req.body;
+  findTable(model, table);
+  const kind = expressionKind(req.body.kind);
+  const check = validateExpression(model, table, expression, kind);
+  if (!check.ok) throw badRequest(check.error.error, check.error.position);
+  if (kind === 'measure') {
+    const result = runQuery(withDraft(model, 'measure', { table, name: PREVIEW, expression }), db, { groupBy: [], measures: [PREVIEW], filters: [] });
+    return { dataType: result.columns[0].dataType, value: result.rows[0]?.values[0] ?? null };
+  }
+  const shown = findTable(model, table).columns.filter((c) => !c.hidden && !c.expression).slice(0, 2);
+  const draft = withDraft(model, 'column', { table, name: PREVIEW, expression, dataType: check.dataType });
+  const rows = runRows(draft, db, { table, columns: [...shown.map((c) => ({ table, column: c.name })), { table, column: PREVIEW }], filters: [], limit: 5 });
+  return { dataType: check.dataType, sample: { columns: rows.columns.map((c) => (c.name === PREVIEW ? 'Result' : c.name)), rows: rows.rows } };
+}));
+
+// --- Calculated columns (F5) ----------------------------------------------------
+
+router.post('/models/:modelId/columns', wrap((req) => {
+  const modelId = intParam(req.params.modelId, 'modelId');
+  const { table, expression, format } = req.body || {};
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!name || name.length > 100 || /[[\]]/.test(name)) throw badRequest('A column name needs 1 to 100 characters and no square brackets.');
+  const model = loadModel(modelId, { counts: false });
+  const home = findTable(model, table);
+  if (home.columns.some((c) => c.name === name)) throw badRequest(`"${table}" already has a column named [${name}].`);
+  if (model.measures.some((m) => m.name === name)) throw badRequest(`[${name}] is already a measure name; choose another column name.`);
+  if (format !== undefined && format !== null && (typeof format !== 'string' || format.length > 40)) throw badRequest('format must be text of at most 40 characters.');
+  const check = validateExpression(withDraft(model, 'column', { table, name, expression }), table, expression, 'column', name);
+  if (!check.ok) throw badRequest(check.error.error, check.error.position);
+  const info = getMetaDb()
+    .prepare('INSERT INTO bi_columns (model_id, table_name, name, expression, format, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(modelId, table, name, expression, format || null, new Date().toISOString());
+  return { id: Number(info.lastInsertRowid), name, table, expression, format: format || undefined, dataType: check.dataType, origin: 'user' };
+}));
+
+router.delete('/models/:modelId/columns/:columnId', wrap((req) => {
+  getMetaDb().prepare('DELETE FROM bi_columns WHERE id = ? AND model_id = ?')
+    .run(intParam(req.params.columnId, 'columnId'), intParam(req.params.modelId, 'modelId'));
+  return { ok: true };
 }));
 
 // --- Queries -------------------------------------------------------------------

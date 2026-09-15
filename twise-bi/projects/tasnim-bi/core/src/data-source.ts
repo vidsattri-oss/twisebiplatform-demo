@@ -3,6 +3,10 @@ import { Injectable, InjectionToken, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   BiFilter,
+  CalculatedColumnInput,
+  Column,
+  ExpressionKind,
+  ExpressionPreview,
   IngestRequest,
   IngestResult,
   Measure,
@@ -33,9 +37,12 @@ export interface BiDataSource {
   query(query: VisualQuery): Observable<QueryResult>;
   rows(request: RowsRequest): Observable<RowsResult>;
   values(request: ValuesRequest): Observable<ValuesResult>;
-  validateMeasure(modelId: number, table: string, expression: string): Observable<MeasureValidateResult>;
+  validateMeasure(modelId: number, table: string, expression: string, kind?: ExpressionKind): Observable<MeasureValidateResult>;
+  previewExpression(modelId: number, table: string, expression: string, kind: ExpressionKind): Observable<ExpressionPreview>;
   createMeasure(modelId: number, measure: MeasureInput): Observable<Measure>;
   deleteMeasure(modelId: number, measureId: number): Observable<unknown>;
+  createColumn(modelId: number, column: CalculatedColumnInput): Observable<Column>;
+  deleteColumn(modelId: number, columnId: number): Observable<unknown>;
   listReports(): Observable<ReportSummary[]>;
   getReport(reportId: number): Observable<Report>;
   createReport(report: ReportInput): Observable<Report>;
@@ -73,14 +80,23 @@ export class HttpBiDataSource implements BiDataSource {
   values(request: ValuesRequest) {
     return this.http.post<ValuesResult>(`${this.base}/values`, request);
   }
-  validateMeasure(modelId: number, table: string, expression: string) {
-    return this.http.post<MeasureValidateResult>(`${this.base}/measures/validate`, { modelId, table, expression });
+  validateMeasure(modelId: number, table: string, expression: string, kind: ExpressionKind = 'measure') {
+    return this.http.post<MeasureValidateResult>(`${this.base}/measures/validate`, { modelId, table, expression, kind });
+  }
+  previewExpression(modelId: number, table: string, expression: string, kind: ExpressionKind) {
+    return this.http.post<ExpressionPreview>(`${this.base}/measures/preview`, { modelId, table, expression, kind });
   }
   createMeasure(modelId: number, measure: MeasureInput) {
     return this.http.post<Measure>(`${this.base}/models/${modelId}/measures`, measure);
   }
   deleteMeasure(modelId: number, measureId: number) {
     return this.http.delete(`${this.base}/models/${modelId}/measures/${measureId}`);
+  }
+  createColumn(modelId: number, column: CalculatedColumnInput) {
+    return this.http.post<Column>(`${this.base}/models/${modelId}/columns`, column);
+  }
+  deleteColumn(modelId: number, columnId: number) {
+    return this.http.delete(`${this.base}/models/${modelId}/columns/${columnId}`);
   }
   listReports() {
     return this.http.get<ReportSummary[]>(`${this.base}/reports`);

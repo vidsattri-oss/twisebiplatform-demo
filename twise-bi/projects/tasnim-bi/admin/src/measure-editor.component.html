@@ -1,8 +1,8 @@
 <div class="page">
   <div class="page-head">
     <div>
-      <h1 class="page-title">Measures</h1>
-      <p class="page-sub">Write DAX-style measures. They're compiled on the server and calculated for every bar, slice and card under that visual's filters.</p>
+      <h1 class="page-title">Formulas</h1>
+      <p class="page-sub">Write DAX-style measures and calculated columns. The server compiles them to SQL: measures are calculated for every bar, slice and card under that visual's filters; calculated columns are worked out for each row and behave like any other column.</p>
     </div>
   </div>
   <bi-nav />
@@ -24,22 +24,18 @@
             <option [value]="t.name" [selected]="t.name === activeTable()">{{ t.name }}</option>
           }
         </select>
-        <span class="help">The table whose rows the measure aggregates.</span>
+        <span class="help">{{ kind() === 'measure' ? 'The table whose rows the measure aggregates.' : 'The table that gets the new column.' }}</span>
       </label>
 
       <div>
-        <h2 class="subhead">Insert</h2>
-        <div class="insert-group">
-          @for (f of functions; track f.name) {
-            <button type="button" class="token fn" [title]="f.help" (click)="insert(editor, f.snippet.replace('Table', tableRef(activeTable())))">{{ f.name }}</button>
-          }
-        </div>
+        <h2 class="subhead">Columns</h2>
         <div class="insert-group">
           @for (c of columns(); track c.name) {
-            <button type="button" class="token" [title]="c.dataType" (click)="insert(editor, tableRef(activeTable()) + '[' + c.name + ']')">{{ c.name }}</button>
+            <button type="button" class="token" [class.calc]="!!c.expression" [title]="c.dataType + (c.expression ? ' · calculated' : '')" (click)="insert(editor, tableRef(activeTable()) + '[' + c.name + ']')">{{ c.name }}</button>
           }
         </div>
-        @if (sameTableMeasures().length) {
+        @if (kind() === 'measure' && sameTableMeasures().length) {
+          <h2 class="subhead">Measures</h2>
           <div class="insert-group">
             @for (m of sameTableMeasures(); track m.name) {
               <button type="button" class="token measure" (click)="insert(editor, '[' + m.name + ']')">[{{ m.name }}]</button>
@@ -47,23 +43,57 @@
           </div>
         }
       </div>
+
+      <div>
+        <h2 class="subhead">Functions</h2>
+        <input class="input" type="search" placeholder="Find a function" aria-label="Find a function" [value]="functionSearch()" (input)="functionSearch.set(valueOf($event))" />
+        @for (g of functionGroups(); track g.label) {
+          <h3 class="fn-heading">{{ g.label }}</h3>
+          <div class="insert-group">
+            @for (f of g.functions; track f.name) {
+              <button
+                type="button"
+                class="token fn"
+                [disabled]="kind() === 'column' && f.measureOnly"
+                [title]="f.help + (kind() === 'column' && f.measureOnly ? ' Measures only.' : '')"
+                (click)="insert(editor, f.snippet.replaceAll('Table', tableRef(activeTable())))"
+              >{{ f.name }}</button>
+            }
+          </div>
+        } @empty {
+          <p class="help">No function matches.</p>
+        }
+      </div>
     </aside>
 
     <section class="stack">
       <form class="panel stack" (submit)="$event.preventDefault(); save()">
+        <div class="segmented kind" role="group" aria-label="What to create">
+          <button type="button" [class.on]="kind() === 'measure'" [attr.aria-pressed]="kind() === 'measure'" (click)="setKind('measure')">Measure</button>
+          <button type="button" [class.on]="kind() === 'column'" [attr.aria-pressed]="kind() === 'column'" (click)="setKind('column')">Calculated column</button>
+        </div>
+        <p class="help">
+          @if (kind() === 'measure') {
+            A measure aggregates rows: a total, a ratio, or a KPI label such as IF([Productivity %] &gt;= 0.9, "On track", "At risk").
+          } @else {
+            A calculated column is worked out for each row, e.g. DATEDIFF(tasks[task_date], TODAY(), DAY). It can be an axis, a slicer or a filter.
+          }
+        </p>
+
         <div class="form-row">
           <label class="field">
-            <span class="label">Measure name</span>
-            <input class="input" [value]="name()" (input)="name.set(valueOf($event))" placeholder="e.g. Completion %" />
+            <span class="label">{{ kind() === 'measure' ? 'Measure name' : 'Column name' }}</span>
+            <input class="input" [value]="name()" (input)="name.set(valueOf($event))" [placeholder]="kind() === 'measure' ? 'e.g. Completion %' : 'e.g. Delay Days'" />
           </label>
           <label class="field format">
-            <span class="label">Format</span>
+            <span class="label">Number format</span>
             <select class="select" [value]="format()" (change)="format.set(valueOf($event))">
-              <option value="#,0">1,234</option>
-              <option value="#,0.0">1,234.5</option>
-              <option value="#,0.00">1,234.56</option>
-              <option value="0.0%">12.3%</option>
-              <option value="0%">12%</option>
+              <option value="" [selected]="format() === ''">General / text</option>
+              <option value="#,0" [selected]="format() === '#,0'">1,234</option>
+              <option value="#,0.0" [selected]="format() === '#,0.0'">1,234.5</option>
+              <option value="#,0.00" [selected]="format() === '#,0.00'">1,234.56</option>
+              <option value="0.0%" [selected]="format() === '0.0%'">12.3%</option>
+              <option value="0%" [selected]="format() === '0%'">12%</option>
             </select>
           </label>
         </div>
@@ -78,15 +108,15 @@
             [attr.aria-invalid]="validation()?.ok === false"
             aria-describedby="bi-measure-status"
             (input)="expression.set(valueOf($event))"
-            placeholder="DIVIDE([Actual Quantity], [Planned Quantity])"
+            [placeholder]="kind() === 'measure' ? 'IF([Productivity %] >= 0.9, &quot;On track&quot;, &quot;At risk&quot;)' : 'DATEDIFF(tasks[task_date], TODAY(), DAY)'"
           ></textarea>
         </label>
 
-        <div id="bi-measure-status" aria-live="polite">
+        <div id="bi-measure-status" class="stack tight" aria-live="polite">
           @if (validation(); as v) {
             @if (v.ok) {
               <p class="alert success">
-                Valid.
+                Valid — returns {{ typeLabel(v.dataType) }}.
                 @if (v.dependencies?.length) {
                   Uses {{ v.dependencies!.join(', ') }}.
                 }
@@ -100,6 +130,29 @@
               </div>
             }
           }
+          @if (check()?.preview; as p) {
+            <div class="preview">
+              <span class="label">Result preview</span>
+              @if (p.sample; as s) {
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead><tr>@for (c of s.columns; track $index) { <th scope="col" [class.result]="$last">{{ c }}</th> }</tr></thead>
+                    <tbody>
+                      @for (r of s.rows; track $index) {
+                        <tr>@for (v of r; track $index) { <td [class.result]="$last">{{ cell(v) }}</td> }</tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <p class="help">The first rows of {{ activeTable() }}.</p>
+              } @else {
+                <p class="preview-value">{{ previewValue(p) }}</p>
+                <p class="help">Over every row of {{ activeTable() }}, with dataset filters applied. In a visual it is calculated for each bar or slice.</p>
+              }
+            </div>
+          } @else if (check()?.previewError; as e) {
+            <p class="help">{{ e }}</p>
+          }
         </div>
 
         @if (message(); as m) {
@@ -107,9 +160,11 @@
         }
 
         <div class="form-row">
-          <button type="submit" class="btn primary" [disabled]="saving() || validation()?.ok === false">{{ saving() ? 'Saving…' : 'Save measure' }}</button>
+          <button type="submit" class="btn primary" [disabled]="saving() || validation()?.ok === false">
+            {{ saving() ? 'Saving…' : kind() === 'measure' ? 'Save measure' : 'Add column' }}
+          </button>
         </div>
-        <p class="help">Not supported yet: CALCULATE and time intelligence (TOTALYTD, SAMEPERIODLASTYEAR). Aggregations use the home table only.</p>
+        <p class="help">Not supported yet: CALCULATE, RELATED and time intelligence (TOTALYTD, SAMEPERIODLASTYEAR). Formulas use the home table's columns.</p>
       </form>
 
       <div class="panel">
@@ -125,11 +180,11 @@
                   <td class="mono">{{ m.table }}</td>
                   <td class="num">
                     @if (m.origin === 'user' && m.id !== null && m.id !== undefined) {
-                      @if (confirmDeleteId() === m.id) {
-                        <button type="button" class="btn danger sm" (click)="remove(m.id!)">Delete</button>
-                        <button type="button" class="btn ghost sm" (click)="confirmDeleteId.set(null)">Keep</button>
+                      @if (confirmDelete() === 'measure:' + m.id) {
+                        <button type="button" class="btn danger sm" (click)="remove('measure', m.id!)">Delete</button>
+                        <button type="button" class="btn ghost sm" (click)="confirmDelete.set(null)">Keep</button>
                       } @else {
-                        <button type="button" class="link danger-text" (click)="confirmDeleteId.set(m.id!)">Delete</button>
+                        <button type="button" class="link danger-text" (click)="confirmDelete.set('measure:' + m.id)">Delete</button>
                       }
                     } @else {
                       <span class="badge">Model file</span>
@@ -138,6 +193,43 @@
                 </tr>
               } @empty {
                 <tr><td colspan="4" class="help">No measures on this model yet.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2 class="panel-title">Calculated columns</h2></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th scope="col">Column</th><th scope="col">Expression</th><th scope="col">Type</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+              @for (c of calculatedColumns(); track c.table + c.name) {
+                <tr>
+                  <td class="mono">{{ c.table }}[{{ c.name }}]</td>
+                  <td class="mono">
+                    {{ c.expression }}
+                    @if (c.expressionError) {
+                      <span class="danger-text block">{{ c.expressionError }}</span>
+                    }
+                  </td>
+                  <td><span class="badge primary">{{ c.dataType }}</span></td>
+                  <td class="num">
+                    @if (c.origin === 'user' && c.id !== null && c.id !== undefined) {
+                      @if (confirmDelete() === 'column:' + c.id) {
+                        <button type="button" class="btn danger sm" (click)="remove('column', c.id!)">Delete</button>
+                        <button type="button" class="btn ghost sm" (click)="confirmDelete.set(null)">Keep</button>
+                      } @else {
+                        <button type="button" class="link danger-text" (click)="confirmDelete.set('column:' + c.id)">Delete</button>
+                      }
+                    } @else {
+                      <span class="badge">Model file</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="help">No calculated columns on this model yet.</td></tr>
               }
             </tbody>
           </table>

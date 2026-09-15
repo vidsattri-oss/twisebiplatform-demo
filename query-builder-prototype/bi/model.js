@@ -10,7 +10,7 @@ const MODELS_DIR = path.join(__dirname, '..', 'models');
 
 // Tables in the metadata database that are app bookkeeping, never report data.
 const INTERNAL_TABLES = new Set([
-  'connections', 'measures', 'dashboards', 'dashboard_charts', 'raw_events', 'bi_reports', 'bi_measures',
+  'connections', 'measures', 'dashboards', 'dashboard_charts', 'raw_events', 'bi_reports', 'bi_measures', 'bi_columns', 'bi_dataset_filters',
 ]);
 
 /**
@@ -45,6 +45,16 @@ function ensureMetaSchema(meta = getMetaDb()) {
       created_at TEXT NOT NULL,
       UNIQUE (model_id, name)
     );
+    CREATE TABLE IF NOT EXISTS bi_columns (
+      id INTEGER PRIMARY KEY,
+      model_id INTEGER NOT NULL,
+      table_name TEXT NOT NULL,
+      name TEXT NOT NULL,
+      expression TEXT NOT NULL,
+      format TEXT,
+      created_at TEXT NOT NULL,
+      UNIQUE (model_id, table_name, name)
+    );
     CREATE TABLE IF NOT EXISTS bi_dataset_filters (
       model_id INTEGER PRIMARY KEY,
       filters_json TEXT NOT NULL,
@@ -64,7 +74,7 @@ function readOverlay(fileName) {
  * (sort-by, hidden, type overrides, extra relationships, measures) and user
  * measures. Pure over its inputs so tests can pass an in-memory database.
  */
-function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasures = [], counts = true }) {
+function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasures = [], userColumns = [], counts = true }) {
   const tableRows = db
     .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
     .all()
@@ -94,14 +104,27 @@ function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasu
 
   applyOverlay(model, overlay);
 
+  for (const c of userColumns) {
+    const table = model.tables.find((t) => t.name === c.table_name);
+    if (!table || table.columns.some((x) => x.name === c.name)) continue;
+    table.columns.push({ id: c.id, name: c.name, dataType: 'text', hidden: false, expression: c.expression, format: c.format || undefined, origin: 'user' });
+  }
   for (const m of userMeasures) {
     model.measures.push({ id: m.id, name: m.name, table: m.table_name, expression: m.expression, format: m.format || undefined, origin: 'user' });
   }
+  // Calculated columns take their type from their formula (F5). Required lazily: dax.js requires this module.
+  require('./dax').inferColumnTypes(model);
   return model;
 }
 
 function applyOverlay(model, overlay) {
   const where = `model overlay for "${model.name}"`;
+  for (const c of overlay.calculatedColumns || []) {
+    const table = model.tables.find((t) => t.name === c.table);
+    if (!table) throw new Error(`${where}: calculated column "${c.name}" is on table "${c.table}", which does not exist`);
+    if (table.columns.some((x) => x.name === c.name)) throw new Error(`${where}: calculated column "${c.table}"."${c.name}" clashes with an existing column`);
+    table.columns.push({ id: null, name: c.name, dataType: 'text', hidden: false, expression: c.expression, format: c.format, origin: 'model' });
+  }
   for (const [tableName, tableOverlay] of Object.entries(overlay.tables || {})) {
     const table = model.tables.find((t) => t.name === tableName);
     if (!table) throw new Error(`${where}: table "${tableName}" does not exist`);
@@ -153,6 +176,7 @@ function loadModel(modelId, { counts = true } = {}) {
     exclude: row.file_name === connections.ROOT_DB_FILE ? INTERNAL_TABLES : new Set(),
     overlay: readOverlay(row.file_name),
     userMeasures: getMetaDb().prepare('SELECT * FROM bi_measures WHERE model_id = ? ORDER BY name').all(row.id),
+    userColumns: getMetaDb().prepare('SELECT * FROM bi_columns WHERE model_id = ? ORDER BY id').all(row.id),
   });
   // Dataset (data-source level) filters: applied by the query compiler to every request on this model.
   const stored = getMetaDb().prepare('SELECT filters_json FROM bi_dataset_filters WHERE model_id = ?').get(row.id);

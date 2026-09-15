@@ -26,7 +26,7 @@ interface PointCustom {
 }
 
 /** Charts plot numbers only; a text measure (a KPI label) plots as a gap. */
-const num = (v: number | string | null | undefined): number | null => (typeof v === 'number' ? v : null);
+const num = (v: Scalar | undefined): number | null => (typeof v === 'number' ? v : null);
 
 export function dim(color: string, alpha = 0.3): string {
   const m = /^#([0-9a-f]{6})$/i.exec(color);
