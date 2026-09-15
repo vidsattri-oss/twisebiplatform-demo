@@ -2,6 +2,9 @@ node_modules/
 dist/
 .angular/
 *.db
+*.sqlite
+# Real well data (Wells Readiness CSV) must never be committed — seed from WELLS_CSV.
+*.csv
 .env
 .DS_Store
 *.log

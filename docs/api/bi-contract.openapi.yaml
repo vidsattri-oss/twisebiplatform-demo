@@ -1,0 +1,479 @@
+openapi: 3.1.0
+info:
+  title: Tasnim BI contract
+  version: 1.0.0
+  description: |
+    The one contract between the @tasnim/bi Angular library and a backend.
+    The Node reference implementation lives in query-builder-prototype/bi/;
+    TWise's .NET tenant API implements the same contract and runs the same
+    contract tests (query-builder-prototype/bi/test/contract.test.js).
+
+    Rules every implementation must keep (spec docs/specs/twise-bi-module.md):
+    - I1: identifiers are resolved from the semantic model; never interpolate a
+      client string into SQL.
+    - I2: filter values are bound parameters of the column's dataType; a value
+      that doesn't fit the type is a 400.
+    - Filters targeting a table the query can't reach through many-to-one
+      relationships are skipped and reported in `ignoredFilters` (Power BI
+      single-direction cross-filtering).
+servers:
+  - url: /api/bi
+security:
+  - bearerAuth: []
+
+paths:
+  /models:
+    get:
+      summary: List semantic models (one per registered connection)
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ModelSummary' } } } } }
+  /models/{modelId}:
+    get:
+      summary: Tables, typed columns, relationships and measures
+      parameters: [{ $ref: '#/components/parameters/ModelId' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/SemanticModel' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /models/{modelId}/measures:
+    post:
+      summary: Create a user measure (validated before saving)
+      parameters: [{ $ref: '#/components/parameters/ModelId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MeasureInput' } } } }
+      responses:
+        '200': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Measure' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /models/{modelId}/measures/{measureId}:
+    delete:
+      summary: Delete a user measure
+      parameters: [{ $ref: '#/components/parameters/ModelId' }, { name: measureId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /measures/validate:
+    post:
+      summary: Parse and compile a DAX-subset expression without saving
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MeasureValidateRequest' } } } }
+      responses:
+        '200': { description: Result, content: { application/json: { schema: { $ref: '#/components/schemas/MeasureValidateResult' } } } }
+  /query:
+    post:
+      summary: Aggregate query for a visual, with optional highlight
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VisualQuery' } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/QueryResult' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /rows:
+    post:
+      summary: Detail rows (table visual, See records) with a total count
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RowsRequest' } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RowsResult' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /values:
+    post:
+      summary: Slicer values for one column under the current filters
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ValuesRequest' } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ValuesResult' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /reports:
+    get:
+      summary: List reports
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ReportSummary' } } } } }
+    post:
+      summary: Create a report (definition validated against its model)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReportInput' } } } }
+      responses:
+        '200': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /reports/{reportId}:
+    parameters: [{ name: reportId, in: path, required: true, schema: { type: integer } }]
+    get:
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReportInput' } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+    delete:
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /connections:
+    get:
+      summary: Registered connections (same shape as model summaries)
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ModelSummary' } } } } }
+    post:
+      summary: Register a connection to a file the server already knows
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name, fileName], properties: { name: { type: string }, fileName: { type: string } } } } }
+      responses:
+        '200': { description: Created, content: { application/json: { schema: { type: object, properties: { id: { type: integer } } } } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /connections/available-files:
+    get:
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { type: string } } } } }
+  /connections/{connectionId}:
+    delete:
+      parameters: [{ name: connectionId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/Error' }
+  /ingest/json:
+    post:
+      summary: Flatten JSON into tables (records → columns, lists → child rows)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/IngestRequest' } } } }
+      responses:
+        '200': { description: Plan (and written when dryRun is false), content: { application/json: { schema: { $ref: '#/components/schemas/IngestResult' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    ModelId: { name: modelId, in: path, required: true, schema: { type: integer } }
+  responses:
+    Ok: { description: OK, content: { application/json: { schema: { type: object, properties: { ok: { type: boolean } } } } } }
+    Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, description: What went wrong and how to fix it }
+        position: { type: integer, description: Character offset for expression errors }
+
+    DataType: { type: string, enum: [text, integer, number, date, boolean] }
+    Scalar: { oneOf: [{ type: string }, { type: number }, { type: boolean }, { type: 'null' }] }
+
+    ModelSummary:
+      type: object
+      required: [id, name, fileName, status, tableCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        fileName: { type: string }
+        driver: { type: string }
+        status: { type: string, enum: [connected, error] }
+        tableCount: { type: integer }
+        error: { type: [string, 'null'] }
+
+    SemanticModel:
+      type: object
+      required: [id, name, tables, relationships, measures]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        tables: { type: array, items: { $ref: '#/components/schemas/Table' } }
+        relationships: { type: array, items: { $ref: '#/components/schemas/Relationship' } }
+        measures: { type: array, items: { $ref: '#/components/schemas/Measure' } }
+    Table:
+      type: object
+      required: [name, rowCount, columns]
+      properties:
+        name: { type: string }
+        rowCount: { type: integer }
+        hidden: { type: boolean }
+        columns: { type: array, items: { $ref: '#/components/schemas/Column' } }
+    Column:
+      type: object
+      required: [name, dataType]
+      properties:
+        name: { type: string }
+        dataType: { $ref: '#/components/schemas/DataType' }
+        hidden: { type: boolean }
+        sortBy: { type: string, description: Column in the same table that orders this one }
+        format: { type: string }
+    Relationship:
+      type: object
+      description: Many-to-one, single cross-filter direction (filters flow from toTable to fromTable)
+      required: [fromTable, fromColumn, toTable, toColumn]
+      properties:
+        fromTable: { type: string }
+        fromColumn: { type: string }
+        toTable: { type: string }
+        toColumn: { type: string }
+        source: { type: string, enum: [foreignKey, overlay] }
+    Measure:
+      type: object
+      required: [name, table, expression, origin]
+      properties:
+        id: { type: [integer, 'null'] }
+        name: { type: string }
+        table: { type: string, description: Home table — its rows are what the measure aggregates }
+        expression: { type: string }
+        format: { type: string }
+        origin: { type: string, enum: [model, user] }
+    MeasureInput:
+      type: object
+      required: [table, name, expression]
+      properties:
+        table: { type: string }
+        name: { type: string }
+        expression: { type: string }
+        format: { type: string }
+    MeasureValidateRequest:
+      type: object
+      required: [modelId, table, expression]
+      properties:
+        modelId: { type: integer }
+        table: { type: string }
+        expression: { type: string }
+    MeasureValidateResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+        dependencies: { type: array, items: { type: string } }
+        error: { $ref: '#/components/schemas/Error' }
+
+    FieldRef:
+      type: object
+      required: [table, column]
+      properties:
+        table: { type: string }
+        column: { type: string }
+    GroupField:
+      allOf:
+        - $ref: '#/components/schemas/FieldRef'
+        - type: object
+          properties:
+            dateLevel: { type: string, enum: [year, quarter, month], description: Only for date columns }
+
+    BiFilter:
+      oneOf:
+        - $ref: '#/components/schemas/BasicFilter'
+        - $ref: '#/components/schemas/AdvancedFilter'
+        - $ref: '#/components/schemas/RangeFilter'
+        - $ref: '#/components/schemas/RelativeDateFilter'
+        - $ref: '#/components/schemas/TopNFilter'
+      discriminator: { propertyName: kind }
+    FilterBase:
+      type: object
+      required: [kind, target]
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        target: { $ref: '#/components/schemas/FieldRef' }
+        scope: { type: string, enum: [report, page, visual], description: Client bookkeeping; servers ignore it }
+    BasicFilter:
+      allOf:
+        - $ref: '#/components/schemas/FilterBase'
+        - type: object
+          required: [operator, values]
+          properties:
+            kind: { const: basic }
+            operator: { type: string, enum: [in, notIn] }
+            values: { type: array, items: { $ref: '#/components/schemas/Scalar' }, description: null means (Blank) }
+    AdvancedFilter:
+      allOf:
+        - $ref: '#/components/schemas/FilterBase'
+        - type: object
+          required: [logic, conditions]
+          properties:
+            kind: { const: advanced }
+            logic: { type: string, enum: [and, or] }
+            conditions:
+              type: array
+              minItems: 1
+              maxItems: 2
+              items:
+                type: object
+                required: [operator]
+                properties:
+                  operator: { type: string, enum: [eq, ne, gt, gte, lt, lte, contains, notContains, startsWith, isBlank, isNotBlank] }
+                  value: { $ref: '#/components/schemas/Scalar' }
+    RangeFilter:
+      allOf:
+        - $ref: '#/components/schemas/FilterBase'
+        - type: object
+          properties:
+            kind: { const: range }
+            min: { $ref: '#/components/schemas/Scalar' }
+            max: { $ref: '#/components/schemas/Scalar' }
+    RelativeDateFilter:
+      allOf:
+        - $ref: '#/components/schemas/FilterBase'
+        - type: object
+          required: [period, count, unit]
+          properties:
+            kind: { const: relativeDate }
+            period: { type: string, enum: [last, this, next], description: '"last 3 months" includes today' }
+            count: { type: integer, minimum: 1 }
+            unit: { type: string, enum: [day, month, year] }
+    TopNFilter:
+      allOf:
+        - $ref: '#/components/schemas/FilterBase'
+        - type: object
+          required: [n, by, direction]
+          properties:
+            kind: { const: topN }
+            n: { type: integer, minimum: 1 }
+            by: { type: string, description: Measure name, evaluated under the other filters }
+            direction: { type: string, enum: [top, bottom] }
+
+    VisualQuery:
+      type: object
+      required: [modelId, groupBy, measures, filters]
+      properties:
+        modelId: { type: integer }
+        groupBy: { type: array, maxItems: 2, items: { $ref: '#/components/schemas/GroupField' } }
+        measures: { type: array, minItems: 1, items: { type: string } }
+        filters: { type: array, items: { $ref: '#/components/schemas/BiFilter' } }
+        highlight: { type: array, items: { $ref: '#/components/schemas/BiFilter' }, description: When present, each row also returns highlighted measure values }
+        orderBy:
+          type: object
+          properties:
+            by: { type: string, enum: [category, measure] }
+            index: { type: integer, description: Measure index when by = measure }
+            direction: { type: string, enum: [asc, desc] }
+        limit: { type: integer, maximum: 5000 }
+        asOf: { type: string, format: date, description: '"Today" for relative date filters' }
+    QueryResult:
+      type: object
+      required: [columns, rows, truncated, ignoredFilters]
+      properties:
+        columns:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              role: { type: string, enum: [group, measure] }
+              dataType: { $ref: '#/components/schemas/DataType' }
+              format: { type: string }
+        rows:
+          type: array
+          items:
+            type: object
+            required: [keys, values]
+            properties:
+              keys: { type: array, items: { $ref: '#/components/schemas/Scalar' } }
+              values: { type: array, items: { type: [number, 'null'] } }
+              highlights: { type: [array, 'null'], items: { type: [number, 'null'] } }
+        truncated: { type: boolean }
+        ignoredFilters: { type: array, items: { type: integer }, description: Indexes into filters that could not apply }
+
+    RowsRequest:
+      type: object
+      required: [modelId, filters]
+      properties:
+        modelId: { type: integer }
+        table: { type: string, description: Base table when columns is omitted (all visible columns) }
+        columns: { type: array, items: { $ref: '#/components/schemas/FieldRef' } }
+        filters: { type: array, items: { $ref: '#/components/schemas/BiFilter' } }
+        offset: { type: integer, minimum: 0 }
+        limit: { type: integer, maximum: 1000 }
+        asOf: { type: string, format: date }
+    RowsResult:
+      type: object
+      required: [columns, rows, total, ignoredFilters]
+      properties:
+        columns: { type: array, items: { type: object, properties: { table: { type: string }, name: { type: string }, dataType: { $ref: '#/components/schemas/DataType' } } } }
+        rows: { type: array, items: { type: array, items: { $ref: '#/components/schemas/Scalar' } } }
+        total: { type: integer }
+        ignoredFilters: { type: array, items: { type: integer } }
+
+    ValuesRequest:
+      type: object
+      required: [modelId, target, filters]
+      properties:
+        modelId: { type: integer }
+        target: { $ref: '#/components/schemas/FieldRef' }
+        filters: { type: array, items: { $ref: '#/components/schemas/BiFilter' } }
+        search: { type: string }
+        limit: { type: integer, maximum: 500 }
+        asOf: { type: string, format: date }
+    ValuesResult:
+      type: object
+      required: [values, truncated]
+      properties:
+        values: { type: array, items: { $ref: '#/components/schemas/Scalar' } }
+        truncated: { type: boolean }
+        min: { $ref: '#/components/schemas/Scalar' }
+        max: { $ref: '#/components/schemas/Scalar' }
+
+    VisualDefinition:
+      type: object
+      required: [id, type, roles]
+      properties:
+        id: { type: string }
+        type: { type: string, description: Registry type, e.g. column, bar, line, pie, donut, table, card, slicer, or a host-registered custom type }
+        title: { type: string }
+        roles:
+          type: object
+          description: 'Data role → fields. Group roles hold GroupField; value roles hold { measure: name }.'
+          additionalProperties:
+            type: array
+            items: { oneOf: [{ $ref: '#/components/schemas/GroupField' }, { type: object, required: [measure], properties: { measure: { type: string } } }] }
+        filters: { type: array, items: { $ref: '#/components/schemas/BiFilter' } }
+        interactions: { type: object, additionalProperties: { type: string, enum: [filter, highlight, none] }, description: 'Target visual id → how this visual''s selection affects it' }
+        options: { type: object, additionalProperties: true }
+        layout: { type: object, properties: { x: { type: integer }, y: { type: integer }, w: { type: integer }, h: { type: integer } } }
+    PageDefinition:
+      type: object
+      required: [id, name, filters, visuals]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        filters: { type: array, items: { $ref: '#/components/schemas/BiFilter' } }
+        visuals: { type: array, items: { $ref: '#/components/schemas/VisualDefinition' } }
+    ReportInput:
+      type: object
+      required: [name, modelId, definition]
+      properties:
+        name: { type: string }
+        modelId: { type: integer }
+        definition:
+          type: object
+          required: [filters, pages]
+          properties:
+            filters: { type: array, items: { $ref: '#/components/schemas/BiFilter' } }
+            pages: { type: array, minItems: 1, items: { $ref: '#/components/schemas/PageDefinition' } }
+    ReportSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        modelId: { type: integer }
+        updatedAt: { type: string, format: date-time }
+    Report:
+      allOf:
+        - $ref: '#/components/schemas/ReportInput'
+        - type: object
+          properties:
+            id: { type: integer }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    IngestRequest:
+      type: object
+      required: [tableName, records]
+      properties:
+        connectionId: { type: integer, description: Defaults to the JSON imports connection; the metadata database is refused }
+        tableName: { type: string }
+        records: { oneOf: [{ type: object }, { type: array, items: { type: object } }] }
+        mode: { type: string, enum: [append, replace], default: append }
+        dryRun: { type: boolean, default: false }
+    IngestResult:
+      type: object
+      required: [connectionId, tables, written]
+      properties:
+        connectionId: { type: integer }
+        written: { type: boolean }
+        tables:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              parent: { type: [string, 'null'] }
+              rowCount: { type: integer }
+              columns: { type: array, items: { type: object, properties: { name: { type: string }, dataType: { $ref: '#/components/schemas/DataType' } } } }
+              addedColumns: { type: array, items: { type: string } }
+              sample: { type: array, items: { type: object } }
