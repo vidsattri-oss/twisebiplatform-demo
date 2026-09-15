@@ -120,6 +120,32 @@ router.put('/models/:modelId/dataset-filters', wrap((req) => {
   return filters;
 }));
 
+// --- Column properties (E3): hide, format and sort by, set from the report editor ----------
+
+router.put('/models/:modelId/columns/properties', wrap((req) => {
+  const modelId = intParam(req.params.modelId, 'modelId');
+  const body = req.body || {};
+  const model = loadModel(modelId, { counts: false });
+  const table = findTable(model, body.table);
+  const column = findColumn(model, { table: table.name, column: body.column });
+  if (body.hidden !== undefined && body.hidden !== null && typeof body.hidden !== 'boolean') throw badRequest('hidden must be true, false or null.');
+  if (body.format !== undefined && body.format !== null && (typeof body.format !== 'string' || body.format.length > 40)) throw badRequest('format must be text of at most 40 characters, or null.');
+  if (body.sortBy !== undefined && body.sortBy !== null) {
+    if (typeof body.sortBy !== 'string' || !table.columns.some((c) => c.name === body.sortBy)) throw badRequest(`"${body.sortBy}" isn't a column of "${table.name}".`);
+    if (body.sortBy === column.name) throw badRequest('A column can’t be sorted by itself; clear sortBy instead.');
+  }
+  const meta = getMetaDb();
+  const current = meta.prepare('SELECT hidden, format, sort_by FROM bi_column_props WHERE model_id = ? AND table_name = ? AND column_name = ?').get(modelId, table.name, column.name) ?? {};
+  const pick = (value, stored) => (value === undefined ? (stored ?? null) : value);
+  const hidden = pick(body.hidden === undefined ? undefined : body.hidden === null ? null : body.hidden ? 1 : 0, current.hidden);
+  const format = pick(body.format === '' ? null : body.format, current.format);
+  const sortBy = pick(body.sortBy, current.sort_by);
+  meta.prepare(`INSERT INTO bi_column_props (model_id, table_name, column_name, hidden, format, sort_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(model_id, table_name, column_name) DO UPDATE SET hidden = excluded.hidden, format = excluded.format, sort_by = excluded.sort_by, updated_at = excluded.updated_at`)
+    .run(modelId, table.name, column.name, hidden, format, sortBy, new Date().toISOString());
+  return findColumn(loadModel(modelId, { counts: false }), { table: table.name, column: column.name });
+}));
+
 router.post('/measures/validate', wrap((req) => {
   const model = loadModel(modelIdOf(req.body), { counts: false });
   const { table, expression } = req.body;

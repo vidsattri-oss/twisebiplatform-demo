@@ -11,6 +11,7 @@ const MODELS_DIR = path.join(__dirname, '..', 'models');
 // Tables in the metadata database that are app bookkeeping, never report data.
 const INTERNAL_TABLES = new Set([
   'connections', 'measures', 'dashboards', 'dashboard_charts', 'raw_events', 'bi_reports', 'bi_measures', 'bi_columns', 'bi_dataset_filters',
+  'bi_report_categories', 'bi_visual_plugins', 'bi_column_props', 'bi_queries', 'bi_relationships',
 ]);
 
 /**
@@ -55,6 +56,16 @@ function ensureMetaSchema(meta = getMetaDb()) {
       created_at TEXT NOT NULL,
       UNIQUE (model_id, table_name, name)
     );
+    CREATE TABLE IF NOT EXISTS bi_column_props (
+      model_id INTEGER NOT NULL,
+      table_name TEXT NOT NULL,
+      column_name TEXT NOT NULL,
+      hidden INTEGER,
+      format TEXT,
+      sort_by TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (model_id, table_name, column_name)
+    );
     CREATE TABLE IF NOT EXISTS bi_dataset_filters (
       model_id INTEGER PRIMARY KEY,
       filters_json TEXT NOT NULL,
@@ -74,7 +85,7 @@ function readOverlay(fileName) {
  * (sort-by, hidden, type overrides, extra relationships, measures) and user
  * measures. Pure over its inputs so tests can pass an in-memory database.
  */
-function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasures = [], userColumns = [], counts = true }) {
+function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasures = [], userColumns = [], columnProps = [], counts = true }) {
   const tableRows = db
     .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
     .all()
@@ -111,6 +122,15 @@ function buildModel({ id, name, db, exclude = new Set(), overlay = {}, userMeasu
   }
   for (const m of userMeasures) {
     model.measures.push({ id: m.id, name: m.name, table: m.table_name, expression: m.expression, format: m.format || undefined, origin: 'user' });
+  }
+  // E3: properties set from the report editor win over the overlay file; a null field keeps the file's value.
+  for (const p of columnProps) {
+    const table = model.tables.find((t) => t.name === p.table_name);
+    const col = table?.columns.find((c) => c.name === p.column_name);
+    if (!col) continue;
+    if (p.hidden !== null && p.hidden !== undefined) col.hidden = p.hidden === 1;
+    if (p.format) col.format = p.format;
+    if (p.sort_by && p.sort_by !== col.name && table.columns.some((c) => c.name === p.sort_by)) col.sortBy = p.sort_by;
   }
   // Calculated columns take their type from their formula (F5). Required lazily: dax.js requires this module.
   require('./dax').inferColumnTypes(model);
@@ -177,6 +197,7 @@ function loadModel(modelId, { counts = true } = {}) {
     overlay: readOverlay(row.file_name),
     userMeasures: getMetaDb().prepare('SELECT * FROM bi_measures WHERE model_id = ? ORDER BY name').all(row.id),
     userColumns: getMetaDb().prepare('SELECT * FROM bi_columns WHERE model_id = ? ORDER BY id').all(row.id),
+    columnProps: getMetaDb().prepare('SELECT * FROM bi_column_props WHERE model_id = ?').all(row.id),
   });
   // Dataset (data-source level) filters: applied by the query compiler to every request on this model.
   const stored = getMetaDb().prepare('SELECT filters_json FROM bi_dataset_filters WHERE model_id = ?').get(row.id);
