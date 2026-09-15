@@ -16,6 +16,22 @@ const { quoteIdent, dataTypeOf } = require('./model');
 const LIMITS = { records: 50000, rows: 200000, columns: 500, depth: 20 };
 const RESERVED = new Set(['_id', '_parent_id']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
+const NUMBER_RE = /^-?(?:\d+|\d*\.\d+)(?:[eE][+-]?\d+)?$/;
+
+/**
+ * CSV cells arrive as text: blanks become null and plain numbers become
+ * numbers, so columns get numeric types. Codes with leading zeros stay text.
+ */
+function typedCells(records) {
+  return records.map((record) => Object.fromEntries(Object.entries(record).map(([key, value]) => {
+    if (typeof value !== 'string') return [key, value];
+    const trimmed = value.trim();
+    if (trimmed === '') return [key, null];
+    if (NUMBER_RE.test(trimmed) && !/^-?0\d/.test(trimmed)) return [key, Number(trimmed)];
+    return [key, value];
+  })));
+}
 
 function sanitizeName(name) {
   // Runs of underscores collapse to one, so "__" only ever means parent__child and names can't collide.
@@ -91,18 +107,21 @@ function kindOf(value) {
   if (typeof value === 'boolean') return 'boolean';
   if (typeof value === 'number') return Number.isInteger(value) ? 'integer' : 'number';
   if (typeof value === 'string' && DATE_RE.test(value)) return 'date';
+  if (typeof value === 'string' && DATETIME_RE.test(value)) return 'datetime';
   return 'text';
 }
 
 function sqlType(kinds) {
   if (kinds.size === 0) return 'TEXT';
-  if (kinds.size === 1) return { boolean: 'BOOLEAN', integer: 'INTEGER', number: 'REAL', date: 'DATE', text: 'TEXT' }[[...kinds][0]];
+  if (kinds.size === 1) return { boolean: 'BOOLEAN', integer: 'INTEGER', number: 'REAL', date: 'DATE', datetime: 'DATETIME', text: 'TEXT' }[[...kinds][0]];
   if ([...kinds].every((k) => k === 'integer' || k === 'number')) return 'REAL';
   return 'TEXT';
 }
 
 function storeValue(value) {
   if (typeof value === 'boolean') return value ? 1 : 0;
+  // Date-times are stored as "YYYY-MM-DD HH:MM:SS", the form the query compiler compares.
+  if (typeof value === 'string' && DATETIME_RE.test(value)) return `${value.replace('T', ' ')}${value.length === 16 ? ':00' : ''}`;
   return value ?? null;
 }
 
@@ -277,4 +296,4 @@ function flattenJsonColumn(db, { table, column, keyColumn, rows, keys, mode = 'r
   };
 }
 
-module.exports = { ingestJson, flattenJsonColumn, planTables, sanitizeName };
+module.exports = { ingestJson, flattenJsonColumn, planTables, sanitizeName, typedCells };

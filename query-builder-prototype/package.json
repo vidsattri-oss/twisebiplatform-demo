@@ -5,7 +5,7 @@
   "description": "Local prototype: SQLite data source + a wired Visual query builder, proving the Cube.dev-style metadata-validation pattern from the feasibility study.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test --test-reporter=spec \"bi/test/*.test.js\"",
     "seed:wells": "node seed-wells.js",
     "seed:appmaster": "node seed-appmaster.js"

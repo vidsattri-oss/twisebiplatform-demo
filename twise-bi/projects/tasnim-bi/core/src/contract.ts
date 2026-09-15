@@ -6,6 +6,10 @@
 export type DataType = 'text' | 'integer' | 'number' | 'date' | 'datetime' | 'boolean';
 export type Scalar = string | number | boolean | null;
 
+export type ConnectionType = 'sqlite' | 'csv' | 'excel' | 'rest' | 'googleSheet' | 'sap' | 'sqlServer' | 'postgres';
+export type ConnectionKind = 'file' | 'upload' | 'pull' | 'database';
+export type ConnectionState = 'ready' | 'needs-setup' | 'needs-refresh' | 'needs-upload' | 'refresh-failed';
+
 export interface ModelSummary {
   id: number;
   name: string;
@@ -14,6 +18,76 @@ export interface ModelSummary {
   status: 'connected' | 'error';
   tableCount: number;
   error?: string | null;
+  type?: ConnectionType;
+  typeLabel?: string;
+  kind?: ConnectionKind;
+  /** Non-secret settings (URL, host, tables …). The secret is never sent. */
+  settings?: Record<string, unknown>;
+  hasSecret?: boolean;
+  state?: ConnectionState;
+  /** What is missing, e.g. "Needs SQL Server: password, tables to copy (schema.table)." */
+  needs?: string | null;
+  lastRefresh?: string | null;
+  lastError?: string | null;
+  rowCount?: number | null;
+}
+
+export interface ConnectionTypeInfo {
+  type: ConnectionType;
+  label: string;
+  kind: ConnectionKind;
+  system?: string;
+  driver?: string;
+  driverInstalled?: boolean;
+}
+
+export interface ConnectionInput {
+  name: string;
+  type: ConnectionType;
+  /** sqlite: a file already in the server's connections folder. */
+  fileName?: string;
+  settings?: Record<string, unknown>;
+  /** A token or password; encrypted on the server and never returned. */
+  secret?: string;
+}
+
+export interface ConnectionPatch {
+  name?: string;
+  settings?: Record<string, unknown>;
+  /** A new secret; null removes it; omitted keeps it. */
+  secret?: string | null;
+}
+
+export interface ConnectionTestResult {
+  ok: boolean;
+  message: string;
+  needs?: string;
+  tables?: string[];
+}
+
+export interface RefreshResult {
+  ok: boolean;
+  rows: number;
+  tables: string[];
+  empty: string[];
+  refreshedAt: string;
+}
+
+export interface CsvUploadRequest {
+  connectionId?: number;
+  tableName: string;
+  csv: string;
+  mode?: 'append' | 'replace';
+  dryRun?: boolean;
+}
+
+export interface ExcelUploadRequest {
+  connectionId?: number;
+  fileName: string;
+  fileBase64: string;
+  sheets?: string[];
+  mode?: 'append' | 'replace';
+  dryRun?: boolean;
 }
 
 export interface Column {
@@ -343,6 +417,11 @@ export interface JsonColumnRequest {
   keys?: string[];
   mode?: 'append' | 'replace';
   dryRun?: boolean;
+}
+
+export interface ExcelUploadResult extends IngestResult {
+  sheets: string[];
+  emptySheets: string[];
 }
 
 export interface JsonColumnResult extends IngestResult {

@@ -13,6 +13,7 @@ const { validateExpression } = require('./dax');
 const { runQuery, runRows, runValues } = require('./query');
 const { ingestJson, flattenJsonColumn } = require('./ingest');
 const reports = require('./reports');
+const connectors = require('./connectors');
 const { badRequest, notFound } = require('./errors');
 
 const IMPORTS_FILE = 'json-imports.db';
@@ -25,6 +26,13 @@ const wrap = (fn) => (req, res, next) => {
   } catch (e) {
     next(e);
   }
+};
+const wrapAsync = (fn) => (req, res, next) => {
+  Promise.resolve()
+    .then(() => fn(req, res))
+    .then((out) => {
+      if (out !== undefined) res.json(out);
+    }, next);
 };
 const intParam = (value, name) => {
   const n = Number(value);
@@ -197,21 +205,15 @@ router.get('/connections/available-files', wrap(() => {
   const registered = getMetaDb().prepare('SELECT file_name FROM connections').all().map((r) => r.file_name);
   return connections.listAvailableFiles(registered);
 }));
-router.post('/connections', wrap((req) => {
-  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-  const fileName = req.body?.fileName;
-  if (!name || name.length > 100) throw badRequest('Give the connection a name of 1 to 100 characters.');
-  if (typeof fileName !== 'string') throw badRequest('Pick one of the available files.');
-  try {
-    connections.getFilePath(0, fileName);
-  } catch (e) {
-    throw badRequest(e.message);
-  }
-  const meta = getMetaDb();
-  if (meta.prepare('SELECT 1 FROM connections WHERE file_name = ?').get(fileName)) throw badRequest(`"${fileName}" is already connected.`);
-  const info = meta.prepare('INSERT INTO connections (name, file_name, created_at) VALUES (?, ?, ?)').run(name, fileName, new Date().toISOString());
-  return { id: Number(info.lastInsertRowid) };
-}));
+// S1–S4: typed connections. POST accepts { name, type, fileName (sqlite), settings, secret }.
+router.get('/connections/types', wrap(() => connectors.connectionTypes()));
+router.post('/connections', wrap((req) => connectors.createConnection(req.body || {})));
+router.put('/connections/:connectionId', wrap((req) => connectors.updateConnection(intParam(req.params.connectionId, 'connectionId'), req.body || {})));
+router.post('/connections/:connectionId/test', wrapAsync((req) => connectors.testConnection(intParam(req.params.connectionId, 'connectionId'))));
+router.post('/connections/:connectionId/refresh', wrapAsync((req) => connectors.refreshConnection(intParam(req.params.connectionId, 'connectionId'))));
+
+/** A sample REST feed (FLAF / PO / PEG / SCR / MOC) for trying the REST connector against this server. */
+router.get('/samples/work-orders.json', wrap(() => connectors.sampleWorkOrders()));
 router.delete('/connections/:connectionId', wrap((req) => {
   const id = intParam(req.params.connectionId, 'connectionId');
   const row = getMetaDb().prepare('SELECT file_name FROM connections WHERE id = ?').get(id);
@@ -232,6 +234,10 @@ router.post('/ingest/json', wrap((req) => {
   const result = ingestJson(connections.getDb(row.id, row.file_name), body);
   return { connectionId: row.id, ...result };
 }));
+
+// S2: file uploads, sent as JSON (CSV text, or the workbook as base64).
+router.post('/ingest/csv', wrap((req) => connectors.uploadCsv(req.body || {})));
+router.post('/ingest/excel', wrap((req) => connectors.uploadExcel(req.body || {})));
 
 const MAX_FLATTEN_ROWS = 50000;
 
@@ -266,6 +272,7 @@ router.post('/ingest/json-column', wrap((req) => {
 }));
 
 ensureMetaSchema();
+connectors.ensureConnectorSchema();
 reports.seedReports();
 
 module.exports = router;

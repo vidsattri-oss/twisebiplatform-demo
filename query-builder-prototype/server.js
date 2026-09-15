@@ -508,6 +508,8 @@ module.exports = app;
 
 if (require.main === module) {
   const PORT = process.env.PORT || 4173;
+  // Scheduled pulls for REST / Google / SAP / database connections with a refresh interval (S3).
+  require('./bi/connectors').startRefreshScheduler();
   app.listen(PORT, () => {
     console.log(`Query builder prototype running at http://localhost:${PORT}`);
     console.log(`SQLite file: ${DB_PATH}`);

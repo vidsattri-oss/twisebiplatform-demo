@@ -9,9 +9,34 @@
 .source:focus-visible { outline: none; box-shadow: var(--bi-focus); }
 .source-name { font-weight: 600; font-size: 13.5px; }
 .source-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--bi-muted); }
-.remove { align-self: flex-end; font-size: 12px; color: var(--bi-danger); }
+.source-meta { flex-wrap: wrap; }
+.note { font-size: 12px; line-height: 1.4; text-align: left; }
+.note.warning { color: var(--bi-warning); }
+.note.danger { color: var(--bi-danger); }
+.source-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 14px; font-size: 12.5px; }
+.remove { font-size: 12px; color: var(--bi-danger); }
+.upload { position: relative; cursor: pointer; }
+.upload:focus-within { box-shadow: var(--bi-focus); }
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; }
-.planned li { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 8px 10px; border: 1px dashed var(--bi-border-strong); border-radius: var(--bi-radius); }
+
+.add-form { margin-bottom: 16px; }
+.type-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 0; padding: 0; border: 0; }
+.type-picker legend { grid-column: 1 / -1; margin-bottom: 6px; }
+.type-group { display: flex; flex-direction: column; gap: 4px; }
+.group-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--bi-soft); }
+.type-option {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--bi-border); border-radius: var(--bi-radius-sm); background: var(--bi-surface);
+}
+.type-option:hover { border-color: var(--bi-border-strong); }
+.type-option.on { border-color: var(--bi-primary); background: var(--bi-primary-tint); box-shadow: inset 3px 0 0 var(--bi-accent); }
+.type-option input { accent-color: var(--bi-primary); margin: 0; }
+.type-option:focus-within { box-shadow: var(--bi-focus); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+.form-grid .wide { grid-column: 1 / -1; }
+.form-grid .check { align-self: center; font-size: 13px; }
+.file { padding: 5px 8px; height: auto; }
+.actions { display: flex; gap: 8px; }
 .subhead { margin: 16px 0 8px; font-size: 12px; font-weight: 600; color: var(--bi-muted); }
 .model .subhead:first-of-type { margin-top: 4px; }
 .tables { display: flex; flex-direction: column; gap: 6px; }

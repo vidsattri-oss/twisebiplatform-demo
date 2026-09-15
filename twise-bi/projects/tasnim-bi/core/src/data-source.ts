@@ -5,6 +5,14 @@ import {
   BiFilter,
   CalculatedColumnInput,
   Column,
+  ConnectionInput,
+  ConnectionPatch,
+  ConnectionTestResult,
+  ConnectionTypeInfo,
+  CsvUploadRequest,
+  ExcelUploadRequest,
+  ExcelUploadResult,
+  RefreshResult,
   ExpressionKind,
   ExpressionPreview,
   IngestRequest,
@@ -51,8 +59,14 @@ export interface BiDataSource {
   updateReport(reportId: number, report: ReportInput): Observable<Report>;
   deleteReport(reportId: number): Observable<unknown>;
   availableFiles(): Observable<string[]>;
-  addConnection(name: string, fileName: string): Observable<{ id: number }>;
+  connectionTypes(): Observable<ConnectionTypeInfo[]>;
+  addConnection(connection: ConnectionInput): Observable<{ id: number }>;
+  updateConnection(connectionId: number, patch: ConnectionPatch): Observable<{ id: number }>;
+  testConnection(connectionId: number): Observable<ConnectionTestResult>;
+  refreshConnection(connectionId: number): Observable<RefreshResult>;
   removeConnection(connectionId: number): Observable<unknown>;
+  uploadCsv(request: CsvUploadRequest): Observable<IngestResult>;
+  uploadExcel(request: ExcelUploadRequest): Observable<ExcelUploadResult>;
   ingestJson(request: IngestRequest): Observable<IngestResult>;
   flattenJsonColumn(request: JsonColumnRequest): Observable<JsonColumnResult>;
   saveDatasetFilters(modelId: number, filters: BiFilter[]): Observable<BiFilter[]>;
@@ -119,11 +133,29 @@ export class HttpBiDataSource implements BiDataSource {
   availableFiles() {
     return this.http.get<string[]>(`${this.base}/connections/available-files`);
   }
-  addConnection(name: string, fileName: string) {
-    return this.http.post<{ id: number }>(`${this.base}/connections`, { name, fileName });
+  connectionTypes() {
+    return this.http.get<ConnectionTypeInfo[]>(`${this.base}/connections/types`);
+  }
+  addConnection(connection: ConnectionInput) {
+    return this.http.post<{ id: number }>(`${this.base}/connections`, connection);
+  }
+  updateConnection(connectionId: number, patch: ConnectionPatch) {
+    return this.http.put<{ id: number }>(`${this.base}/connections/${connectionId}`, patch);
+  }
+  testConnection(connectionId: number) {
+    return this.http.post<ConnectionTestResult>(`${this.base}/connections/${connectionId}/test`, {});
+  }
+  refreshConnection(connectionId: number) {
+    return this.http.post<RefreshResult>(`${this.base}/connections/${connectionId}/refresh`, {});
   }
   removeConnection(connectionId: number) {
     return this.http.delete(`${this.base}/connections/${connectionId}`);
+  }
+  uploadCsv(request: CsvUploadRequest) {
+    return this.http.post<IngestResult>(`${this.base}/ingest/csv`, request);
+  }
+  uploadExcel(request: ExcelUploadRequest) {
+    return this.http.post<ExcelUploadResult>(`${this.base}/ingest/excel`, request);
   }
   ingestJson(request: IngestRequest) {
     return this.http.post<IngestResult>(`${this.base}/ingest/json`, request);

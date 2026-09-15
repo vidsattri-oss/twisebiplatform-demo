@@ -2,34 +2,99 @@
   <div class="page-head">
     <div>
       <h1 class="page-title">Data sources</h1>
-      <p class="page-sub">Every connected source becomes a semantic model: typed columns, relationships from real foreign keys, and measures.</p>
+      <p class="page-sub">Files, online sources and databases. Every connection becomes a semantic model: typed columns, relationships from real foreign keys, measures and dataset filters.</p>
     </div>
-    <button type="button" class="btn primary" (click)="adding.set(!adding())">+ Add connection</button>
+    <button type="button" class="btn primary" [attr.aria-expanded]="adding()" (click)="adding.set(!adding())">+ Add connection</button>
   </div>
   <bi-nav />
 
   @if (message(); as m) {
-    <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">{{ m.text }}</p>
+    <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" [class.info]="m.kind === 'info'" role="status">{{ m.text }}</p>
   }
 
   @if (adding()) {
-    <form class="panel form-row" (submit)="$event.preventDefault(); add()">
-      <label class="field">
-        <span class="label">Connection name</span>
-        <input class="input" [value]="newName()" (input)="newName.set(valueOf($event))" placeholder="e.g. Drilling operations" />
-      </label>
-      <label class="field">
-        <span class="label">File detected on the server</span>
-        <select class="select" [value]="newFile()" (change)="newFile.set(valueOf($event))">
-          @for (f of files.value() ?? []; track f) {
-            <option [value]="f" [selected]="f === newFile()">{{ f }}</option>
-          } @empty {
-            <option value="">{{ files.isLoading() ? 'Looking for files…' : 'No unconnected files found' }}</option>
+    <form class="panel stack add-form" (submit)="$event.preventDefault(); add()">
+      <fieldset class="type-picker">
+        <legend class="label">Source type</legend>
+        @for (g of typeGroups; track g.label) {
+          <div class="type-group">
+            <span class="group-label">{{ g.label }}</span>
+            @for (t of g.types; track t) {
+              <label class="type-option" [class.on]="newType() === t">
+                <input type="radio" name="bi-connection-type" [checked]="newType() === t" (change)="chooseType(t)" />
+                <span>{{ typeInfo().get(t)?.label ?? t }}</span>
+              </label>
+            }
+          </div>
+        }
+      </fieldset>
+
+      <div class="form-grid">
+        <label class="field">
+          <span class="label">Connection name</span>
+          <input class="input" [value]="newName()" (input)="newName.set(valueOf($event))" placeholder="e.g. Drilling operations" />
+        </label>
+        @if (newType() === 'sqlite') {
+          <label class="field">
+            <span class="label">File on the server</span>
+            <select class="select" (change)="newFile.set(valueOf($event))">
+              @for (f of files.value() ?? []; track f) {
+                <option [value]="f" [selected]="f === newFile()">{{ f }}</option>
+              } @empty {
+                <option value="">{{ files.isLoading() ? 'Looking for files…' : 'No unconnected files found' }}</option>
+              }
+            </select>
+          </label>
+        }
+        @if (newType() === 'csv' || newType() === 'excel') {
+          <label class="field">
+            <span class="label">{{ newType() === 'csv' ? 'CSV file' : 'Excel workbook (.xlsx)' }}</span>
+            <input class="input file" type="file" [attr.accept]="newType() === 'csv' ? '.csv,text/csv' : '.xlsx'" (change)="chooseFile($event)" />
+            <span class="help">{{ newType() === 'csv' ? 'The header row names the columns.' : 'Each sheet becomes a table.' }} Upload a new file later to replace the data.</span>
+          </label>
+        }
+        @for (f of fields(); track f.key) {
+          @switch (f.kind) {
+            @case ('checkbox') {
+              <label class="check"><input type="checkbox" [checked]="fieldValue(f) === true" (change)="setField(f.key, checked($event))" /> {{ f.label }}</label>
+            }
+            @case ('select') {
+              <label class="field">
+                <span class="label">{{ f.label }}</span>
+                <select class="select" (change)="setField(f.key, valueOf($event))">
+                  @for (o of f.options ?? []; track o.value) {
+                    <option [value]="o.value" [selected]="fieldValue(f) === o.value">{{ o.label }}</option>
+                  }
+                </select>
+              </label>
+            }
+            @default {
+              <label class="field" [class.wide]="f.wide">
+                <span class="label">{{ f.label }}</span>
+                <input class="input" [type]="f.kind === 'number' ? 'number' : 'text'" [value]="fieldValue(f)" [placeholder]="f.placeholder ?? ''" (input)="setField(f.key, valueOf($event))" />
+                @if (f.help) {
+                  <span class="help">{{ f.help }}</span>
+                }
+              </label>
+            }
           }
-        </select>
-      </label>
-      <button type="submit" class="btn primary">Connect</button>
-      <button type="button" class="btn ghost" (click)="adding.set(false)">Cancel</button>
+        }
+        @if (secretLabel(); as label) {
+          <label class="field">
+            <span class="label">{{ label }}</span>
+            <input class="input" type="password" autocomplete="new-password" [value]="newSecret()" (input)="newSecret.set(valueOf($event))" />
+            <span class="help">Encrypted on the BI server and never shown again.</span>
+          </label>
+        }
+      </div>
+
+      @if (driverNote(); as note) {
+        <p class="alert warning">{{ note }}</p>
+      }
+      <div class="actions">
+        <button type="submit" class="btn primary" [disabled]="saving()">{{ saving() ? 'Connecting…' : 'Connect' }}</button>
+        <button type="button" class="btn ghost" (click)="adding.set(false)">Cancel</button>
+      </div>
     </form>
   }
 
@@ -42,41 +107,54 @@
       } @else {
         <ul class="sources">
           @for (m of models.value() ?? []; track m.id) {
+            @let badge = stateBadge(m);
             <li>
               <button type="button" class="source" [class.active]="activeId() === m.id" [attr.aria-current]="activeId() === m.id" (click)="selectedId.set(m.id)">
                 <span class="source-name">{{ m.name }}</span>
                 <span class="source-meta">
-                  @if (m.status === 'connected') {
-                    <span class="badge success">Connected</span> {{ m.tableCount }} tables
-                  } @else {
-                    <span class="badge danger">Error</span>
-                  }
+                  <span [class]="'badge ' + badge.cls">{{ badge.text }}</span>
+                  <span class="badge">{{ m.typeLabel ?? 'SQLite file' }}</span>
+                  <span>{{ m.tableCount }} tables@if (m.lastRefresh) { · {{ when(m.lastRefresh) }} }</span>
                 </span>
+                @if (m.needs) {
+                  <span class="note warning">{{ m.needs }}</span>
+                }
+                @if (m.lastError) {
+                  <span class="note danger">{{ m.lastError }}</span>
+                }
               </button>
-              @if (confirmRemoveId() === m.id) {
-                <div class="confirm">
-                  <span>Remove this connection? Reports built on it stop working.</span>
-                  <button type="button" class="btn danger sm" (click)="remove(m.id)">Remove</button>
-                  <button type="button" class="btn ghost sm" (click)="confirmRemoveId.set(null)">Keep</button>
-                </div>
-              } @else {
-                <button type="button" class="link remove" (click)="confirmRemoveId.set(m.id)">Remove</button>
-              }
+              <div class="source-actions">
+                @if (busyId() === m.id) {
+                  <span class="help" aria-live="polite">Working…</span>
+                } @else {
+                  @if (m.kind === 'pull' || m.kind === 'database') {
+                    <button type="button" class="link" (click)="test(m.id)">Test</button>
+                    <button type="button" class="link" (click)="refresh(m.id)">Refresh now</button>
+                  }
+                  @if (m.type === 'csv' || m.type === 'excel') {
+                    <label class="link upload">
+                      Upload {{ m.type === 'csv' ? 'CSV' : 'workbook' }}
+                      <input type="file" class="sr-only" [attr.accept]="m.type === 'csv' ? '.csv,text/csv' : '.xlsx'" (change)="onUpload(m, $event)" />
+                    </label>
+                  }
+                }
+                @if (m.fileName !== 'data.db') {
+                  @if (confirmRemoveId() === m.id) {
+                    <span class="confirm">
+                      Remove this connection? Reports built on it stop working.
+                      <button type="button" class="btn danger sm" (click)="remove(m.id)">Remove</button>
+                      <button type="button" class="btn ghost sm" (click)="confirmRemoveId.set(null)">Keep</button>
+                    </span>
+                  } @else {
+                    <button type="button" class="link remove" (click)="confirmRemoveId.set(m.id)">Remove</button>
+                  }
+                }
+              </div>
             </li>
           }
         </ul>
       }
-
-      <h3 class="subhead">Planned connectors</h3>
-      <ul class="planned">
-        @for (p of planned; track p.name) {
-          <li>
-            <span class="source-name">{{ p.name }}</span>
-            <span class="badge warning">Not connected in this build</span>
-            <span class="help">{{ p.detail }}</span>
-          </li>
-        }
-      </ul>
+      <p class="help">Every connector lands its data in the connection's own store, so reports, filters and formulas work the same whatever the source. New connector types plug into the same interface.</p>
     </section>
 
     <section class="panel model">

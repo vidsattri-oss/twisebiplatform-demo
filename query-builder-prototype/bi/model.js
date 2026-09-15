@@ -191,15 +191,19 @@ function openModel(modelId) {
 }
 
 function listModels() {
+  // Required lazily: the connectors module requires ingest.js, which requires this module.
+  const { connectionInfo, ensureConnectorSchema } = require('./connectors');
+  ensureConnectorSchema();
   return getMetaDb()
-    .prepare('SELECT id, name, file_name FROM connections ORDER BY id')
+    .prepare('SELECT * FROM connections ORDER BY id')
     .all()
     .map((row) => {
+      const info = connectionInfo(row);
       try {
         const model = loadModel(row.id, { counts: false });
-        return { id: row.id, name: model.name, fileName: row.file_name, driver: 'node:sqlite', status: 'connected', tableCount: model.tables.length, error: null };
+        return { id: row.id, name: model.name, fileName: row.file_name, driver: 'node:sqlite', status: 'connected', tableCount: model.tables.length, error: null, ...info };
       } catch (e) {
-        return { id: row.id, name: row.name, fileName: row.file_name, driver: 'node:sqlite', status: 'error', tableCount: 0, error: e.message };
+        return { id: row.id, name: row.name, fileName: row.file_name, driver: 'node:sqlite', status: 'error', tableCount: 0, error: e.message, ...info };
       }
     });
 }
