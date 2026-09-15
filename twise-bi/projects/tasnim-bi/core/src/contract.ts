@@ -419,6 +419,41 @@ export interface JsonColumnRequest {
   dryRun?: boolean;
 }
 
+/** Plug-in fields use the aggregate roles: "category" (group by, up to 2) and "values" (measures, up to 5). */
+export interface PluginRole {
+  name: 'category' | 'values';
+  label: string;
+  kind: 'grouping' | 'measure';
+  min: number;
+  max: number;
+}
+
+export interface PluginManifest {
+  type: string;
+  label: string;
+  /** SVG path data for a 24 × 24 box. */
+  icon: string;
+  description?: string;
+  version?: string;
+  author?: string;
+  roles: PluginRole[];
+}
+
+export interface PluginVisual extends PluginManifest {
+  source: 'catalog' | 'imported';
+  installedAt: string;
+}
+
+export interface PluginCatalogEntry extends PluginManifest {
+  installed: boolean;
+}
+
+/** A manifest plus the JavaScript that calls bi.registerVisual({ render(root, data, api) }). */
+export interface PluginPackage {
+  manifest: PluginManifest;
+  code: string;
+}
+
 export interface ExcelUploadResult extends IngestResult {
   sheets: string[];
   emptySheets: string[];

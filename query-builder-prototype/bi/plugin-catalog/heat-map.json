@@ -1,0 +1,12 @@
+{
+  "type": "heat-map",
+  "label": "Heat map",
+  "icon": "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  "description": "One measure across one or two categories as shaded cells — darker means larger.",
+  "version": "1.0.0",
+  "author": "Tasnim BI samples",
+  "roles": [
+    { "name": "category", "label": "Rows, then columns", "min": 1, "max": 2 },
+    { "name": "values", "label": "Value", "min": 1, "max": 1 }
+  ]
+}

@@ -5,3 +5,4 @@ export * from './card-visual.component';
 export * from './rows-grid.component';
 export * from './table-visual.component';
 export * from './slicer-visual.component';
+export * from './plugin-visual.component';

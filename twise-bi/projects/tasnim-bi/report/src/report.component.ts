@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of } from 'rxjs';
-import { VisualDefinition, clampLayout } from '@tasnim/bi/core';
+import { PluginVisuals, VisualDefinition, clampLayout } from '@tasnim/bi/core';
 import { FilterPaneComponent } from './filter-pane.component';
 import { ReportStore } from '@tasnim/bi/core';
 import { SeeRecordsSheetComponent } from './see-records-sheet.component';
@@ -64,6 +64,8 @@ export class ReportComponent {
   protected readonly canvasRows = computed(() => this.visuals().reduce((max, v) => Math.max(max, (v.layout?.y ?? 0) + (v.layout?.h ?? 6)), 1));
 
   constructor() {
+    // Installed plug-in visuals join the registry, so saved reports that use them render (V2).
+    void inject(PluginVisuals).ensureLoaded();
     effect(() => {
       const id = this.effectiveId();
       if (id !== undefined) untracked(() => this.store.load(id));

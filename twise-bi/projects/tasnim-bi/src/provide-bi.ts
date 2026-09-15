@@ -2,7 +2,7 @@ import { EnvironmentProviders, Provider, Type, makeEnvironmentProviders } from '
 import { provideHighcharts } from 'highcharts-angular';
 import { BI_API_BASE_URL, BI_DATA_SOURCE, BiDataSource, HttpBiDataSource } from '@tasnim/bi/core';
 import { BI_CHART_PALETTE, BI_FILTER_BRIDGE, BiFilterBridge } from '@tasnim/bi/core';
-import { provideBiVisual } from '@tasnim/bi/core';
+import { BI_PLUGIN_COMPONENT, provideBiVisual } from '@tasnim/bi/core';
 import { BUILT_IN_VISUALS } from './built-in-visuals';
 
 export interface BiConfig {
@@ -28,6 +28,8 @@ export function provideBi(config: BiConfig = {}): EnvironmentProviders {
     { provide: BI_API_BASE_URL, useValue: config.apiBaseUrl ?? '/api/bi' },
     { provide: BI_DATA_SOURCE, useClass: config.dataSource ?? HttpBiDataSource },
     ...BUILT_IN_VISUALS.map(provideBiVisual),
+    // Installed plug-ins render through this sandboxed host component, loaded only when one is on a page.
+    { provide: BI_PLUGIN_COMPONENT, useValue: () => import('@tasnim/bi/visuals').then((m) => m.PluginVisualComponent) },
   ];
   if (config.filterBridge) providers.push({ provide: BI_FILTER_BRIDGE, useClass: config.filterBridge });
   if (config.palette?.length) providers.push({ provide: BI_CHART_PALETTE, useValue: config.palette });

@@ -7,6 +7,7 @@ export * from './describe-filter';
 export * from './data-source';
 export * from './host-bridge';
 export * from './visual-registry';
+export * from './plugin-visuals';
 export * from './visual-context';
 export * from './report-store';
 export * from './theme';

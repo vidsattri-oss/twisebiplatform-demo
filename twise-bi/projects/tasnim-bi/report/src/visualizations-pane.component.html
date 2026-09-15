@@ -10,13 +10,14 @@
     <section class="section">
       <h3 class="section-title">{{ visual() ? 'Visual type' : 'Add a visual' }}</h3>
       <div class="types" role="group" aria-label="Visual types">
-        @for (t of types; track t.type) {
+        @for (t of types(); track t.type) {
           <button
             type="button"
             class="type"
             [class.active]="visual()?.type === t.type"
+            [class.plugin]="t.origin === 'plugin'"
             [attr.aria-pressed]="visual() ? visual()!.type === t.type : null"
-            [title]="t.label"
+            [title]="t.origin === 'plugin' ? t.label + ' (plug-in, runs sandboxed)' : t.label"
             (click)="visual() ? store.changeVisualType(visual()!.id, t.type) : store.addVisual(t.type)"
           >
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="t.icon" /></svg>

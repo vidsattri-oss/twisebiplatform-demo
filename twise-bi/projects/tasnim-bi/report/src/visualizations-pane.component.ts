@@ -19,7 +19,8 @@ export class VisualizationsPaneComponent {
   protected readonly store = inject(ReportStore);
   protected readonly registry = inject(VisualRegistry);
 
-  protected readonly types = this.registry.all();
+  /** Computed, so a plug-in installed while the report is open appears without a reload. */
+  protected readonly types = computed(() => this.registry.all());
   protected readonly visual = this.store.focusedVisual;
   protected readonly type = computed(() => {
     const v = this.visual();

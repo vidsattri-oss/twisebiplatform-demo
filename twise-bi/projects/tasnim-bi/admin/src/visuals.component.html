@@ -1,0 +1,111 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Visuals</h1>
+      <p class="page-sub">Built-in visuals, visuals your app adds, and plug-ins. Install plug-ins from the catalog or import your own — like AppSource visuals in Power BI. Installed visuals appear in the Visualizations pane.</p>
+    </div>
+  </div>
+  <bi-nav />
+
+  @if (message(); as m) {
+    <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">{{ m.text }}</p>
+  }
+
+  <div class="split">
+    <section class="panel stack">
+      <div class="panel-head">
+        <h2 class="panel-title">Installed</h2>
+        <span class="help">{{ installed().length }} visuals</span>
+      </div>
+      <ul class="visual-list">
+        @for (t of installed(); track t.type) {
+          @let badge = origin(t);
+          <li class="visual-row">
+            <svg class="visual-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="t.icon" /></svg>
+            <div class="visual-text">
+              <span class="visual-name">{{ t.label }}</span>
+              <span class="help mono">{{ t.type }}</span>
+              @if (t.description) {
+                <span class="help">{{ t.description }}</span>
+              }
+            </div>
+            <div class="visual-side">
+              <span [class]="'badge ' + badge.cls">{{ badge.text }}</span>
+              @if (t.origin === 'plugin') {
+                @if (confirmRemove() === t.type) {
+                  <span class="confirm">
+                    <button type="button" class="btn danger sm" [disabled]="busy() === t.type" (click)="remove(t.type)">Remove</button>
+                    <button type="button" class="btn ghost sm" (click)="confirmRemove.set(null)">Keep</button>
+                  </span>
+                } @else {
+                  <button type="button" class="link danger-text" (click)="confirmRemove.set(t.type)">Remove</button>
+                }
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="stack">
+      <div class="panel stack">
+        <div class="panel-head"><h2 class="panel-title">Catalog</h2></div>
+        @if (catalogError(); as error) {
+          <p class="alert error" role="alert">{{ error }}</p>
+        }
+        <div class="catalog">
+          @for (c of catalog.value() ?? []; track c.type) {
+            <article class="catalog-card">
+              <div class="catalog-head">
+                <svg class="visual-icon large" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="c.icon" /></svg>
+                <div>
+                  <h3 class="visual-name">{{ c.label }}</h3>
+                  <span class="help">{{ c.author }}@if (c.version) { · v{{ c.version }} }</span>
+                </div>
+              </div>
+              <p class="help">{{ c.description }}</p>
+              <p class="help"><strong>Fields:</strong> {{ roleSummary(c) }}</p>
+              <div class="actions">
+                @if (c.installed) {
+                  <span class="badge success">Installed</span>
+                } @else {
+                  <button type="button" class="btn primary sm" [disabled]="busy() === c.type" (click)="install(c.type)">{{ busy() === c.type ? 'Installing…' : 'Install' }}</button>
+                }
+                <button type="button" class="btn ghost sm" (click)="startFrom(c.type)">Use as a starting point</button>
+              </div>
+            </article>
+          } @empty {
+            <p class="help">{{ catalog.isLoading() ? 'Loading the catalog…' : 'The catalog is empty.' }}</p>
+          }
+        </div>
+      </div>
+
+      <form class="panel stack" (submit)="$event.preventDefault(); importVisual()">
+        <div class="panel-head"><h2 class="panel-title">Import a visual</h2></div>
+        <p class="help">A plug-in is a manifest — type, label, icon and fields (<span class="mono">category</span>, <span class="mono">values</span>) — and one JavaScript file that calls <span class="mono">bi.registerVisual(&#123; render(root, data, api) &#125;)</span>.</p>
+        <div class="pair">
+          <label class="field">
+            <span class="label">Manifest (.json)</span>
+            <input class="input file" type="file" accept=".json,application/json" (change)="onFile($event, 'manifest')" />
+            <textarea class="textarea" rows="12" spellcheck="false" aria-label="Manifest JSON" [value]="manifestText()" (input)="manifestText.set(valueOf($event))"></textarea>
+          </label>
+          <label class="field">
+            <span class="label">Code (.js)</span>
+            <input class="input file" type="file" accept=".js,text/javascript" (change)="onFile($event, 'code')" />
+            <textarea class="textarea" rows="12" spellcheck="false" aria-label="Plug-in JavaScript" [value]="codeText()" (input)="codeText.set(valueOf($event))"></textarea>
+          </label>
+        </div>
+        <div class="sandbox">
+          <svg class="visual-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3Z" /></svg>
+          <p>
+            <strong>Runs sandboxed.</strong> Imported code runs in an isolated frame with no network access. It can't read this page, cookies or sign-in tokens.
+            It receives only its own visual's data, and can only ask to select data points or open See records.
+          </p>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn primary" [disabled]="busy() === 'import' || !manifestText().trim() || !codeText().trim()">{{ busy() === 'import' ? 'Importing…' : 'Import visual' }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

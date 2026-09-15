@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import {
   BiFilter,
   CalculatedColumnInput,
@@ -19,6 +19,9 @@ import {
   IngestResult,
   JsonColumnRequest,
   JsonColumnResult,
+  PluginCatalogEntry,
+  PluginPackage,
+  PluginVisual,
   Measure,
   MeasureInput,
   MeasureValidateResult,
@@ -70,6 +73,14 @@ export interface BiDataSource {
   ingestJson(request: IngestRequest): Observable<IngestResult>;
   flattenJsonColumn(request: JsonColumnRequest): Observable<JsonColumnResult>;
   saveDatasetFilters(modelId: number, filters: BiFilter[]): Observable<BiFilter[]>;
+  listPlugins(): Observable<PluginVisual[]>;
+  pluginCatalog(): Observable<PluginCatalogEntry[]>;
+  catalogPlugin(type: string): Observable<PluginPackage>;
+  installCatalogPlugin(type: string): Observable<PluginVisual>;
+  importPlugin(plugin: PluginPackage): Observable<PluginVisual>;
+  removePlugin(type: string): Observable<unknown>;
+  /** The plug-in's JavaScript as text, to run only inside the sandboxed frame. */
+  pluginCode(type: string): Observable<string>;
 }
 
 export const BI_DATA_SOURCE = new InjectionToken<BiDataSource>('BI_DATA_SOURCE');
@@ -165,6 +176,27 @@ export class HttpBiDataSource implements BiDataSource {
   }
   saveDatasetFilters(modelId: number, filters: BiFilter[]) {
     return this.http.put<BiFilter[]>(`${this.base}/models/${modelId}/dataset-filters`, { filters });
+  }
+  listPlugins() {
+    return this.http.get<PluginVisual[]>(`${this.base}/visuals`);
+  }
+  pluginCatalog() {
+    return this.http.get<PluginCatalogEntry[]>(`${this.base}/visuals/catalog`);
+  }
+  catalogPlugin(type: string) {
+    return this.http.get<PluginPackage>(`${this.base}/visuals/catalog/${encodeURIComponent(type)}`);
+  }
+  installCatalogPlugin(type: string) {
+    return this.http.post<PluginVisual>(`${this.base}/visuals/catalog/${encodeURIComponent(type)}/install`, {});
+  }
+  importPlugin(plugin: PluginPackage) {
+    return this.http.post<PluginVisual>(`${this.base}/visuals`, plugin);
+  }
+  removePlugin(type: string) {
+    return this.http.delete(`${this.base}/visuals/${encodeURIComponent(type)}`);
+  }
+  pluginCode(type: string) {
+    return this.http.get<{ code: string }>(`${this.base}/visuals/${encodeURIComponent(type)}/code`).pipe(map((r) => r.code));
   }
 }
 

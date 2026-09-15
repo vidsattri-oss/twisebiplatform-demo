@@ -14,6 +14,7 @@ const { runQuery, runRows, runValues } = require('./query');
 const { ingestJson, flattenJsonColumn } = require('./ingest');
 const reports = require('./reports');
 const connectors = require('./connectors');
+const plugins = require('./plugins');
 const { badRequest, notFound } = require('./errors');
 
 const IMPORTS_FILE = 'json-imports.db';
@@ -271,8 +272,19 @@ router.post('/ingest/json-column', wrap((req) => {
   return { connectionId: row.id, ...result };
 }));
 
+// --- Custom visual plug-ins (V1–V3). Code is returned as JSON text, never served as a script (I8). ---
+
+router.get('/visuals', wrap(() => plugins.listPlugins()));
+router.get('/visuals/catalog', wrap(() => plugins.catalogEntries()));
+router.get('/visuals/catalog/:type', wrap((req) => plugins.catalogPackage(req.params.type)));
+router.post('/visuals/catalog/:type/install', wrap((req) => plugins.installFromCatalog(req.params.type)));
+router.post('/visuals', wrap((req) => plugins.savePlugin(req.body?.manifest, req.body?.code, 'imported')));
+router.get('/visuals/:type/code', wrap((req) => plugins.pluginCode(req.params.type)));
+router.delete('/visuals/:type', wrap((req) => plugins.removePlugin(req.params.type)));
+
 ensureMetaSchema();
 connectors.ensureConnectorSchema();
+plugins.ensurePluginSchema();
 reports.seedReports();
 
 module.exports = router;

@@ -9,6 +9,7 @@ export const BI_ROUTES: Routes = [
   { path: '', title: 'Reports', loadComponent: () => import('@tasnim/bi/report').then((m) => m.ReportListComponent) },
   { path: 'data-sources', title: 'Data sources', loadComponent: () => import('@tasnim/bi/admin').then((m) => m.DataSourcesComponent) },
   { path: 'json-import', title: 'JSON import', loadComponent: () => import('@tasnim/bi/admin').then((m) => m.JsonImportComponent) },
-  { path: 'measures', title: 'Measures', loadComponent: () => import('@tasnim/bi/admin').then((m) => m.MeasureEditorComponent) },
+  { path: 'measures', title: 'Formulas', loadComponent: () => import('@tasnim/bi/admin').then((m) => m.MeasureEditorComponent) },
+  { path: 'visuals', title: 'Visuals', loadComponent: () => import('@tasnim/bi/admin').then((m) => m.VisualsComponent) },
   { path: ':reportId', title: 'Report', loadComponent: () => import('@tasnim/bi/report').then((m) => m.ReportComponent) },
 ];

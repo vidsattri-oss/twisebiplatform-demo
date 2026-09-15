@@ -12,7 +12,8 @@ import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
         <a [routerLink]="['./']" [relativeTo]="base" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Reports</a>
         <a [routerLink]="['data-sources']" [relativeTo]="base" routerLinkActive="active">Data sources</a>
         <a [routerLink]="['json-import']" [relativeTo]="base" routerLinkActive="active">JSON import</a>
-        <a [routerLink]="['measures']" [relativeTo]="base" routerLinkActive="active">Measures</a>
+        <a [routerLink]="['measures']" [relativeTo]="base" routerLinkActive="active">Formulas</a>
+        <a [routerLink]="['visuals']" [relativeTo]="base" routerLinkActive="active">Visuals</a>
       </nav>
     }
   `,

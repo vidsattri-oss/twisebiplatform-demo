@@ -1,4 +1,4 @@
-import { Injectable, InjectionToken, Provider, Type, inject } from '@angular/core';
+import { Injectable, InjectionToken, Provider, Type, inject, signal } from '@angular/core';
 import { VisualInteraction } from './contract';
 
 /**
@@ -29,6 +29,10 @@ export interface BiVisualType {
   /** What another visual's selection does to this one unless the report says otherwise. */
   defaultInteraction: VisualInteraction;
   loadComponent: () => Promise<Type<unknown>>;
+  /** built-in: ships with @tasnim/bi; host: registered by the host app; plugin: installed at runtime. Unset means host. */
+  origin?: 'built-in' | 'host' | 'plugin';
+  description?: string;
+  plugin?: { source: 'catalog' | 'imported'; version?: string; author?: string };
 }
 
 export const BI_VISUALS = new InjectionToken<BiVisualType[]>('BI_VISUALS');
@@ -41,6 +45,8 @@ export function provideBiVisual(visual: BiVisualType): Provider {
 @Injectable({ providedIn: 'root' })
 export class VisualRegistry {
   private readonly byType = new Map<string, BiVisualType>();
+  /** Plug-ins installed at runtime (V2). A signal, so panes and visuals update when one is installed. */
+  private readonly plugins = signal<readonly BiVisualType[]>([]);
 
   constructor() {
     // Later registrations win, so a host can replace a built-in by type.
@@ -48,15 +54,20 @@ export class VisualRegistry {
   }
 
   get(type: string): BiVisualType | undefined {
-    return this.byType.get(type);
+    return this.byType.get(type) ?? this.plugins().find((p) => p.type === type);
   }
 
+  /** Built-in and host visuals first; a plug-in never replaces a visual the app registered. */
   all(): BiVisualType[] {
-    return [...this.byType.values()];
+    return [...this.byType.values(), ...this.plugins().filter((p) => !this.byType.has(p.type))];
+  }
+
+  setPlugins(visuals: readonly BiVisualType[]): void {
+    this.plugins.set(visuals);
   }
 
   interactionFor(targetType: string): VisualInteraction {
-    const target = this.byType.get(targetType);
+    const target = this.get(targetType);
     if (!target) return 'none';
     return target.dataKind === 'aggregate' ? target.defaultInteraction : target.defaultInteraction === 'none' ? 'none' : 'filter';
   }
