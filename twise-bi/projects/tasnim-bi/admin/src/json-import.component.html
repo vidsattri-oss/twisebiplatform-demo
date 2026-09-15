@@ -2,71 +2,170 @@
   <div class="page-head">
     <div>
       <h1 class="page-title">JSON import</h1>
-      <p class="page-sub">Nested records become columns; lists become related child tables, so they can be counted and filtered in reports.</p>
+      <p class="page-sub">Nested records become columns; lists become related child tables, so they can be counted and filtered in reports. Import a JSON file, or flatten JSON already stored in a column.</p>
     </div>
   </div>
   <bi-nav />
 
+  <div class="segmented tabs" role="tablist" aria-label="JSON source">
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'json'" [class.on]="tab() === 'json'" (click)="switchTab('json')">Import a JSON file</button>
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'column'" [class.on]="tab() === 'column'" (click)="switchTab('column')">Flatten a JSON column</button>
+  </div>
+
   <div class="split">
-    <section class="panel stack">
-      <div class="panel-head">
-        <h2 class="panel-title">Source</h2>
-        <button type="button" class="link" (click)="useSample()">Use sample FLAF/MOC events</button>
-      </div>
-      <label class="field">
-        <span class="label">Upload a .json file</span>
-        <input class="input file" type="file" accept=".json,application/json" (change)="onFile($event)" />
-      </label>
-      <label class="field">
-        <span class="label">Or paste JSON</span>
-        <textarea class="textarea" rows="14" spellcheck="false" [value]="text()" (input)="edit(valueOf($event))" [attr.aria-invalid]="!!parseError()"></textarea>
-      </label>
-      <label class="field">
-        <span class="label">Table name</span>
-        <input class="input" [value]="tableName()" (input)="tableName.set(valueOf($event))" placeholder="task_events" />
-        <span class="help">Created as json_&lt;name&gt;; lists become json_&lt;name&gt;__&lt;path&gt;.</span>
-      </label>
-      <label class="field">
-        <span class="label">Load into</span>
-        <select class="select" [value]="connectionId() ?? ''" (change)="connectionId.set(valueOf($event) ? +valueOf($event) : null)">
-          <option value="">JSON imports (default)</option>
-          @for (m of targets(); track m.id) {
-            @if (m.fileName !== 'json-imports.db') {
-              <option [value]="m.id" [selected]="m.id === connectionId()">{{ m.name }}</option>
+    @if (tab() === 'json') {
+      <section class="panel stack">
+        <div class="panel-head">
+          <h2 class="panel-title">Source</h2>
+          <button type="button" class="link" (click)="useSample()">Use sample FLAF/MOC events</button>
+        </div>
+        <label class="field">
+          <span class="label">Upload a .json file</span>
+          <input class="input file" type="file" accept=".json,application/json" (change)="onFile($event)" />
+        </label>
+        <label class="field">
+          <span class="label">Or paste JSON</span>
+          <textarea class="textarea" rows="14" spellcheck="false" [value]="text()" (input)="edit(valueOf($event))" [attr.aria-invalid]="!!parseError()"></textarea>
+        </label>
+        <label class="field">
+          <span class="label">Table name</span>
+          <input class="input" [value]="tableName()" (input)="tableName.set(valueOf($event))" placeholder="task_events" />
+          <span class="help">Created as json_&lt;name&gt;; lists become json_&lt;name&gt;__&lt;path&gt;.</span>
+        </label>
+        <label class="field">
+          <span class="label">Load into</span>
+          <select class="select" [value]="connectionId() ?? ''" (change)="connectionId.set(valueOf($event) ? +valueOf($event) : null)">
+            <option value="">JSON imports (default)</option>
+            @for (m of targets(); track m.id) {
+              @if (m.fileName !== 'json-imports.db') {
+                <option [value]="m.id" [selected]="m.id === connectionId()">{{ m.name }}</option>
+              }
             }
+          </select>
+        </label>
+        <fieldset class="modes">
+          <legend class="label">If the table already exists</legend>
+          <label class="check"><input type="radio" name="mode" [checked]="mode() === 'append'" (change)="mode.set('append')" /> Add rows</label>
+          <label class="check"><input type="radio" name="mode" [checked]="mode() === 'replace'" (change)="mode.set('replace')" /> Replace rows</label>
+        </fieldset>
+
+        @if (parseError(); as message) {
+          <p class="alert error" role="alert">{{ message }}</p>
+        }
+        @if (requestError(); as message) {
+          <p class="alert error" role="alert">{{ message }}</p>
+        }
+
+        <div class="actions">
+          <button type="button" class="btn" [disabled]="busy() || !text()" (click)="run(true)">Preview</button>
+          <button type="button" class="btn primary" [disabled]="busy() || !preview()" (click)="run(false)">Import</button>
+        </div>
+      </section>
+    } @else {
+      <section class="panel stack">
+        <div class="panel-head">
+          <h2 class="panel-title">JSON column</h2>
+          <button type="button" class="link" (click)="useAppMasterExample()">Use AppMasterDB task_daily.daily_data</button>
+        </div>
+        <p class="help">For JSON stored in a table — task_daily.daily_data or task_data, FLAF / PO / PEG / SCR / MOC payloads. The flattened tables link to each source row, so filters on the source table reach them.</p>
+        <label class="field">
+          <span class="label">Data source</span>
+          <select class="select" (change)="selectConnection(valueOf($event) ? +valueOf($event) : null)">
+            <option value="" [selected]="flatConnectionId() === null">Choose a data source…</option>
+            @for (m of targets(); track m.id) {
+              <option [value]="m.id" [selected]="m.id === flatConnectionId()">{{ m.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Table</span>
+          <select class="select" [disabled]="!flatModel.value()" (change)="selectTable(valueOf($event))">
+            <option value="" [selected]="!flatTable()">Choose a table…</option>
+            @for (t of flatModel.value()?.tables ?? []; track t.name) {
+              <option [value]="t.name" [selected]="t.name === flatTable()">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        <div class="pair">
+          <label class="field">
+            <span class="label">JSON column</span>
+            <select class="select" [disabled]="!flatTable()" (change)="selectColumn(valueOf($event))">
+              <option value="" [selected]="!flatColumn()">Choose…</option>
+              @for (c of jsonCandidates(); track c.name) {
+                <option [value]="c.name" [selected]="c.name === flatColumn()">{{ c.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="field">
+            <span class="label">Key column</span>
+            <select class="select" [disabled]="!flatTable()" (change)="flatKeyColumn.set(valueOf($event))">
+              <option value="" [selected]="!flatKeyColumn()">Choose…</option>
+              @for (c of flatColumns(); track c.name) {
+                <option [value]="c.name" [selected]="c.name === flatKeyColumn()">{{ c.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <span class="help">The key column identifies each row, usually id. It must be unique.</span>
+
+        <div class="field">
+          <span class="label">Keys to extract</span>
+          @if (availableKeys().length) {
+            <div class="keys" role="group" aria-label="Keys to extract">
+              @for (k of availableKeys(); track k) {
+                <label class="check key"><input type="checkbox" [checked]="flatKeys().includes(k)" (change)="toggleKey(k)" /> <span class="mono">{{ k }}</span></label>
+              }
+            </div>
+            <span class="help">{{ flatKeys().length ? flatKeys().length + ' chosen.' : 'None chosen — every key is extracted.' }} Lists (such as employee_ids) become child tables.</span>
+          } @else {
+            <div class="actions">
+              <button type="button" class="btn sm" [disabled]="busy() || !canFlatten()" (click)="runFlatten(true, true)">Find keys</button>
+            </div>
+            <span class="help">Reads the column and lists the keys it holds, e.g. employee_ids, metrics.actual_hours.</span>
           }
-        </select>
-      </label>
-      <fieldset class="modes">
-        <legend class="label">If the table already exists</legend>
-        <label class="check"><input type="radio" name="mode" [checked]="mode() === 'append'" (change)="mode.set('append')" /> Add rows</label>
-        <label class="check"><input type="radio" name="mode" [checked]="mode() === 'replace'" (change)="mode.set('replace')" /> Replace rows</label>
-      </fieldset>
+        </div>
 
-      @if (parseError(); as message) {
-        <p class="alert error" role="alert">{{ message }}</p>
-      }
-      @if (requestError(); as message) {
-        <p class="alert error" role="alert">{{ message }}</p>
-      }
+        @if (parseError(); as message) {
+          <p class="alert error" role="alert">{{ message }}</p>
+        }
+        @if (requestError(); as message) {
+          <p class="alert error" role="alert">{{ message }}</p>
+        }
 
-      <div class="actions">
-        <button type="button" class="btn" [disabled]="busy() || !text()" (click)="run(true)">Preview</button>
-        <button type="button" class="btn primary" [disabled]="busy() || !preview()" (click)="run(false)">Import</button>
-      </div>
-    </section>
+        <div class="actions">
+          <button type="button" class="btn" [disabled]="busy() || !canFlatten()" (click)="runFlatten(true)">Preview</button>
+          <button type="button" class="btn primary" [disabled]="busy() || !preview()" (click)="runFlatten(false)">Flatten</button>
+        </div>
+      </section>
+    }
 
     <section class="panel stack">
       <div class="panel-head">
-        <h2 class="panel-title">{{ imported() ? 'Imported' : 'Preview' }}</h2>
+        <h2 class="panel-title">{{ imported() ? (tab() === 'json' ? 'Imported' : 'Flattened') : 'Preview' }}</h2>
         @if (preview() && !imported()) {
           <span class="badge warning">Nothing written yet</span>
         }
       </div>
 
+      @if (tab() === 'column' && flatSummary(); as s) {
+        <p class="alert info">
+          Read {{ s.sourceRows.toLocaleString('en-US') }} rows of {{ flatTable() }}.
+          @if (s.skipped) {
+            {{ s.skipped.toLocaleString('en-US') }} skipped (no JSON object, or none of the chosen keys).
+          }
+          @if (s.missingKeys.length) {
+            Not found in any row: {{ s.missingKeys.join(', ') }}.
+          }
+        </p>
+      }
+
       @if (imported(); as result) {
         <p class="alert success" role="status">
-          Loaded {{ result.tables[0]?.rowCount }} record(s) into {{ result.tables.length }} table(s). They're now in Data sources and ready for reports.
+          @if (tab() === 'json') {
+            Loaded {{ result.tables[0]?.rowCount }} record(s) into {{ result.tables.length }} table(s). They're now in Data sources and ready for reports.
+          } @else {
+            Flattened into {{ result.tables.length }} table(s) linked to {{ flatTable() }}. Filters on {{ flatTable() }} now reach them in reports.
+          }
         </p>
       }
 
@@ -78,6 +177,8 @@
               <span class="help">{{ t.rowCount }} rows</span>
               @if (t.parent) {
                 <span class="badge primary">child of {{ t.parent }}</span>
+              } @else if (tab() === 'column') {
+                <span class="badge accent">linked to {{ flatTable() }}</span>
               }
               @if (t.addedColumns.length) {
                 <span class="badge warning">new columns: {{ t.addedColumns.join(', ') }}</span>
@@ -106,7 +207,9 @@
           </article>
         }
       } @else {
-        <p class="empty">Paste JSON or use the sample, then choose Preview to see the tables it creates.</p>
+        <p class="empty">
+          {{ tab() === 'json' ? 'Paste JSON or use the sample, then choose Preview to see the tables it creates.' : 'Choose a JSON column, or use the AppMasterDB example, then choose Preview.' }}
+        </p>
       }
     </section>
   </div>

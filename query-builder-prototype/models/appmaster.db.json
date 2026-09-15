@@ -1,0 +1,23 @@
+{
+  "name": "AppMasterDB (SQLite stand-in)",
+  "tables": {
+    "task_daily": {
+      "columns": {
+        "work_date": { "format": "dd-MM-yyyy" },
+        "logged_at": { "format": "dd-MM-yyyy HH:mm" },
+        "daily_data": { "hidden": true },
+        "task_data": { "hidden": true }
+      }
+    },
+    "work_orders": {
+      "columns": {
+        "raised_at": { "format": "dd-MM-yyyy HH:mm" },
+        "payload": { "hidden": true }
+      }
+    }
+  },
+  "measures": [
+    { "table": "task_daily", "name": "Daily Logs", "expression": "COUNTROWS(task_daily)", "format": "#,0" },
+    { "table": "work_orders", "name": "Work Orders", "expression": "COUNTROWS(work_orders)", "format": "#,0" }
+  ]
+}

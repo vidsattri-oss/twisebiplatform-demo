@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { IngestResult } from '@tasnim/bi/core';
+import { IngestResult, JsonColumnResult } from '@tasnim/bi/core';
 import { BI_DATA_SOURCE, describeError } from '@tasnim/bi/core';
 import { BiNavComponent } from '@tasnim/bi/report';
 
@@ -30,9 +30,20 @@ const SAMPLE = [
   },
 ];
 
+/** The AppMasterDB example: the task_daily.daily_data keys the requirement names. */
+const APPMASTER_EXAMPLE = {
+  fileName: 'appmaster.db',
+  table: 'task_daily',
+  column: 'daily_data',
+  keyColumn: 'id',
+  keys: ['employee_ids', 'equipment_ids', 'metrics.actual_hours', 'metrics.actual_quantity', 'completed'],
+};
+
 /**
  * Feature 02: JSON into queryable tables with Power Query semantics — nested
- * records become columns, lists become related child tables. Preview first
+ * records become columns, lists become related child tables. Two sources: a
+ * JSON file or paste, or a JSON column already stored in a connected table
+ * (task_daily.daily_data, FLAF / PO / PEG / SCR / MOC payloads). Preview first
  * (nothing is written), then import.
  */
 @Component({
@@ -57,6 +68,105 @@ export class JsonImportComponent {
 
   protected readonly models = rxResource({ stream: () => this.ds.listModels() });
   protected readonly targets = computed(() => (this.models.value() ?? []).filter((m) => m.fileName !== 'data.db' && m.status === 'connected'));
+
+  protected readonly tab = signal<'json' | 'column'>('json');
+
+  // --- Flatten a JSON column (J1, J2) ---
+  protected readonly flatConnectionId = signal<number | null>(null);
+  protected readonly flatModel = rxResource({ params: () => this.flatConnectionId() ?? undefined, stream: ({ params }) => this.ds.getModel(params) });
+  protected readonly flatTable = signal('');
+  protected readonly flatColumn = signal('');
+  protected readonly flatKeyColumn = signal('');
+  protected readonly flatKeys = signal<string[]>([]);
+  protected readonly availableKeys = signal<string[]>([]);
+  protected readonly flatSummary = signal<JsonColumnResult | null>(null);
+  protected readonly flatColumns = computed(() => this.flatModel.value()?.tables.find((t) => t.name === this.flatTable())?.columns.filter((c) => !c.expression) ?? []);
+  protected readonly jsonCandidates = computed(() => this.flatColumns().filter((c) => c.dataType === 'text'));
+  protected readonly canFlatten = computed(() => this.flatConnectionId() !== null && !!this.flatTable() && !!this.flatColumn() && !!this.flatKeyColumn());
+
+  protected switchTab(tab: 'json' | 'column'): void {
+    this.tab.set(tab);
+    this.preview.set(null);
+    this.imported.set(null);
+    this.parseError.set(null);
+    this.requestError.set(null);
+  }
+
+  protected selectConnection(id: number | null): void {
+    this.flatConnectionId.set(id);
+    this.flatTable.set('');
+    this.resetFlattenResult();
+  }
+
+  /** Picks likely JSON and key columns for the chosen table: a text column named like data / json / payload, and id. */
+  protected selectTable(name: string): void {
+    this.flatTable.set(name);
+    const columns = this.flatModel.value()?.tables.find((t) => t.name === name)?.columns.filter((c) => !c.expression) ?? [];
+    const json = columns.find((c) => c.dataType === 'text' && /json|data|payload/i.test(c.name)) ?? columns.find((c) => c.dataType === 'text');
+    const key = columns.find((c) => c.name === 'id' || c.name === '_id') ?? columns.find((c) => c.dataType === 'integer');
+    this.flatColumn.set(json?.name ?? '');
+    this.flatKeyColumn.set(key?.name ?? '');
+    this.resetFlattenResult();
+  }
+
+  protected selectColumn(name: string): void {
+    this.flatColumn.set(name);
+    this.resetFlattenResult();
+  }
+
+  private resetFlattenResult(): void {
+    this.flatKeys.set([]);
+    this.availableKeys.set([]);
+    this.flatSummary.set(null);
+    this.preview.set(null);
+    this.imported.set(null);
+  }
+
+  protected toggleKey(key: string): void {
+    this.flatKeys.update((keys) => (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]));
+    this.preview.set(null);
+  }
+
+  protected useAppMasterExample(): void {
+    const source = (this.models.value() ?? []).find((m) => m.fileName === APPMASTER_EXAMPLE.fileName && m.status === 'connected');
+    if (!source) {
+      this.parseError.set('AppMasterDB isn’t connected. Run "npm --prefix query-builder-prototype run seed:appmaster", then reload this page.');
+      return;
+    }
+    this.flatConnectionId.set(source.id);
+    this.flatTable.set(APPMASTER_EXAMPLE.table);
+    this.flatColumn.set(APPMASTER_EXAMPLE.column);
+    this.flatKeyColumn.set(APPMASTER_EXAMPLE.keyColumn);
+    this.flatKeys.set([...APPMASTER_EXAMPLE.keys]);
+    this.runFlatten(true);
+  }
+
+  /** dryRun previews; findKeysOnly reads every key without narrowing, so the key list is complete. */
+  protected runFlatten(dryRun: boolean, findKeysOnly = false): void {
+    const connectionId = this.flatConnectionId();
+    this.parseError.set(null);
+    this.requestError.set(null);
+    if (connectionId === null || !this.canFlatten()) {
+      this.parseError.set('Choose a data source, a table, the JSON column and the key column.');
+      return;
+    }
+    const keys = findKeysOnly || !this.flatKeys().length ? undefined : this.flatKeys();
+    this.busy.set(true);
+    this.ds.flattenJsonColumn({ connectionId, table: this.flatTable(), column: this.flatColumn(), keyColumn: this.flatKeyColumn(), keys, dryRun }).subscribe({
+      next: (result) => {
+        this.busy.set(false);
+        this.availableKeys.set(result.availableKeys);
+        this.flatSummary.set(result);
+        this.preview.set(result);
+        this.imported.set(dryRun ? null : result);
+        if (!dryRun) this.models.reload();
+      },
+      error: (err: unknown) => {
+        this.busy.set(false);
+        this.requestError.set(describeError(err, 'The column couldn’t be flattened.'));
+      },
+    });
+  }
 
   protected valueOf(event: Event): string {
     return (event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;

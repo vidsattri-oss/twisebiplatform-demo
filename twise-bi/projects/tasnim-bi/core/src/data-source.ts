@@ -9,6 +9,8 @@ import {
   ExpressionPreview,
   IngestRequest,
   IngestResult,
+  JsonColumnRequest,
+  JsonColumnResult,
   Measure,
   MeasureInput,
   MeasureValidateResult,
@@ -52,6 +54,7 @@ export interface BiDataSource {
   addConnection(name: string, fileName: string): Observable<{ id: number }>;
   removeConnection(connectionId: number): Observable<unknown>;
   ingestJson(request: IngestRequest): Observable<IngestResult>;
+  flattenJsonColumn(request: JsonColumnRequest): Observable<JsonColumnResult>;
   saveDatasetFilters(modelId: number, filters: BiFilter[]): Observable<BiFilter[]>;
 }
 
@@ -124,6 +127,9 @@ export class HttpBiDataSource implements BiDataSource {
   }
   ingestJson(request: IngestRequest) {
     return this.http.post<IngestResult>(`${this.base}/ingest/json`, request);
+  }
+  flattenJsonColumn(request: JsonColumnRequest) {
+    return this.http.post<JsonColumnResult>(`${this.base}/ingest/json-column`, request);
   }
   saveDatasetFilters(modelId: number, filters: BiFilter[]) {
     return this.http.put<BiFilter[]>(`${this.base}/models/${modelId}/dataset-filters`, { filters });

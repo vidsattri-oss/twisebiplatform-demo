@@ -332,6 +332,27 @@ export interface IngestResult {
   tables: IngestTable[];
 }
 
+/** Flatten a JSON text column (e.g. task_daily.daily_data) into tables linked to each source row. */
+export interface JsonColumnRequest {
+  connectionId: number;
+  table: string;
+  column: string;
+  /** Identifies each source row (usually id); flattened rows reference it. */
+  keyColumn: string;
+  /** Key paths to extract, e.g. "employee_ids", "metrics.actual_hours". Omit for every key. */
+  keys?: string[];
+  mode?: 'append' | 'replace';
+  dryRun?: boolean;
+}
+
+export interface JsonColumnResult extends IngestResult {
+  sourceRows: number;
+  /** Rows with no JSON object, or none of the chosen keys. */
+  skipped: number;
+  availableKeys: string[];
+  missingKeys: string[];
+}
+
 export function isMeasureItem(item: RoleItem): item is MeasureRoleItem {
   return typeof (item as MeasureRoleItem).measure === 'string';
 }

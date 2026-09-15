@@ -4,3 +4,11 @@
 .actions { display: flex; gap: 8px; }
 .plan-table { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius); padding: 10px; }
 .plan-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tabs { max-width: 460px; margin-bottom: 12px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.keys {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 12px; max-height: 220px; overflow: auto;
+  padding: 8px 10px; border: 1px solid var(--bi-border); border-radius: var(--bi-radius-sm); background: var(--bi-surface);
+}
+.key { font-size: 12.5px; min-width: 0; }
+.key .mono { overflow-wrap: anywhere; }

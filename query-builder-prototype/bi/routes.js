@@ -8,10 +8,10 @@ const express = require('express');
 const { DatabaseSync } = require('node:sqlite');
 const connections = require('../connections');
 const { getDb: getMetaDb } = require('../db');
-const { listModels, loadModel, openModel, findTable, ensureMetaSchema } = require('./model');
+const { listModels, loadModel, openModel, findTable, findColumn, quoteIdent, ensureMetaSchema } = require('./model');
 const { validateExpression } = require('./dax');
 const { runQuery, runRows, runValues } = require('./query');
-const { ingestJson } = require('./ingest');
+const { ingestJson, flattenJsonColumn } = require('./ingest');
 const reports = require('./reports');
 const { badRequest, notFound } = require('./errors');
 
@@ -230,6 +230,38 @@ router.post('/ingest/json', wrap((req) => {
   if (!row) throw notFound(`No connection with id ${connectionId}`);
   if (row.file_name === connections.ROOT_DB_FILE) throw badRequest('JSON can’t be imported into the app metadata database; choose another connection.');
   const result = ingestJson(connections.getDb(row.id, row.file_name), body);
+  return { connectionId: row.id, ...result };
+}));
+
+const MAX_FLATTEN_ROWS = 50000;
+
+/** J1: flatten a JSON text column of a connected table into linked tables in the same database. */
+router.post('/ingest/json-column', wrap((req) => {
+  const body = req.body || {};
+  const connectionId = intParam(body.connectionId, 'connectionId');
+  const row = getMetaDb().prepare('SELECT id, file_name FROM connections WHERE id = ?').get(connectionId);
+  if (!row) throw notFound(`No connection with id ${connectionId}`);
+  if (row.file_name === connections.ROOT_DB_FILE) throw badRequest('JSON columns in the app metadata database can’t be flattened; choose another connection.');
+  const model = loadModel(connectionId, { counts: false });
+  const table = findTable(model, body.table);
+  const jsonColumn = findColumn(model, { table: table.name, column: body.column });
+  const keyColumn = findColumn(model, { table: table.name, column: body.keyColumn });
+  if (jsonColumn.expression || keyColumn.expression) throw badRequest('Choose stored columns; calculated columns can’t be flattened.');
+  if (jsonColumn.name === keyColumn.name) throw badRequest('The key column identifies each row; choose a different column from the JSON column.');
+
+  const db = connections.getDb(row.id, row.file_name);
+  const sql = `SELECT ${quoteIdent(keyColumn.name)} AS k, ${quoteIdent(jsonColumn.name)} AS j FROM ${quoteIdent(table.name)} LIMIT ${MAX_FLATTEN_ROWS + 1}`;
+  const rows = db.prepare(sql).all().map((r) => ({ key: r.k, json: r.j }));
+  if (rows.length > MAX_FLATTEN_ROWS) throw badRequest(`"${table.name}" has more than ${MAX_FLATTEN_ROWS.toLocaleString('en-US')} rows; flatten a smaller table.`);
+  const result = flattenJsonColumn(db, {
+    table: table.name,
+    column: jsonColumn.name,
+    keyColumn: keyColumn.name,
+    rows,
+    keys: body.keys,
+    mode: body.mode,
+    dryRun: body.dryRun === true,
+  });
   return { connectionId: row.id, ...result };
 }));
 
