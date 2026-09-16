@@ -8,5 +8,6 @@ dist/
 .env
 # Per-user favorites and recent reports stored by the local preferences server.
 preferences-server/data/
+.local-run/
 .DS_Store
 *.log

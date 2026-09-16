@@ -55,6 +55,26 @@ Open `http://localhost:4200`. The host harness points to
 `http://localhost:4173/api/bi` and the preferences service at
 `http://localhost:4175` while running in development mode.
 
+### One-command startup
+
+PowerShell can start all three services, wait for their health endpoints, and
+open the main BI page automatically:
+
+```powershell
+.\scripts\start-local.ps1 -Install
+```
+
+Use `.\scripts\start-local.ps1` on later runs. The script reuses healthy
+services already listening on ports 4175, 4173, or 4200, starts missing
+services in hidden background processes, and writes logs and PIDs under the
+ignored `.local-run\` directory. Use `-NoBrowser` to skip opening the page.
+
+If PowerShell blocks local scripts in the current session, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
 The backend creates its local SQLite stores on first use. Optional setup:
 
 ```powershell
@@ -108,3 +128,24 @@ API can replace the local Express service while keeping the same model, query,
 formula, report, connection, ingestion, and visual plug-in routes. In
 production, the host should provide authentication, tenant isolation, secret
 storage, and the real preferences API.
+
+## Modularity and larger-solution integration
+
+The feature set is designed as a pluggable module rather than a single-page
+application:
+
+- Angular hosts integrate with `provideBi({ apiBaseUrl, dataSource,
+  preferences, filterBridge, palette })`; a host can replace the default HTTP
+  data source or preferences adapter without changing report components.
+- `@tasnim/bi/core`, `report`, `admin`, `modeling`, and `visuals` are separate
+  entry points. Chart/grid/admin code stays out of the host's initial bundle.
+- New custom visuals use `provideBiVisual()` or the catalog/import API and run
+  in a sandboxed iframe.
+- New data sources land behind the connection registry and the stable
+  `/api/bi` contract. The Angular module does not connect directly to a
+  database, so the local Express service can be replaced by a tenant API.
+
+Before production integration, add tenant authentication/RBAC, row-level
+security, durable secret/KMS storage, background refresh workers, monitoring,
+and an enterprise persistence layer. Those are deployment responsibilities,
+not reasons to fork the feature modules.

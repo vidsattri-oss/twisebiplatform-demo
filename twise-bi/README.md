@@ -19,6 +19,16 @@ npm --prefix twise-bi start                 # :4200
 Then open `http://localhost:4200`. `host-harness` configures the library with
 `http://localhost:4173/api/bi` and the local preferences endpoint.
 
+From the repository root, the same three processes can be started with one
+PowerShell command:
+
+```powershell
+.\scripts\start-local.ps1 -Install
+```
+
+The script is idempotent for healthy services, opens the host URL, and stores
+background-process logs under `.local-run\`.
+
 ## Build and test
 
 ```powershell
@@ -46,3 +56,11 @@ Angular 22 requires Node.js `>=24.15`.
 The dependency direction is one-way: `admin` -> `report` -> `visuals`/`core`,
 with `modeling` depending on `core`. The host harness must not be imported by
 the library.
+
+## Integration seam
+
+The library is host-pluggable through `provideBi()` and the `BiDataSource`
+interface. A larger TWise solution can provide its own authenticated data
+source, preferences adapter, filter bridge, palette, and custom visuals while
+keeping the report/filter/formula components unchanged. The local backend is
+only a reference implementation of `docs/api/bi-contract.openapi.yaml`.

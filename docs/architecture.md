@@ -78,6 +78,32 @@ authentication, row-level security, secret storage, source credentials,
 refresh workers, and durable report storage. The Angular host should keep
 calling the contract and should not connect to databases directly.
 
+## Modularity and pluggability
+
+The current boundaries are suitable for embedding into a larger TWise
+solution:
+
+| Extension point | Host integration | What stays reusable |
+|---|---|---|
+| Backend | Implement `docs/api/bi-contract.openapi.yaml` in the tenant API, or point `provideBi({ apiBaseUrl })` at an existing gateway. | Report, filter, formula, and visual UI |
+| Data access | Provide a `BiDataSource` implementation for authenticated TWise services instead of `HttpBiDataSource`. | All report state and visual context |
+| User preferences | Provide `preferences: { url, userId }` or a `ReportPreferences` class. | Reports home, favorites, and recents |
+| Host filters | Provide the optional `filterBridge` adapter. | Dataset/report/page/visual filter model |
+| Visuals | Register a `BiVisualType` with `provideBiVisual()` or install/import a sandboxed plug-in. | Visual registry, selection, See records, and interaction context |
+| Data sources | Add a connector type behind the backend registry and land it through the same model/query contract. | Angular data-source UI and query builder |
+
+The secondary entry points keep the library modular: `core` contains the
+contracts and state, `report` contains report composition, `admin` contains
+management screens, `modeling` contains formula/data modeling, and `visuals`
+contains chart/grid runtimes. The host harness is a consumer and is never
+imported by the library.
+
+Production hardening still belongs in the larger solution: tenant
+authentication, RBAC/row-level security, KMS-backed secrets, durable report
+storage, background refresh workers, observability, and rate limits. The
+module's contract and dependency-injection seams keep those concerns outside
+the feature components.
+
 ## Safety and dependency rules
 
 - Client identifiers are accepted only after model metadata validation; values
