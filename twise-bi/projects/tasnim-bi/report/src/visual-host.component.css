@@ -27,6 +27,7 @@
 .icon-btn:hover, .icon-btn.on { background: var(--bi-primary-tint); color: var(--bi-primary); }
 .move-handle { cursor: grab; touch-action: none; }
 .move-handle:active { cursor: grabbing; }
+.move-label { font-size: 11px; font-weight: 600; }
 .icon-btn:focus-visible, .btn:focus-visible { outline: none; box-shadow: var(--bi-focus); }
 .icon-btn.danger:hover { background: var(--bi-danger-tint); color: var(--bi-danger); }
 .count { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -65,6 +66,13 @@
 
 .body { position: relative; flex: 1; min-height: 0; margin-top: 6px; }
 .frame.slicer .body { margin-top: 4px; overflow: auto; }
+.resize-handle {
+  position: absolute; right: 5px; bottom: 5px; z-index: 5; width: 24px; height: 24px; padding: 3px;
+  border: 1px solid var(--bi-border); border-radius: 6px; background: var(--bi-surface); color: var(--bi-primary);
+  cursor: nwse-resize; touch-action: none; box-shadow: var(--bi-shadow); opacity: 0.92;
+}
+.resize-handle:hover, .resize-handle:focus-visible { background: var(--bi-primary-tint); outline: none; box-shadow: var(--bi-focus); }
+.resize-handle svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; margin: 0; padding: 8px; text-align: center; font-size: 13px; color: var(--bi-muted); box-sizing: border-box; }
 .state p { margin: 0; }
 .state.error { color: var(--bi-danger); }

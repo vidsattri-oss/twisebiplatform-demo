@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, injec
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of } from 'rxjs';
-import { BI_REPORT_PREFERENCES, GRID_GAP, GRID_ROW_HEIGHT, PluginVisuals, RoleItem, VisualDefinition, clampLayout, isMeasureItem, magneticLayout } from '@tasnim/bi/core';
+import { BI_REPORT_PREFERENCES, GRID_GAP, GRID_ROW_HEIGHT, PluginVisuals, RoleItem, VisualDefinition, VisualRegistry, clampLayout, isMeasureItem, magneticLayout } from '@tasnim/bi/core';
 import { DataPaneComponent } from '@tasnim/bi/modeling';
 import { FilterPaneComponent } from './filter-pane.component';
 import { ReportStore } from '@tasnim/bi/core';
@@ -40,6 +40,7 @@ const toId = (value: unknown): number | undefined => {
 })
 export class ReportComponent {
   protected readonly store = inject(ReportStore);
+  private readonly registry = inject(VisualRegistry);
   private readonly route = inject(ActivatedRoute, { optional: true });
 
   readonly reportId = input<number | undefined, unknown>(undefined, { transform: toId });
@@ -72,10 +73,14 @@ export class ReportComponent {
     const page = this.store.page();
     return this.store.hostFilters().length + (report?.definition.filters.length ?? 0) + (page?.filters.length ?? 0) + this.activeSlicers();
   });
-  protected readonly canvasRows = computed(() => this.visuals().reduce((max, v) => Math.max(max, (v.layout?.y ?? 0) + (v.layout?.h ?? 6)), 1));
+  protected readonly canvasRows = computed(() => this.visuals().reduce((max, v) => {
+    const l = this.layout(v);
+    return Math.max(max, l.row - 1 + l.h);
+  }, 1));
   private readonly visualGrid = viewChild<ElementRef<HTMLElement>>('visualGrid');
   private readonly moveState = signal<{ id: string; layout: ReturnType<typeof clampLayout>; offsetX: number; offsetY: number; colStep: number; rowStep: number } | null>(null);
-  protected readonly movingVisualId = computed(() => this.moveState()?.id ?? null);
+  private readonly resizeState = signal<{ id: string; layout: ReturnType<typeof clampLayout>; startX: number; startY: number; colStep: number; rowStep: number } | null>(null);
+  protected readonly interactingVisualId = computed(() => this.moveState()?.id ?? this.resizeState()?.id ?? null);
 
   constructor() {
     // Installed plug-in visuals join the registry, so saved reports that use them render (V2).
@@ -101,6 +106,7 @@ export class ReportComponent {
   protected layout(v: VisualDefinition) {
     const l = v.layout ?? { x: 0, y: 0, w: 6, h: 6 };
     const c = clampLayout(l);
+    if (this.registry.get(v.type)?.dataKind === 'slicer') c.h = Math.max(c.h, 3);
     return { col: c.x + 1, row: c.y + 1, w: c.w, h: c.h };
   }
 
@@ -124,10 +130,40 @@ export class ReportComponent {
     event.preventDefault();
   }
 
+  protected startVisualResize(id: string, event: PointerEvent): void {
+    if (!this.store.editMode() || event.button !== 0) return;
+    const grid = this.visualGrid()?.nativeElement;
+    const visual = this.visuals().find((item) => item.id === id);
+    if (!grid || !visual) return;
+    const gridRect = grid.getBoundingClientRect();
+    this.resizeState.set({
+      id,
+      layout: clampLayout(visual.layout),
+      startX: event.clientX,
+      startY: event.clientY,
+      colStep: (gridRect.width + GRID_GAP) / 12,
+      rowStep: GRID_ROW_HEIGHT + GRID_GAP,
+    });
+    event.preventDefault();
+  }
+
   protected moveVisual(event: PointerEvent): void {
     const state = this.moveState();
+    const resize = this.resizeState();
     const grid = this.visualGrid()?.nativeElement;
-    if (!state || !grid || event.buttons === 0) return;
+    if (!grid || event.buttons === 0) return;
+    if (resize) {
+      const current = this.visuals().find((item) => item.id === resize.id);
+      if (!current) return;
+      const next = clampLayout({
+        ...resize.layout,
+        w: resize.layout.w + Math.round((event.clientX - resize.startX) / resize.colStep),
+        h: resize.layout.h + Math.round((event.clientY - resize.startY) / resize.rowStep),
+      });
+      if (current.layout?.w !== next.w || current.layout?.h !== next.h) this.store.updateVisual(resize.id, { layout: next });
+      return;
+    }
+    if (!state) return;
     const rect = grid.getBoundingClientRect();
     const x = Math.round((event.clientX - rect.left - state.offsetX) / state.colStep);
     const y = Math.round((event.clientY - rect.top - state.offsetY) / state.rowStep);
@@ -139,13 +175,16 @@ export class ReportComponent {
 
   protected endVisualMove(): void {
     const state = this.moveState();
-    if (!state) return;
-    const current = this.visuals().find((item) => item.id === state.id);
+    const resize = this.resizeState();
+    const interaction = state ?? resize;
+    if (!interaction) return;
+    const current = this.visuals().find((item) => item.id === interaction.id);
     if (current) {
-      const occupied = this.visuals().filter((item) => item.id !== state.id).map((item) => item.layout).filter((layout): layout is NonNullable<typeof layout> => !!layout);
-      this.store.updateVisual(state.id, { layout: magneticLayout(current.layout, occupied) });
+      const occupied = this.visuals().filter((item) => item.id !== interaction.id).map((item) => item.layout).filter((layout): layout is NonNullable<typeof layout> => !!layout);
+      this.store.updateVisual(interaction.id, { layout: magneticLayout(current.layout, occupied) });
     }
     this.moveState.set(null);
+    this.resizeState.set(null);
   }
 
   protected addField(item: RoleItem): void {

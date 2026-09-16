@@ -127,7 +127,7 @@
               <bi-visual
                 class="cell"
                 [class.wide]="l.w > 6"
-                [class.moving]="movingVisualId() === v.id"
+                [class.moving]="interactingVisualId() === v.id"
                 [visual]="v"
                 [attr.data-visual-id]="v.id"
                 [style.--bi-col]="l.col"
@@ -135,6 +135,7 @@
                 [style.--bi-w]="l.w"
                 [style.--bi-h]="l.h"
                 (moveStart)="startVisualMove(v.id, $event)"
+                (resizeStart)="startVisualResize(v.id, $event)"
               />
             } @empty {
               <div class="empty-page">

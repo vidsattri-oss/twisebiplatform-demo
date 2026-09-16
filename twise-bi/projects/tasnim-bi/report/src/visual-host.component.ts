@@ -40,6 +40,7 @@ export class VisualHostComponent {
 
   readonly visual = input.required<VisualDefinition>();
   readonly moveStart = output<PointerEvent>();
+  readonly resizeStart = output<PointerEvent>();
 
   readonly showFilters = signal(false);
   readonly confirmRemove = signal(false);
@@ -168,6 +169,13 @@ export class VisualHostComponent {
     event.preventDefault();
     event.stopPropagation();
     this.moveStart.emit(event);
+  }
+
+  startResize(event: PointerEvent): void {
+    if (!this.store.editMode()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.resizeStart.emit(event);
   }
 
   remove(): void {

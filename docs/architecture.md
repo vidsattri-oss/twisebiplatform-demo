@@ -90,7 +90,7 @@ solution:
 | User preferences | Provide `preferences: { url, userId }` or a `ReportPreferences` class. | Reports home, favorites, and recents |
 | Host filters | Provide the optional `filterBridge` adapter. | Dataset/report/page/visual filter model |
 | Visuals | Register a `BiVisualType` with `provideBiVisual()` or install/import a sandboxed plug-in. | Visual registry, selection, See records, and interaction context |
-| Canvas authoring | The reusable report editor supplies a 12-column magnetic grid with bounded drag movement and collision-aware snapping. | Report definitions keep the portable `VisualLayout` contract |
+| Canvas authoring | The reusable report editor supplies a 12-column magnetic grid with bounded move/resize handles and collision-aware snapping. | Report definitions keep the portable `VisualLayout` contract |
 | Data sources | Add a connector type behind the backend registry and land it through the same model/query contract. | Angular data-source UI and query builder |
 
 The secondary entry points keep the library modular: `core` contains the

@@ -345,7 +345,7 @@ export class ReportStore {
       title: visualType.label,
       roles: Object.fromEntries(visualType.roles.map((r) => [r.name, []])),
       filters: [],
-      layout: { x: 0, y: bottom, w: type === 'slicer' || type === 'card' ? 3 : 6, h: type === 'slicer' || type === 'card' ? 2 : 6 },
+      layout: { x: 0, y: bottom, w: type === 'slicer' || type === 'card' ? 3 : 6, h: type === 'slicer' ? 3 : type === 'card' ? 2 : 6 },
     };
     this.updateCurrentPage((p) => ({ ...p, visuals: [...p.visuals, visual] }));
     this.focusedVisualId.set(id);
