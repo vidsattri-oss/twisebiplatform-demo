@@ -11,7 +11,7 @@ export interface BiConfig {
   apiBaseUrl?: string;
   /** Replace the HttpClient data source, e.g. with one that routes through TWise's API services. */
   dataSource?: Type<BiDataSource>;
-  /** Maps the host's global filter bar into report filters. */
+  /** Maps host-level filters into report filters when the host provides them. */
   filterBridge?: Type<BiFilterBridge>;
   /** Set to false when the host already calls provideHighcharts(). */
   provideHighcharts?: boolean;

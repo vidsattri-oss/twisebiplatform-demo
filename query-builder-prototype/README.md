@@ -1,48 +1,55 @@
-# Query Builder Prototype — local SQLite
+# Query Builder Prototype BI API
 
-A real, running proof of concept for the "Query Builder" feature from the
-feasibility study: a Data Source Configuration page and a Visual query
-builder wired to an actual local database — not a static mockup.
+This is the local reference implementation of the `/api/bi` contract used by
+`@tasnim/bi`. It is an Express service backed by Node's built-in SQLite API;
+it is not a browser-only mock.
 
-## What's real here
+## Run
 
-- **`data.db`** — a genuine SQLite file (via Node's built-in `node:sqlite`,
-  no native module compile needed) with three tables: `crews`, `equipment`,
-  `tasks` (200 seeded rows), plus a `measures` table that persists whatever
-  you save from the builder.
-- **`server.js`** — an Express API that reads the *live* schema
-  (`PRAGMA table_info`) rather than hardcoding it, and only ever builds SQL
-  from identifiers it has checked against that schema. Filter values are
-  always bound parameters, never string-concatenated. This is the same
-  metadata-validation-gate pattern documented for the production
-  Postgres/RDS + Cube.dev design in the tracker — implemented here for real,
-  against a real (if toy) database.
-- **`public/sources.html`** — a genuine data-source config page: it reads
-  `/api/sources`, so what it shows (tables, columns, row counts, a live
-  preview) reflects the actual `data.db` file, not a hardcoded list.
-- **`public/query-builder.html`** — the Visual mode from the mockup, wired
-  up: pick a table, an aggregation or a ratio (SUM/AVG/COUNT/MIN/MAX,
-  numerator ÷ denominator), a Group By, and filters — all populated from the
-  real schema — then **Run Query** executes it against SQLite and renders
-  the actual returned rows as bars. **Save Measure** persists the
-  configuration to the `measures` table; **Load** brings it back.
-
-## What's not wired (still the earlier static mockup)
-
-Formula mode and AI mode are the Claude Design canvas screens from before —
-this prototype only wires up Visual mode, plus the data source page. The
-backend is plain HTML/JS/Express rather than Angular, to prove the concept
-fastest; a real build would put the same REST API behind Angular services
-(`HttpClient`) exactly as already documented in the feasibility tracker.
-
-## Run it
-
-```bash
-cd query-builder-prototype
+```powershell
 npm install
 npm start
+# http://localhost:4173
 ```
 
-Then open `http://localhost:4173`. `data.db` is created and seeded
-automatically on first run if it doesn't exist yet — delete the file to
-reseed from scratch.
+The service loads `.env` when present. Copy `.env.example` if you need a
+stable `CONNECTION_SECRET_KEY` or a custom outbound REST allow-list. The
+default local data and connection stores are created on demand. Optional
+seeding commands are available from the repository root:
+
+```powershell
+npm --prefix query-builder-prototype run seed:wells
+npm --prefix query-builder-prototype run seed:appmaster
+```
+
+## Responsibilities
+
+- Model metadata and safe query compilation for `/models`, `/query`, `/rows`,
+  and `/values`.
+- DAX-like formula validation, preview, measures, and calculated columns.
+- Typed connections: SQLite, CSV, Excel, REST JSON, Google Sheets/Drive,
+  SAP/ERP OData, SQL Server/AppMasterDB, and PostgreSQL.
+- JSON ingestion and JSON-column flattening into typed tables with foreign-key
+  links for arrays.
+- Report/category persistence, dataset filters, connector refresh scheduling,
+  and sandboxed custom visual catalog/import.
+
+Each non-SQLite connection owns a file in `connections/`; the API lands or
+refreshes source data there so the model/query contract stays consistent.
+SQL Server and PostgreSQL drivers are optional. A missing driver is reported
+as a setup requirement instead of crashing the service.
+
+## Tests
+
+```powershell
+npm test
+```
+
+The suite covers connector setup/refresh, CSV/Excel, JSON flattening, formula
+compilation, filters, cross-filter/highlight semantics, plug-ins, report
+metadata, SSRF controls, and query performance. The expected result is 108
+passing tests.
+
+The API contract is documented in `../docs/api/bi-contract.openapi.yaml`.
+The service is replaceable by a production tenant API as long as that
+contract remains compatible.

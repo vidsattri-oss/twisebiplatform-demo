@@ -12,7 +12,6 @@ import { RouterLink } from '@angular/router';
       <p>This page belongs to the host app. The BI module adds its pages under <code>/reports</code> without touching host routes.</p>
       <div class="links">
         <a routerLink="/reports">Open Reports</a>
-        <a routerLink="/embedded">Open an embedded report</a>
       </div>
     </section>
   `,

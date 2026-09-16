@@ -1,59 +1,48 @@
-# TwiseBi
+# `twise-bi`
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.8.
+This workspace contains the reusable `@tasnim/bi` Angular library and its
+`host-harness` demo application. The full repository runbook is at the root
+[README.md](../README.md); the service topology is in
+[docs/architecture.md](../docs/architecture.md).
 
-## Development server
+## Local development
 
-To start a local development server, run:
+From the repository root, start the BI API, preferences service, and host
+harness in separate terminals:
 
-```bash
-ng serve
+```powershell
+npm --prefix preferences-server start       # :4175
+npm --prefix query-builder-prototype start  # :4173
+npm --prefix twise-bi start                 # :4200
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Then open `http://localhost:4200`. `host-harness` configures the library with
+`http://localhost:4173/api/bi` and the local preferences endpoint.
 
-## Code scaffolding
+## Build and test
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```powershell
+npm run test       # library tests, package build, host-harness test
+npm run build      # production library + host-harness build
+npm run build:lib  # package entry points only
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Angular 22 requires Node.js `>=24.15`.
 
-```bash
-ng generate --help
-```
+## Library entry points
 
-## Building
+- `@tasnim/bi`: `provideBi()`, routes, core contract, and provider wiring.
+- `@tasnim/bi/core`: contracts, filters, report state, selection context, and
+  plug-in registry; no chart/grid dependencies.
+- `@tasnim/bi/report`: report list, report canvas, filter pane, visualizations,
+  See records, and interaction controls.
+- `@tasnim/bi/admin`: data sources, JSON import, formula editor, and custom
+  visual catalog/import.
+- `@tasnim/bi/modeling`: report Data pane, formula editor, and column
+  properties.
+- `@tasnim/bi/visuals`: built-in chart/grid/slicer renderers and the sandboxed
+  plug-in visual host.
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The dependency direction is one-way: `admin` -> `report` -> `visuals`/`core`,
+with `modeling` depending on `core`. The host harness must not be imported by
+the library.

@@ -133,7 +133,7 @@
     <div class="header">
       <p class="header-eyebrow">Angular BI Prototype</p>
       <h1>Architecture &amp; API Contract</h1>
-      <p class="subtitle">How the system is put together end to end, and exactly what a backend — this one or a replacement in any language — must implement to serve the Angular app. One document: the design and the contract that makes the design portable.</p>
+      <p class="subtitle">How the system is put together end to end, and exactly what a backend — this one or a replacement in any language — must implement to serve the Angular app. The current v3 service ownership and local runbook are in <a href="../architecture.md">docs/architecture.md</a>.</p>
       <div class="toc">
         <a href="#architecture">Part 1 &middot; Architecture</a>
         <a href="#api-contract">Part 2 &middot; API Contract</a>
@@ -151,8 +151,8 @@
 
     <div class="section">
       <p class="section-eyebrow">01 &mdash; As-built (this demo)</p>
-      <h2>Angular SPA &rarr; Express BFF &rarr; SQLite</h2>
-      <p class="section-sub">Everything below runs on one machine. The metadata validation gate is the load-bearing security control — it is what makes the rest of the boundary drawing possible.</p>
+      <h2>Host harness &rarr; Express BI API &rarr; SQLite stores</h2>
+      <p class="section-sub">The v3 local flow uses the Angular host harness on :4200, the BI contract API on :4173, and the preferences service on :4175. The metadata validation gate is the load-bearing security control — it is what makes the rest of the boundary drawing possible.</p>
 
       <div class="diagram-container">
         <svg viewBox="0 0 880 260" xmlns="http://www.w3.org/2000/svg">
@@ -286,7 +286,7 @@
           <text x="556" y="248" fill="#5b6480" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">+ staging schema</text>
         </svg>
       </div>
-      <p class="footnote">* SAP/ERP connector is planned (OData default, RFC fallback) — not yet built. See tracker item 01.</p>
+      <p class="footnote">* SAP/ERP OData pull is implemented in the local connector registry. RFC fallback and production credentials remain deployment-specific.</p>
     </div>
 
     <div class="legend-wrap">
@@ -314,7 +314,7 @@
           <text x="540" y="48" fill="#5b6480" font-size="8.5" font-family="'Geist', sans-serif">Client / input</text>
 
           <rect x="660" y="40" width="14" height="10" rx="2" fill="rgba(22,32,61,0.02)" stroke="rgba(22,32,61,0.20)" stroke-width="1" stroke-dasharray="3,2"/>
-          <text x="680" y="48" fill="#5b6480" font-size="8.5" font-family="'Geist', sans-serif">Optional / planned</text>
+          <text x="680" y="48" fill="#5b6480" font-size="8.5" font-family="'Geist', sans-serif">Optional / driver-backed</text>
 
           <rect x="24" y="68" width="14" height="10" rx="2" fill="rgba(245,129,31,0.05)" stroke="#f5811f" stroke-width="1" stroke-dasharray="3,2"/>
           <text x="44" y="76" fill="#5b6480" font-size="8.5" font-family="'Geist', sans-serif">Security / trust boundary</text>
