@@ -24,8 +24,8 @@ Browser :4200 (host-harness)
 
 The Angular library is `twise-bi/projects/tasnim-bi`. The host imports the
 library through `provideBi()` and lazy-loads the report, admin, modeling, and
-visuals entry points. The older `angular-bi` application is retained as a
-superseded prototype and is not required for the v3 flow.
+visuals entry points. The older `angular-bi` prototype has been removed; its
+historical design notes remain under `docs/`.
 
 ## Run locally
 

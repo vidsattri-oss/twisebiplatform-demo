@@ -20,5 +20,5 @@
 
 ## Do Not Report
 - Generated files, lockfiles, `dist/`, `.angular/`.
-- The superseded `angular-bi/` app (out of scope; removal is decided at the outcome review).
+- The removed `angular-bi/` prototype; historical design notes under `docs/` are retained for traceability.
 - Formatting already enforced by tooling.
