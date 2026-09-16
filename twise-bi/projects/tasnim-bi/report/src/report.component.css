@@ -40,8 +40,12 @@
 .grid {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-template-rows: repeat(var(--bi-rows, 1), 40px); grid-auto-rows: 40px; gap: 12px;
+  position: relative;
 }
 .cell { grid-column: var(--bi-col) / span var(--bi-w); grid-row: var(--bi-row) / span var(--bi-h); min-height: 0; }
+.report.editing .grid { padding: 4px; border: 1px dashed var(--bi-border); border-radius: var(--bi-radius); background: linear-gradient(to right, rgba(40, 65, 163, 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(40, 65, 163, 0.04) 1px, transparent 1px); background-size: calc(100% / 12) 52px; }
+.report.editing .cell { cursor: grab; }
+.report.editing .cell.moving { cursor: grabbing; opacity: 0.72; z-index: 10; }
 .empty-page {
   grid-column: 1 / -1; grid-row: 1 / span 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   border: 1.5px dashed var(--bi-border-strong); border-radius: var(--bi-radius-lg); color: var(--bi-muted); background: var(--bi-surface);

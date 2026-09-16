@@ -6,6 +6,7 @@
   border-radius: var(--bi-radius-lg); box-shadow: var(--bi-shadow);
 }
 .frame.slicer { padding: 10px 12px; box-shadow: none; }
+.frame.slicer { overflow: hidden; }
 .frame.editing { cursor: pointer; }
 .frame.focused { border-color: var(--bi-primary); box-shadow: 0 0 0 2px rgba(33, 64, 154, 0.18); }
 
@@ -24,6 +25,8 @@
 }
 .icon-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn:hover, .icon-btn.on { background: var(--bi-primary-tint); color: var(--bi-primary); }
+.move-handle { cursor: grab; touch-action: none; }
+.move-handle:active { cursor: grabbing; }
 .icon-btn:focus-visible, .btn:focus-visible { outline: none; box-shadow: var(--bi-focus); }
 .icon-btn.danger:hover { background: var(--bi-danger-tint); color: var(--bi-danger); }
 .count { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -61,7 +64,7 @@
 .btn.danger { background: var(--bi-danger); border-color: var(--bi-danger); color: #fff; }
 
 .body { position: relative; flex: 1; min-height: 0; margin-top: 6px; }
-.frame.slicer .body { margin-top: 4px; }
+.frame.slicer .body { margin-top: 4px; overflow: auto; }
 .state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; margin: 0; padding: 8px; text-align: center; font-size: 13px; color: var(--bi-muted); box-sizing: border-box; }
 .state p { margin: 0; }
 .state.error { color: var(--bi-danger); }

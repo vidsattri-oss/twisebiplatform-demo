@@ -90,6 +90,7 @@ solution:
 | User preferences | Provide `preferences: { url, userId }` or a `ReportPreferences` class. | Reports home, favorites, and recents |
 | Host filters | Provide the optional `filterBridge` adapter. | Dataset/report/page/visual filter model |
 | Visuals | Register a `BiVisualType` with `provideBiVisual()` or install/import a sandboxed plug-in. | Visual registry, selection, See records, and interaction context |
+| Canvas authoring | The reusable report editor supplies a 12-column magnetic grid with bounded drag movement and collision-aware snapping. | Report definitions keep the portable `VisualLayout` contract |
 | Data sources | Add a connector type behind the backend registry and land it through the same model/query contract. | Angular data-source UI and query builder |
 
 The secondary entry points keep the library modular: `core` contains the
@@ -103,6 +104,20 @@ authentication, RBAC/row-level security, KMS-backed secrets, durable report
 storage, background refresh workers, observability, and rate limits. The
 module's contract and dependency-injection seams keep those concerns outside
 the feature components.
+
+### Code-authored visuals
+
+Code-authored visuals are a useful complement to drag-and-drop authoring, but
+arbitrary Python should not execute in the browser or inside the API process.
+The current safe extension is JavaScript in a sandboxed iframe, with only the
+visual's query result and selection/See-records bridge exposed. For a future
+Python option, the recommended larger-solution design is an isolated worker
+service that accepts a signed visual package, applies CPU/memory/time/network
+quotas, and returns a declarative visual result (or a vetted SVG/HTML payload).
+That keeps Python useful for advanced analytics while preserving tenant
+isolation and the existing `BiVisualType`/`VisualLayout` contract. A Python
+runner should be added only with explicit package allow-lists, authentication,
+auditing, and a separate worker boundary.
 
 ## Safety and dependency rules
 

@@ -1,4 +1,4 @@
-import { clampLayout } from './layout';
+import { clampLayout, magneticLayout } from './layout';
 
 // Regression (QA 2026-09-15): Column 8 + Width 12 produced grid-column 9 / span 12 and broke the canvas.
 describe('clampLayout', () => {
@@ -12,5 +12,10 @@ describe('clampLayout', () => {
     expect(clampLayout(undefined)).toEqual({ x: 0, y: 0, w: 6, h: 6 });
     expect(clampLayout({ x: -2, y: -1, w: 40, h: 0 })).toEqual({ x: 0, y: 0, w: 12, h: 1 });
     expect(clampLayout({ x: Number.NaN, w: 2.6 })).toEqual({ x: 0, y: 0, w: 3, h: 6 });
+  });
+
+  it('snaps an overlapping drop to the nearest free magnetic slot', () => {
+    expect(magneticLayout({ x: 1, y: 1, w: 4, h: 2 }, [{ x: 0, y: 0, w: 6, h: 4 }])).toEqual({ x: 6, y: 1, w: 4, h: 2 });
+    expect(magneticLayout({ x: 3, y: 4, w: 4, h: 2 }, [{ x: 0, y: 0, w: 6, h: 4 }])).toEqual({ x: 3, y: 4, w: 4, h: 2 });
   });
 });

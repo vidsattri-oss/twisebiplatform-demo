@@ -121,17 +121,20 @@
             <bi-visual class="focus-visual" [visual]="fv" />
           </div>
         } @else {
-          <div class="grid" [style.--bi-rows]="canvasRows()">
+          <div #visualGrid class="grid" [style.--bi-rows]="canvasRows()">
             @for (v of visuals(); track v.id) {
               @let l = layout(v);
               <bi-visual
                 class="cell"
                 [class.wide]="l.w > 6"
+                [class.moving]="movingVisualId() === v.id"
                 [visual]="v"
+                [attr.data-visual-id]="v.id"
                 [style.--bi-col]="l.col"
                 [style.--bi-row]="l.row"
                 [style.--bi-w]="l.w"
                 [style.--bi-h]="l.h"
+                (moveStart)="startVisualMove(v.id, $event)"
               />
             } @empty {
               <div class="empty-page">

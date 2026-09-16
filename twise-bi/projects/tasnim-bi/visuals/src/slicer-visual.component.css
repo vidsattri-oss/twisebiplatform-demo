@@ -30,10 +30,10 @@
 .blank { font-style: italic; color: var(--bi-muted); }
 
 /* One row even when narrow: a wrapped second input would spill into the visual below the slicer. */
-.between { display: flex; align-items: center; gap: 4px; }
+.between { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; }
 .field { flex: 1 1 0; min-width: 0; }
-.field input { padding-inline: 6px; }
-.hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field input { min-width: 0; max-width: 100%; padding-inline: 6px; }
+.hint { width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash { color: var(--bi-soft); }
 .relative { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .relative select { flex: 1 1 90px; width: auto; }

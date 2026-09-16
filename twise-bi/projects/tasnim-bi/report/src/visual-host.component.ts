@@ -1,5 +1,5 @@
 import { NgComponentOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Injector, computed, inject, input, resource, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, computed, inject, input, output, resource, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Scalar, VisualDefinition, VisualQuery } from '@tasnim/bi/core';
 import { BI_DATA_SOURCE, describeError } from '@tasnim/bi/core';
@@ -39,6 +39,7 @@ export class VisualHostComponent {
   private readonly ds = inject(BI_DATA_SOURCE);
 
   readonly visual = input.required<VisualDefinition>();
+  readonly moveStart = output<PointerEvent>();
 
   readonly showFilters = signal(false);
   readonly confirmRemove = signal(false);
@@ -160,6 +161,13 @@ export class VisualHostComponent {
   edit(event: Event): void {
     event.stopPropagation();
     this.store.focusedVisualId.set(this.visual().id);
+  }
+
+  startMove(event: PointerEvent): void {
+    if (!this.store.editMode()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.moveStart.emit(event);
   }
 
   remove(): void {
