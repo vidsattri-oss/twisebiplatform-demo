@@ -1,4 +1,4 @@
-# Tasnim BI feasibility study
+# BI feasibility study
 
 This repository contains the current v3 BI module prototype and its local
 reference backend. The supported development path is the Angular host harness
