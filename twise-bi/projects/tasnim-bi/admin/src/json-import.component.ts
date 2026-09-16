@@ -67,6 +67,7 @@ export class JsonImportComponent {
   protected readonly busy = signal(false);
 
   protected readonly models = rxResource({ stream: () => this.ds.listModels() });
+  protected readonly modelsError = computed(() => (this.models.error() ? describeError(this.models.error(), "The data sources couldn't be loaded.") : null));
   protected readonly targets = computed(() => (this.models.value() ?? []).filter((m) => m.fileName !== 'data.db' && m.status === 'connected'));
 
   protected readonly tab = signal<'json' | 'column'>('json');
@@ -74,6 +75,7 @@ export class JsonImportComponent {
   // --- Flatten a JSON column (J1, J2) ---
   protected readonly flatConnectionId = signal<number | null>(null);
   protected readonly flatModel = rxResource({ params: () => this.flatConnectionId() ?? undefined, stream: ({ params }) => this.ds.getModel(params) });
+  protected readonly flatModelError = computed(() => (this.flatModel.error() ? describeError(this.flatModel.error(), "The selected data source couldn't be loaded.") : null));
   protected readonly flatTable = signal('');
   protected readonly flatColumn = signal('');
   protected readonly flatKeyColumn = signal('');

@@ -1,0 +1,12 @@
+{
+  "type": "sample-kpi-bars",
+  "label": "Sample KPI bars",
+  "icon": "M4 20V10M10 20V4M16 20V13M22 20V7",
+  "description": "A minimal custom visual example with one category and one measure.",
+  "version": "1.0.0",
+  "author": "Local example",
+  "roles": [
+    { "name": "category", "label": "Category", "min": 1, "max": 1 },
+    { "name": "values", "label": "Value", "min": 1, "max": 1 }
+  ]
+}

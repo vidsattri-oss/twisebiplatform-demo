@@ -20,9 +20,11 @@ export class MeasureEditorComponent {
   private readonly ds = inject(BI_DATA_SOURCE);
 
   protected readonly models = rxResource({ stream: () => this.ds.listModels() });
+  protected readonly modelsError = computed(() => (this.models.error() ? describeError(this.models.error(), "The data sources couldn't be loaded.") : null));
   protected readonly modelId = signal<number | null>(null);
   protected readonly activeModelId = computed(() => this.modelId() ?? this.models.value()?.find((m) => m.status === 'connected')?.id ?? null);
   protected readonly model = rxResource({ params: () => this.activeModelId() ?? undefined, stream: ({ params }) => this.ds.getModel(params) });
+  protected readonly modelError = computed(() => (this.model.error() ? describeError(this.model.error(), "The selected model couldn't be loaded.") : null));
   protected readonly calculatedColumns = computed(() =>
     (this.model.value()?.tables ?? []).flatMap((t) => t.columns.filter((c) => c.expression).map((c) => ({ ...c, table: t.name }))),
   );

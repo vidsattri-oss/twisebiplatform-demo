@@ -7,6 +7,10 @@
   </div>
   <bi-nav />
 
+  @if (modelsError(); as error) {
+    <p class="alert error" role="alert">{{ error }} Start the BI API and reload this page.</p>
+  }
+
   <div class="segmented tabs" role="tablist" aria-label="JSON source">
     <button type="button" role="tab" [attr.aria-selected]="tab() === 'json'" [class.on]="tab() === 'json'" (click)="switchTab('json')">Import a JSON file</button>
     <button type="button" role="tab" [attr.aria-selected]="tab() === 'column'" [class.on]="tab() === 'column'" (click)="switchTab('column')">Flatten a JSON column</button>
@@ -77,6 +81,9 @@
             }
           </select>
         </label>
+        @if (flatModelError(); as error) {
+          <p class="alert error" role="alert">{{ error }} Check the BI API connection, then choose the data source again.</p>
+        }
         <label class="field">
           <span class="label">Table</span>
           <select class="select" [disabled]="!flatModel.value()" (change)="selectTable(valueOf($event))">

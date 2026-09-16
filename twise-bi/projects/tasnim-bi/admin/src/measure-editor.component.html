@@ -15,6 +15,10 @@
   </div>
   <bi-nav />
 
+  @if (modelsError(); as error) {
+    <p class="alert error" role="alert">{{ error }} Start the BI API and reload this page.</p>
+  }
+
   @if (message(); as m) {
     <p class="alert" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">{{ m.text }}</p>
   }
@@ -90,7 +94,11 @@
         </table>
       </div>
     </div>
+  } @else if (modelError(); as error) {
+    <p class="alert error" role="alert">{{ error }} Check that the BI API is running, then reload this page.</p>
   } @else if (model.isLoading()) {
     <p class="help" aria-busy="true">Loading model…</p>
+  } @else if (!activeModelId()) {
+    <p class="empty">No connected data source is available. Add or connect one from Data sources.</p>
   }
 </div>

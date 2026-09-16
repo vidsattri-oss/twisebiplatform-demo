@@ -52,6 +52,7 @@
         <div class="panel-head"><h2 class="panel-title">Catalog</h2></div>
         @if (catalogError(); as error) {
           <p class="alert error" role="alert">{{ error }}</p>
+          <div class="actions"><button type="button" class="btn ghost sm" (click)="catalog.reload()">Retry catalog</button></div>
         }
         <div class="catalog">
           @for (c of catalog.value() ?? []; track c.type) {
@@ -75,7 +76,11 @@
               </div>
             </article>
           } @empty {
-            <p class="help">{{ catalog.isLoading() ? 'Loading the catalog…' : 'The catalog is empty.' }}</p>
+            @if (catalog.isLoading() && !catalogError()) {
+              <p class="help" aria-busy="true">Loading the catalog…</p>
+            } @else if (!catalogError()) {
+              <p class="help">The catalog is empty.</p>
+            }
           }
         </div>
       </div>
