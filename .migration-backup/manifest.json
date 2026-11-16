@@ -1,0 +1,1226 @@
+{
+  "source_folder": "BIProject\\Feasibility Study",
+  "source_branch": "feature/twise-bi-modeling-v3",
+  "source_head": "f69de416e4be87e97b7921ea495dee28963b1b7a",
+  "purpose": "Pre-Linux migration backup; original workspace unchanged",
+  "excluded": [
+    {
+      "path": ".local-run/",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "preferences-server/data/",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/.env",
+      "reason": "environment configuration: secure backup required"
+    },
+    {
+      "path": "query-builder-prototype/connections/appmaster.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/json-imports.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-00951d7f.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-4108e4fc.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-50099b5c.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-59556044.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-6e154dfb.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-812b63be.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-c3b39321.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/rest-ce17b42a.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sales.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-0edf24c9.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-16c3b714.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-187ca31a.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-58b7457f.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-8d31acc4.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-c51c21a4.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-eae5bd6d.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/sqlserver-fc940eff.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/uploads-csv.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/uploads-excel.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/connections/wells.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/data.db",
+      "reason": "ignored local data/runtime artifact"
+    },
+    {
+      "path": "query-builder-prototype/node_modules/",
+      "reason": "generated logs, dependency or cache"
+    },
+    {
+      "path": "twise-bi/.angular/",
+      "reason": "generated logs, dependency or cache"
+    },
+    {
+      "path": "twise-bi/dist/",
+      "reason": "generated logs, dependency or cache"
+    },
+    {
+      "path": "twise-bi/node_modules/",
+      "reason": "generated logs, dependency or cache"
+    }
+  ],
+  "redacted_files": [],
+  "files": [
+    {
+      "path": ".claude/launch.json",
+      "raw_sha256": "46304bc7c9da7809d46e594b2e1e930e4b1493d00046dd84ce1a62cd53c95f5c",
+      "size": 692
+    },
+    {
+      "path": ".gitignore",
+      "raw_sha256": "3c9a0e12e8780362b9dd33180e4cf34aa2f856a9bde8d2b354e8a1f3f6ce1062",
+      "size": 276
+    },
+    {
+      "path": "CLAUDE.md",
+      "raw_sha256": "6fe4644ad96e10751df33b1deccb45eec4dd273f29e57b1a69c2de3a586155fb",
+      "size": 7335
+    },
+    {
+      "path": "README.md",
+      "raw_sha256": "8c38a7fdcb0ef0a05491c3fbebf755d04f5349c84b7629d1ffc49155d93361fc",
+      "size": 9226
+    },
+    {
+      "path": "REVIEW.md",
+      "raw_sha256": "079abf5859401bf10aab83d4d10b24f868a2d3afeb32e528dc30e34f25a091e8",
+      "size": 1230
+    },
+    {
+      "path": "docs/api/bi-contract.openapi.yaml",
+      "raw_sha256": "a95b723414cae480f6cb6ad172ef50367b759431ae23186ca4003016fd5a1dd0",
+      "size": 36811
+    },
+    {
+      "path": "docs/api/openapi.yaml",
+      "raw_sha256": "07176b6a7bb34a6dd4196fdd92a6175d29e4c9378c00d89347092f05002a1d72",
+      "size": 30799
+    },
+    {
+      "path": "docs/architecture.md",
+      "raw_sha256": "352fbfd8bbb4c17819aa1ef5f70a31bdebb710b85bbb0ece5dec8630e22048e9",
+      "size": 7962
+    },
+    {
+      "path": "docs/diagrams/architecture-and-api-contract.html",
+      "raw_sha256": "cc1621d5ad735a0f631b8f2e283a76925c768db03818b2853a6845d29ac87283",
+      "size": 43451
+    },
+    {
+      "path": "docs/diagrams/implementation-summary.html",
+      "raw_sha256": "165c555320d7b01bd5d990e6ccb6ea3c537c63cd08527e728913f34be645717b",
+      "size": 24902
+    },
+    {
+      "path": "docs/examples/sample-visual/README.md",
+      "raw_sha256": "e2de5750fa8f186c945d44937bad902884897c43048c8813cee42391c580cca9",
+      "size": 691
+    },
+    {
+      "path": "docs/examples/sample-visual/manifest.json",
+      "raw_sha256": "328cd0564c1017c5bef49eca377a98baa434cfb23b231ee8883a2fef9d05a2b9",
+      "size": 397
+    },
+    {
+      "path": "docs/examples/sample-visual/visual.js",
+      "raw_sha256": "fd5d4a6425845356c151f0c3f56cb22d02548551a240f0b7aaa50673097f53e5",
+      "size": 1896
+    },
+    {
+      "path": "docs/intent/angular-bi-prototype.md",
+      "raw_sha256": "0896de33f1ae1d7b27b112038b514d551bf1665dfb080bb6206d009532043ebb",
+      "size": 2552
+    },
+    {
+      "path": "docs/intent/twise-bi-modeling-v3.md",
+      "raw_sha256": "699a17b32c2c0cdf8f2e65c17b8ccc8fcd5bb8268690cfb42579bf728ad39bdf",
+      "size": 3840
+    },
+    {
+      "path": "docs/intent/twise-bi-module.md",
+      "raw_sha256": "5527e9aa405f202b0074163a695b9db569b6d3027e784bb6f8e36e93ccc4b4c7",
+      "size": 3721
+    },
+    {
+      "path": "docs/intent/twise-bi-requirements-v2.md",
+      "raw_sha256": "0182848a971cc8ab93d835da9d3b77278f28c383fe1a48980703546eca3e964a",
+      "size": 3186
+    },
+    {
+      "path": "docs/plans/angular-bi-prototype.md",
+      "raw_sha256": "0e0050b7c095230da13e100052d0c4d91dab5f530c5011a7749061061a90e2bb",
+      "size": 4965
+    },
+    {
+      "path": "docs/plans/twise-bi-modeling-v3.md",
+      "raw_sha256": "e48f1943b5eee12fcdb58edfbdade31841c4cf3f260a16bb885321f9190a52f7",
+      "size": 2811
+    },
+    {
+      "path": "docs/plans/twise-bi-module.md",
+      "raw_sha256": "660d9e4d1328bed4635374c58bd34e63451c965f35e17110083ffb82511a0a64",
+      "size": 5642
+    },
+    {
+      "path": "docs/plans/twise-bi-requirements-v2.md",
+      "raw_sha256": "f9844ef408affb9638dde4e72f38608a6e3f180f8888a66d8f0309f6669521dd",
+      "size": 2929
+    },
+    {
+      "path": "docs/specs/twise-bi-modeling-v3.md",
+      "raw_sha256": "9b681f1625d52c6e4a639fe55190f69c726b19f296c376ce23bc2211853bd405",
+      "size": 9576
+    },
+    {
+      "path": "docs/specs/twise-bi-module.md",
+      "raw_sha256": "a4148118e4f3d550fa42a2a964e9a270c4aa0b5783d003d3971c8faaeecb3e27",
+      "size": 8909
+    },
+    {
+      "path": "docs/specs/twise-bi-requirements-v2.md",
+      "raw_sha256": "2a01b84523c4cd247935ed82cef378bb423f665df09d01e586b11f79f396d5bc",
+      "size": 8513
+    },
+    {
+      "path": "docs/spikes/twise-bi-modeling-v3.md",
+      "raw_sha256": "2d7d5cde285a7953eaa8ea5fe819fd45465a2607ad9a14e0a6d100e0626c9d7e",
+      "size": 3922
+    },
+    {
+      "path": "docs/spikes/twise-bi-module.md",
+      "raw_sha256": "b622410e1362fb46b80c51a66b168c8ebfb269cdb31663ac700c7ff33491dba4",
+      "size": 4546
+    },
+    {
+      "path": "docs/spikes/twise-bi-requirements-v2.md",
+      "raw_sha256": "3755ab8b06ad7b410a986bba8adf83f183e1fee1ea505f7196c92cf444435f65",
+      "size": 4631
+    },
+    {
+      "path": "preferences-server/package.json",
+      "raw_sha256": "884e10313f69ae62661bc3b17cece462745d0ab2d1a610812dc9ef51fdb34d51",
+      "size": 334
+    },
+    {
+      "path": "preferences-server/server.js",
+      "raw_sha256": "013c299c78f7c24383ee96e52f4fceabb9d1e75c3890c9cd85659a32aa3dc3c4",
+      "size": 5642
+    },
+    {
+      "path": "preferences-server/test/preferences.test.js",
+      "raw_sha256": "d7241729d82892d93fc04bca97d94bda066df3d8733e2ee0ad067fc47a7221b0",
+      "size": 3826
+    },
+    {
+      "path": "query-builder-prototype/.env.example",
+      "raw_sha256": "c2a0a3cf20377591893d16160c9c67e036fba0e46d119dc6028e310c2397a031",
+      "size": 1174
+    },
+    {
+      "path": "query-builder-prototype/README.md",
+      "raw_sha256": "35b56f601363256eaad024fa5315cb7aa3c31ab50ebd5a1d38ca2d949d404c93",
+      "size": 1977
+    },
+    {
+      "path": "query-builder-prototype/bi/connectors/database.js",
+      "raw_sha256": "ad69588e04592e628ddc6f85a8551ca9fecf6a3bb5767e330191624cbff58a9a",
+      "size": 5354
+    },
+    {
+      "path": "query-builder-prototype/bi/connectors/index.js",
+      "raw_sha256": "cdf8fd14eee67557d472ee60db8f484d52f2a47ce6f24af1f5cb32f5a31b4aac",
+      "size": 25592
+    },
+    {
+      "path": "query-builder-prototype/bi/connectors/outbound.js",
+      "raw_sha256": "b6ee9441608ad49406813a09fb2cde503ffceeccb195306120319b04f7c354c3",
+      "size": 6061
+    },
+    {
+      "path": "query-builder-prototype/bi/csv.js",
+      "raw_sha256": "7828909cae9007fa06a54d7c1d213a9cdd818973ccf642ac741c001da9fa0c44",
+      "size": 1795
+    },
+    {
+      "path": "query-builder-prototype/bi/dax.js",
+      "raw_sha256": "dc5d1fa12c3c3ba710339e0a2272eda5fa87464bea8fc3cb603595bdf5ca6732",
+      "size": 32645
+    },
+    {
+      "path": "query-builder-prototype/bi/errors.js",
+      "raw_sha256": "4dcbdc8c79f1c852520e184e767801a03744c30a090238a849c322917afd8508",
+      "size": 504
+    },
+    {
+      "path": "query-builder-prototype/bi/ingest.js",
+      "raw_sha256": "0464addce462d324e6f9fbac26a6054159d2d12fd2c63e238341975892fcc03a",
+      "size": 12870
+    },
+    {
+      "path": "query-builder-prototype/bi/model.js",
+      "raw_sha256": "5aacf95cfec2ab55c8c0a6a993a8434e82a188e4e8b891dd01a5373df4369b66",
+      "size": 11338
+    },
+    {
+      "path": "query-builder-prototype/bi/plugin-catalog/bullet-chart.js",
+      "raw_sha256": "38690d28876af394572486ab2b6320705adf08ac3b2031407aba37dfc45723b3",
+      "size": 4342
+    },
+    {
+      "path": "query-builder-prototype/bi/plugin-catalog/bullet-chart.json",
+      "raw_sha256": "864b6a8071d031e020b2d8f8ac7da01fc04be150e07c278ffc492e99b4ebb1ce",
+      "size": 450
+    },
+    {
+      "path": "query-builder-prototype/bi/plugin-catalog/heat-map.js",
+      "raw_sha256": "d1ecccfb9da8a83ddeb275ad2dc8c2a09462a2d4c690f3f8a25b0ac7433fd817",
+      "size": 3645
+    },
+    {
+      "path": "query-builder-prototype/bi/plugin-catalog/heat-map.json",
+      "raw_sha256": "f1575b6b31782307713b1f025912508f35812de28f438198cd4c82f3b00370c6",
+      "size": 429
+    },
+    {
+      "path": "query-builder-prototype/bi/plugins.js",
+      "raw_sha256": "e8aa8d2f275ba016b0b625304dc861efef094decfce3af15e9b66a03f9035240",
+      "size": 6655
+    },
+    {
+      "path": "query-builder-prototype/bi/query.js",
+      "raw_sha256": "0b1044ef106a3e12b9eb1e1504f7bb742ac2ca0d9603de29b1955c73723d5ed6",
+      "size": 25483
+    },
+    {
+      "path": "query-builder-prototype/bi/reports.js",
+      "raw_sha256": "439e89f21cb78526598a1e90356471831cf78dff01ab7c6df29ca751e8a810b8",
+      "size": 20860
+    },
+    {
+      "path": "query-builder-prototype/bi/routes.js",
+      "raw_sha256": "a5792cb9d025a9d5eb51d98914589d5a9858d5843fa1d9e8e69a47d6a832d013",
+      "size": 19110
+    },
+    {
+      "path": "query-builder-prototype/bi/test/column-props-api.test.js",
+      "raw_sha256": "74801fda50ac2629e0cbee27676c4ad67c5fef469e9fa9397ac910362374c606",
+      "size": 2806
+    },
+    {
+      "path": "query-builder-prototype/bi/test/connectors-api.test.js",
+      "raw_sha256": "82548e8ceced6522b54cb2ca7292406dcb9935f26140da911f1b94409a0c8650",
+      "size": 6788
+    },
+    {
+      "path": "query-builder-prototype/bi/test/connectors.test.js",
+      "raw_sha256": "4929bfc34e8023ec2a74097905a5015673315e5b89ea316d811e61a91890c446",
+      "size": 6240
+    },
+    {
+      "path": "query-builder-prototype/bi/test/contract.test.js",
+      "raw_sha256": "fa89d6b3574b79f9800281f7a0b2fc14853f3ceb2a9842120aa4939a77dcba26",
+      "size": 8956
+    },
+    {
+      "path": "query-builder-prototype/bi/test/csv.test.js",
+      "raw_sha256": "1a5b8ff0ca62d4ecfdec3cc0f753db7582a2cce2db6d401f1a9ef6109c9e2adf",
+      "size": 1188
+    },
+    {
+      "path": "query-builder-prototype/bi/test/dataset-filters-api.test.js",
+      "raw_sha256": "68cb41de23cddf3173b974e1564dd936160562a0a26287c68857bcfb5892151c",
+      "size": 2567
+    },
+    {
+      "path": "query-builder-prototype/bi/test/dax.test.js",
+      "raw_sha256": "cba37765448ec2fc2f9ed64345bca3aee73547cf7e452c76f6c4e108bc6064ee",
+      "size": 4233
+    },
+    {
+      "path": "query-builder-prototype/bi/test/filters-v2.test.js",
+      "raw_sha256": "092e841af19b24b988dad286e90d850f460c8eaea0851d86859d643bcbdbe443",
+      "size": 5361
+    },
+    {
+      "path": "query-builder-prototype/bi/test/formulas-api.test.js",
+      "raw_sha256": "6a8c30e626edfe735821cf748df3f306162ac47b792a710f5774abc30ff0bf07",
+      "size": 4627
+    },
+    {
+      "path": "query-builder-prototype/bi/test/formulas.test.js",
+      "raw_sha256": "5c75783f4d27031dec5719de920d1f89a22b0a449834f4f4fe44fb799fa643ee",
+      "size": 10417
+    },
+    {
+      "path": "query-builder-prototype/bi/test/helpers/xlsx-fixture.js",
+      "raw_sha256": "ff584a545904d4daabafa42d40d4ac9395a1df726dd36407a36dbbf3d64af96d",
+      "size": 4489
+    },
+    {
+      "path": "query-builder-prototype/bi/test/ingest.test.js",
+      "raw_sha256": "7d70e0f6176e35c553115fd305a43444f89125bd32f124ea1a1a68ca91e207dd",
+      "size": 4846
+    },
+    {
+      "path": "query-builder-prototype/bi/test/json-column-api.test.js",
+      "raw_sha256": "d143a0c16d65f42937e08be5d9779b4ee466bdbc5c8228d4f155d9baebbf097b",
+      "size": 2835
+    },
+    {
+      "path": "query-builder-prototype/bi/test/json-column.test.js",
+      "raw_sha256": "ea5b0f3daaacbf46fcd7a748bd0d920a4cfb3daea9f4d878d9fa478bfe94e41f",
+      "size": 4161
+    },
+    {
+      "path": "query-builder-prototype/bi/test/model.test.js",
+      "raw_sha256": "147826e7e343fe71354cd82716f69b46adbd2ca387dcf5afe4f3ea987b1e7310",
+      "size": 3533
+    },
+    {
+      "path": "query-builder-prototype/bi/test/outbound.test.js",
+      "raw_sha256": "dbad30986e4e6c47fbf7d588297f23eb5e68949c76d93e94081f85de05460362",
+      "size": 4430
+    },
+    {
+      "path": "query-builder-prototype/bi/test/plugins-api.test.js",
+      "raw_sha256": "9b9c8623379f29600b951cefc9cfad5e721ec1ff2bef712032cbede08e606d29",
+      "size": 3894
+    },
+    {
+      "path": "query-builder-prototype/bi/test/qa-regressions.test.js",
+      "raw_sha256": "a43f5e96190614c8edb96b8c38faec05ddd5a56e06226a0dad575c069e8a8e87",
+      "size": 2277
+    },
+    {
+      "path": "query-builder-prototype/bi/test/query.test.js",
+      "raw_sha256": "3765e15087ff894358095923ab382d044dec52f77afe6952c9b7d39e56f6b10d",
+      "size": 11928
+    },
+    {
+      "path": "query-builder-prototype/bi/test/reports-meta-api.test.js",
+      "raw_sha256": "83c645c4cc117a5969f754dd443309fa0b01e880a33fc63a0dfcf03fc011a24a",
+      "size": 5097
+    },
+    {
+      "path": "query-builder-prototype/bi/test/wells-parity.test.js",
+      "raw_sha256": "e8a1bf29e0b508f4ae04a6b3248ec17507a2e24d798ee89848333341f2d2a4be",
+      "size": 3828
+    },
+    {
+      "path": "query-builder-prototype/bi/test/xlsx.test.js",
+      "raw_sha256": "e52c39a08e6b18ab4069901c68652975be63e2eded19943f2b0a48347674ab1f",
+      "size": 1204
+    },
+    {
+      "path": "query-builder-prototype/bi/xlsx.js",
+      "raw_sha256": "1bb709d74f10716b0636ef6295695adf9a71ff8b37f10e8a0a4c3c8d06d23848",
+      "size": 8956
+    },
+    {
+      "path": "query-builder-prototype/connections.js",
+      "raw_sha256": "916d16e020b5a08faf121889dbb53b4c5802bf5cf5a0e2638c3159e8157ed296",
+      "size": 3357
+    },
+    {
+      "path": "query-builder-prototype/db.js",
+      "raw_sha256": "728b3c1fb5a39e95764b13ce6355a56577cc5cfd94ca198bb25fbcef4a2c8708",
+      "size": 7509
+    },
+    {
+      "path": "query-builder-prototype/models/appmaster.db.json",
+      "raw_sha256": "a57efd3c8810ffa241fb6a92702012e3794d66ace1714479ff953ff5b6152223",
+      "size": 693
+    },
+    {
+      "path": "query-builder-prototype/models/data.db.json",
+      "raw_sha256": "7779116a630048a3d2ae04dfcba589f1aeab9946ea1c9605819222395006a9c2",
+      "size": 1462
+    },
+    {
+      "path": "query-builder-prototype/models/sales.db.json",
+      "raw_sha256": "2cacab3b6b0297d166c2a238de4702adce9a20133bbd9cf698f8c9c93cc75c1c",
+      "size": 768
+    },
+    {
+      "path": "query-builder-prototype/models/wells.db.json",
+      "raw_sha256": "a1d2bd5580ba152df56c610cf2ecf0c77724f413abdd9154a252214ce3839506",
+      "size": 506
+    },
+    {
+      "path": "query-builder-prototype/package-lock.json",
+      "raw_sha256": "c6822c40ed0dd2af80e045f1cad41f23ff5a44d12ef13ecd94258f82b5a5c167",
+      "size": 29382
+    },
+    {
+      "path": "query-builder-prototype/package.json",
+      "raw_sha256": "171e85fb5e190bc701e119a1e4b20b44c1b40ba3aa9886e469bb2a137c3f69bd",
+      "size": 559
+    },
+    {
+      "path": "query-builder-prototype/public/index.html",
+      "raw_sha256": "e7deab108577a2ebe0887d1ca2f62241bd4669c29c1ef225945390ec26bc554b",
+      "size": 279
+    },
+    {
+      "path": "query-builder-prototype/public/query-builder.html",
+      "raw_sha256": "800888c25a4adfff2e48447042a31ac33c5c4b61d639c2280d61fa98c8af6ba9",
+      "size": 13177
+    },
+    {
+      "path": "query-builder-prototype/public/shell.js",
+      "raw_sha256": "f98d9d1f1cdf4ae4ad1c1d7785e7327320d001bf84a2b075a2c2ec04a943a1a7",
+      "size": 2196
+    },
+    {
+      "path": "query-builder-prototype/public/sources.html",
+      "raw_sha256": "f063d28fae7f31ff8fbc560251009ceb271d9ce9c92638ca460510ae22d08615",
+      "size": 5126
+    },
+    {
+      "path": "query-builder-prototype/public/styles.css",
+      "raw_sha256": "7c9d0551b6c62bad88503f3fe02ce4c7e1ca12546182fd243685e68243fb92e5",
+      "size": 8909
+    },
+    {
+      "path": "query-builder-prototype/secrets.js",
+      "raw_sha256": "8ae95e9a55af9419447c7596f519d8990a13e9f2f94159c422a5baaeb740d05f",
+      "size": 2202
+    },
+    {
+      "path": "query-builder-prototype/seed-appmaster.js",
+      "raw_sha256": "dff7b6ce8259006b1149b649250413c1e4864d1e3e42d28edc3dd2e6dc85a623",
+      "size": 7412
+    },
+    {
+      "path": "query-builder-prototype/seed-sales-db.js",
+      "raw_sha256": "91acf985d0de9f3316b165132f112343970613c78b3636baeb30685e0608db04",
+      "size": 4840
+    },
+    {
+      "path": "query-builder-prototype/seed-wells.js",
+      "raw_sha256": "b9004556d9d0e4f60d19fa71a494140cbb60649d7e42803201b093c72867174f",
+      "size": 3486
+    },
+    {
+      "path": "query-builder-prototype/server.js",
+      "raw_sha256": "8a2a76a49523098d4ddc969be58a1ea9d072586f2342b40b77f4d7990b7f9848",
+      "size": 20774
+    },
+    {
+      "path": "scripts/check-evidence.mjs",
+      "raw_sha256": "a555e93479217614820c4117578980b6ebaf1ec38fc25e29cbea207ecb12f2e2",
+      "size": 2636
+    },
+    {
+      "path": "scripts/start-local.ps1",
+      "raw_sha256": "5d9f17dd1056b8994e099f4c609a321558fb648d8dab9ec6fcf9a490ef11fcac",
+      "size": 4738
+    },
+    {
+      "path": "twise-bi/.editorconfig",
+      "raw_sha256": "9da1d179fa691e796ec7cb26d719e2308a073594b7c7c77756d1ba4560e295be",
+      "size": 331
+    },
+    {
+      "path": "twise-bi/.gitignore",
+      "raw_sha256": "ae6d22f040c44292c421a5c0715e28b9330b8c26d9f2bf08c7935374c6147967",
+      "size": 666
+    },
+    {
+      "path": "twise-bi/.prettierrc",
+      "raw_sha256": "7bbd911f1ad35a68fd6c04d83c101b4ab1d08c1f8008623c056a27070a735532",
+      "size": 173
+    },
+    {
+      "path": "twise-bi/.vscode/extensions.json",
+      "raw_sha256": "2f13a5bb182525a4150f20e023a17eacb5411eaf6877d60209ac3cea86ab5c85",
+      "size": 134
+    },
+    {
+      "path": "twise-bi/.vscode/launch.json",
+      "raw_sha256": "0dd378135c3d394a1e07e9c28af48edea54c5690a805de42c7df101d5e195574",
+      "size": 490
+    },
+    {
+      "path": "twise-bi/.vscode/tasks.json",
+      "raw_sha256": "63d74d916c9875099b559cfaed85a493c9297a7c03805e18132ca383db045895",
+      "size": 1020
+    },
+    {
+      "path": "twise-bi/README.md",
+      "raw_sha256": "e30fdadfaa66906cc3230d287ba39d1820a0f19a54b2202d548da05b02a35c6b",
+      "size": 2448
+    },
+    {
+      "path": "twise-bi/angular.json",
+      "raw_sha256": "839e47554dcc8125ef5ab828e3fc2f808158109969bc457e048ec9e25a335a03",
+      "size": 2805
+    },
+    {
+      "path": "twise-bi/package-lock.json",
+      "raw_sha256": "ccc1f04e51c451b60bb53ca6fb5001476c0a21189a03d4979ad1682d8587afa0",
+      "size": 300932
+    },
+    {
+      "path": "twise-bi/package.json",
+      "raw_sha256": "9f5c25740e2d8f29db9b8d3dda66c4603c6e27fa5392b737367cc08636d356b7",
+      "size": 1183
+    },
+    {
+      "path": "twise-bi/projects/host-harness/public/favicon.ico",
+      "raw_sha256": "f9102be80297c0529207607be5277b4f90bca89d65988fa1771b91c7894e815f",
+      "size": 15086
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/app.config.ts",
+      "raw_sha256": "7033a776ee29cf958487348e90cb8f11f3dab075be149cb8a8766198ce361721",
+      "size": 1271
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/app.css",
+      "raw_sha256": "757de3008ef31185a192abbc443f73a2a0b14a8876b18ba6ba73a5266a4a0bab",
+      "size": 3245
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/app.html",
+      "raw_sha256": "b6b08327f348ae3df9c05a67ab5fb1f0a23f3e6f5267aa97ab7a945fa8452725",
+      "size": 1859
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/app.routes.ts",
+      "raw_sha256": "ab950c4778ab6cecabbc403297285583f8ba1b93dcc5850ae0b5b8ccc6e9358a",
+      "size": 443
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/app.spec.ts",
+      "raw_sha256": "d9dfd3e2e81d7855b8162468076dd672d8595ad4c2d122868606f5acd192b479",
+      "size": 680
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/app.ts",
+      "raw_sha256": "9830d8d9aea5977f8f618b0d808d24826ceb197fa39c2783818baf5d9ebe16f7",
+      "size": 727
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/pages/host-home.page.ts",
+      "raw_sha256": "f8a482f46fe7aa001c1028daec5a49e6627c2406a488717954ac006a5aba28d4",
+      "size": 1190
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/app/twise/kpi-progress.visual.ts",
+      "raw_sha256": "74d5db5882cc846bcf48089459d3e20e820db1ff8c38b2f7f53e35f2e207295f",
+      "size": 2861
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/index.html",
+      "raw_sha256": "acc60f6318a03f5176d011122f10df9717ac3ce21a84048b1e4212bb0aa61ddf",
+      "size": 626
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/main.ts",
+      "raw_sha256": "ecc610fb7d56c95a01a8aa6c274a63210d45b2944dd6b9a88b2c8f70b6351037",
+      "size": 219
+    },
+    {
+      "path": "twise-bi/projects/host-harness/src/styles.css",
+      "raw_sha256": "9f53c10dc0687c71aa35a749869f01d141d4beff907696d30832b8cf884f585a",
+      "size": 1168
+    },
+    {
+      "path": "twise-bi/projects/host-harness/tsconfig.app.json",
+      "raw_sha256": "7672ddde9026f7b661fd154853b5197dd0e504e38368f012964c049fd9688324",
+      "size": 386
+    },
+    {
+      "path": "twise-bi/projects/host-harness/tsconfig.spec.json",
+      "raw_sha256": "636ca249ece921c95e6477b6d8ed578e2e0595379838ca9784a2619e3552999e",
+      "size": 389
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/README.md",
+      "raw_sha256": "684d35965087375412001ffc7624341834996e1060327eed0d93ad00893cc704",
+      "size": 1440
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/ng-package.json",
+      "raw_sha256": "4d1ea76d49c80524ffcc4e88ff93dbd81c1af8d0b07c12df63652b8c3f68522d",
+      "size": 122
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/collapsible-layout.spec.ts",
+      "raw_sha256": "9dee3740c3dd98a47fc06a1e079b119efc296347b67fbd3cf7512786acafe1f8",
+      "size": 1037
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/collapsible-layout.ts",
+      "raw_sha256": "2ed149c73da4e9875cdaf0b01b82de53efbec2c4c2b9da29c456d83415462d5c",
+      "size": 1778
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/data-sources.component.css",
+      "raw_sha256": "fab4f97ec58888b98bf7d290801b3c6553b2a45ebc80e80d2cf7d958ab21dbdd",
+      "size": 6057
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/data-sources.component.html",
+      "raw_sha256": "04c745286b9c4b9a06c1ea70c4a98535685be20f73745103dbac76b26ee1ece2",
+      "size": 16290
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/data-sources.component.ts",
+      "raw_sha256": "0f02e8f635a23d0804a49f1035a7e9b12816dfc2a087a280cbc5b0476f3d02cf",
+      "size": 16759
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/json-import.component.css",
+      "raw_sha256": "4305bd7f716d6463c0b23ad37ae86f7ea6272730142d19952c7d159515cef7ae",
+      "size": 937
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/json-import.component.html",
+      "raw_sha256": "ef741eb93a67d264a2d302c3c8f540d407e0ae1a2842f8e31c7b3f6370cdf0fc",
+      "size": 10794
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/json-import.component.ts",
+      "raw_sha256": "c7b429f8aa046f441bb53163fb71f45152bbc41b2dd3e70808c46f86cdd74172",
+      "size": 10522
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/measure-editor.component.css",
+      "raw_sha256": "9b25089754f03d0656d1ccb4902cd3b451fe2d5ca6cd4b33c2dd61fecac81de6",
+      "size": 154
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/measure-editor.component.html",
+      "raw_sha256": "1cc3aa84d83e7b9674fc2d1af62e0932a131b6d31c4c290dbde14e5c547b941b",
+      "size": 4936
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/measure-editor.component.ts",
+      "raw_sha256": "999c9b9b328b9b3cd7b2746a937156a1605edc09684280a56e5eec9978b758fb",
+      "size": 2771
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/public-api.ts",
+      "raw_sha256": "c9421dee1002ae751e594f4d61c1be35158f806afa02a92815db7d3900b976df",
+      "size": 240
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/visuals.component.css",
+      "raw_sha256": "376512aca5a315fb3af5161fcf64d10420a5a9a64b6ab753222e716f9b688a3b",
+      "size": 1859
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/visuals.component.html",
+      "raw_sha256": "ea875063b3bab78a47992c496100b475037dc144bd1e190fe643556541ad186d",
+      "size": 5979
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/admin/src/visuals.component.ts",
+      "raw_sha256": "4c79945ae32bcdeb8d9e9de028b4d4582b3c1a8ed250827c403471a23809b04d",
+      "size": 5910
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/ng-package.json",
+      "raw_sha256": "4d1ea76d49c80524ffcc4e88ff93dbd81c1af8d0b07c12df63652b8c3f68522d",
+      "size": 122
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/contract.ts",
+      "raw_sha256": "824520c811f69beb4632f6fe94a1a4ebe1b2ca0bc110a225ec4fa04edccdbe23",
+      "size": 12526
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/data-source.ts",
+      "raw_sha256": "acc3c5e2383800a3700eec7183fbe88ec0e9abb85dfff59cc59602dac6e8ab56",
+      "size": 10625
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/describe-filter.spec.ts",
+      "raw_sha256": "8881c3b4fbdeb0271706585c3ac3b721b9b8d26db794af0c3139f2e9773edfdd",
+      "size": 3411
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/describe-filter.ts",
+      "raw_sha256": "3c01f464532adb50295bbf1dfad207016c1de6760d36077cd883f5d82bc81be5",
+      "size": 3004
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/filter-actions.spec.ts",
+      "raw_sha256": "5cf5fe62cf5b2a3bfb9ef4b3f0c162b2b6817f246988ace475576dbe20f9080b",
+      "size": 3302
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/filter-actions.ts",
+      "raw_sha256": "4eb6477db4dc034e0c8b6c5740eca389c70b5952f6e6c83bdf9596f9802bd79a",
+      "size": 3976
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/filter-context.spec.ts",
+      "raw_sha256": "4ed8f326d9526471ef4849c885816e96dff569ff8c973cd410319f2b9b96cf1d",
+      "size": 6961
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/filter-context.ts",
+      "raw_sha256": "c5bc9ee41013c54e85193b293d9005cb41bbc4ff4fab5a3e82685efa315273b7",
+      "size": 6266
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/format-datetime.spec.ts",
+      "raw_sha256": "4a66f1517d729cccba166032a6dc8da4f21e9993870434418141f54687a56496",
+      "size": 706
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/format.spec.ts",
+      "raw_sha256": "088cc261e3d16e39fb3243ddbfd473374c483e458551b7a23f01cf186e4b0e38",
+      "size": 1171
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/format.ts",
+      "raw_sha256": "148cbff4bff50b8313ff86e7b507f65a1feee6a0332aae9c9a2d2f0a831c70bd",
+      "size": 2852
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/host-bridge.ts",
+      "raw_sha256": "fe3ca699c1e8157031e82550efecb778012a9040e673b0492d1984349317ead7",
+      "size": 689
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/layout.spec.ts",
+      "raw_sha256": "5309c4de79eea69ec2385dec06517be8aea9cabbd11d7d85705f3824736c81b0",
+      "size": 1214
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/layout.ts",
+      "raw_sha256": "2519a6ae46e5b2bc7f70c4886c5b5ffd15093e9294065327ebe4387e09d38f21",
+      "size": 2258
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/plugin-visuals.ts",
+      "raw_sha256": "daa80237b86461e7135c9c79e286f3d7a354ddf2dbdafaa56595537eac3ae090",
+      "size": 2075
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/public-api.ts",
+      "raw_sha256": "3dad4191d08b5707d7250148256f4bbbb7bd66450d502330b74c651ede9f2926",
+      "size": 533
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/report-preferences.spec.ts",
+      "raw_sha256": "54fc6b9570d3b33674be7ec61f2c8bff236551cc14393c726a0b2dd8bf5a4818",
+      "size": 1754
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/report-preferences.ts",
+      "raw_sha256": "dbd23ad7525b4e9e5b12a6cc64e9cabb687895fc4ba9c9d0d1476ae7ffa442bc",
+      "size": 4390
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/report-store.spec.ts",
+      "raw_sha256": "4b4930315021f1c7db6d3087737d9077fa68221d37ee8d149fa050ecee7a4cec",
+      "size": 5927
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/report-store.ts",
+      "raw_sha256": "4d29f5d2dd22c60134d03e84129a6b603aa3ed0b48b5b1c89fed6223a84df018",
+      "size": 18782
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/theme.ts",
+      "raw_sha256": "f5cbfcf53e25da72246c7849dce49289c5aea984ee618947190341474c514de6",
+      "size": 703
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/visual-context.ts",
+      "raw_sha256": "325d1dde0ca71b3eacec821c95f4d7a514ca20b0361b80b3ad70100430d608f2",
+      "size": 1856
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/core/src/visual-registry.ts",
+      "raw_sha256": "36fbfd0c9ce6fa9398737efb4ae2597779089c4ec814a7693a95c67759216034",
+      "size": 2963
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/ng-package.json",
+      "raw_sha256": "4d1ea76d49c80524ffcc4e88ff93dbd81c1af8d0b07c12df63652b8c3f68522d",
+      "size": 122
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/data-pane.component.css",
+      "raw_sha256": "02e3eec343c1770b5f48d9ab8e0f3dd535ddc8c739c3e5e8848fb5b5157e82cb",
+      "size": 5096
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/data-pane.component.html",
+      "raw_sha256": "2e359b4a17104cc743b7e9f8b6c746e3438a709fcca9b366b9e39323c658fa76",
+      "size": 6425
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/data-pane.component.ts",
+      "raw_sha256": "f58d18554e1ccc6e90bdb745dab2750b7e40fc5885df5b4500036e8646302873",
+      "size": 5123
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/formula-editor.component.css",
+      "raw_sha256": "20c81f965815bba79ab68ebe65e80c030ed2137e584ca6fbab87ccd983b4e14c",
+      "size": 2992
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/formula-editor.component.html",
+      "raw_sha256": "499c7f7aeff2e450f7c23107daed696dc907646424c83bc250f9fbf8ce098927",
+      "size": 7281
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/formula-editor.component.spec.ts",
+      "raw_sha256": "650a4bf289075d0d97925c81f18f94a50d799133f19b661404f2b980b6f508dd",
+      "size": 2401
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/formula-editor.component.ts",
+      "raw_sha256": "6a543edc462e22e86c0fe02399f577d3105663a3e9f9318c98d4247f73003dff",
+      "size": 8466
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/formula-functions.ts",
+      "raw_sha256": "d6bfec07bb010612d62210fc63d6da60e652a657d9f9a7dca4f96d8a0613a7db",
+      "size": 4778
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/modeling/src/public-api.ts",
+      "raw_sha256": "48b1c00bc874d026eff1003eedc3733c914cff178800b9aa15debb06734fea43",
+      "size": 230
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/ng-package.json",
+      "raw_sha256": "048468758b1c2d2b4c73410a5cbea33ef77cdc4a856393bed7682d8fcd66e5be",
+      "size": 159
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/package.json",
+      "raw_sha256": "122014c454d0427bdd22caeaaf04a0933147f38ba975b270365472ad70a34d6f",
+      "size": 557
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/ng-package.json",
+      "raw_sha256": "4d1ea76d49c80524ffcc4e88ff93dbd81c1af8d0b07c12df63652b8c3f68522d",
+      "size": 122
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/bi-nav.component.ts",
+      "raw_sha256": "a610d1d353ce3269f346b73608185658ed84563f6ee8b43716b9eb974dddcebb",
+      "size": 1286
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/filter-editor.component.css",
+      "raw_sha256": "4663bd74de61e54ff3c0178cac764a949373f45b381bd528259c5b12dd0be086",
+      "size": 708
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/filter-editor.component.html",
+      "raw_sha256": "05974959eb88814f09c9ab28ae1b76821b52aa20f994c1b504b94fa02dd1ac67",
+      "size": 9795
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/filter-editor.component.ts",
+      "raw_sha256": "d55fe6ca58d64eed6e97c81f8dba033cdbe072e699f53964d60cc1373e77fd5d",
+      "size": 12247
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/filter-pane.component.css",
+      "raw_sha256": "82fe5cecce557e776b81d8cb68b0ebc9010af165aae6d5967c0d244a1a1c4946",
+      "size": 1920
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/filter-pane.component.html",
+      "raw_sha256": "fb6ec61783bdc6192c290b9e3539b565d7aa0028fca6159f0c9f50e6bc0e9ac0",
+      "size": 3049
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/filter-pane.component.ts",
+      "raw_sha256": "9b0694945671a3af9beff76d08c2234c28647a37e3ad567f913cf74ab8933b92",
+      "size": 2541
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/public-api.ts",
+      "raw_sha256": "688cd26a73b76442b2a92144cdbfd355038b2ecf79f63b6080bbb66acd85c4b8",
+      "size": 399
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report-home.spec.ts",
+      "raw_sha256": "caf14c3e051aaac3f6da06f0df01ae7f86d4a715d7acf94cf175126a914a4e8a",
+      "size": 4329
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report-home.ts",
+      "raw_sha256": "069883f494ed5bb202b6dbe046d3162ff280c3e00d09d654d640ec9972bcc4af",
+      "size": 5274
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report-list.component.css",
+      "raw_sha256": "c945c25164ff2d819d74b7548f35962d08b87ddd4a9ffb6fdcff2ddfc5d2a298",
+      "size": 12301
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report-list.component.html",
+      "raw_sha256": "201960c21262a2c384d4ee54bd1ccdfa5df28c1af6933d601ef46dfee13a4f7f",
+      "size": 19305
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report-list.component.ts",
+      "raw_sha256": "312892af0734defdced9f58112ff91d7e6a883f98808c88ea709a53481ef248d",
+      "size": 11809
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report.component.css",
+      "raw_sha256": "bb21f9a0a445b518958c09972036768d49cacbcc4d111c7161a1da32be3cc2ba",
+      "size": 5600
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report.component.html",
+      "raw_sha256": "a9ecc84896e567aa6e7599ef2fd910cab27893ed15b0e04fd75b7ce5d04b5b0e",
+      "size": 7228
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report.component.spec.ts",
+      "raw_sha256": "2c956947b733233e215443d3ce4b6b587984542108dc1c7c136402944a4de471",
+      "size": 1298
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/report.component.ts",
+      "raw_sha256": "3a3ca7fce6e0ce5e89cc4f958d2a16a5b8a8d1f7caace23d7fad63600111d38e",
+      "size": 10633
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/see-records-sheet.component.ts",
+      "raw_sha256": "10944ee3403af6b0112856ef8f3a48f85352fc62adc0b066bfbd09e2081a3629",
+      "size": 3009
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visual-host.component.css",
+      "raw_sha256": "70c8f78c7a064c2920f7dd672405e58d730c86ff12c405b91088e7347a5d54d8",
+      "size": 6507
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visual-host.component.html",
+      "raw_sha256": "706f5955083b58899fde354cf46b7f4793d221a4d8750e799840228d9fb016c0",
+      "size": 6341
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visual-host.component.spec.ts",
+      "raw_sha256": "ab5e1531cf6359ea900ef3edc30de5fc5726f1eeebbaeea28e994f23f9642737",
+      "size": 4161
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visual-host.component.ts",
+      "raw_sha256": "db54085ba47a566657f9f18109a67bb1ee45eede892ea92573536198d57c11b3",
+      "size": 7564
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visualizations-pane.component.css",
+      "raw_sha256": "d71212678fcc06240048c5d6cab1723ca92597ce3e9a945cb4aeb73a3f17f7a9",
+      "size": 2792
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visualizations-pane.component.html",
+      "raw_sha256": "b297f8dd8f7c0e705b9e8e239b331ddab7fd58b334965afdda1133f5057e4131",
+      "size": 8994
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/report/src/visualizations-pane.component.ts",
+      "raw_sha256": "18eb5c87aa211e2bb09be53ae130679304becfacb82bee588e2e005a60d2ae4a",
+      "size": 6733
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/src/built-in-visuals.ts",
+      "raw_sha256": "df73b545e20ca1c84db09374be46b269af52e00ffc2a7445fa21428d83ec2e43",
+      "size": 2508
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/src/provide-bi.ts",
+      "raw_sha256": "df4eee578ee6de594b12c7795c29caca2677e3c3adf3133914baf506c97ce84e",
+      "size": 3099
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/src/public-api.ts",
+      "raw_sha256": "33da3b94f99bc6d392baf486ae38ee91643ff4e33f8a53b00c4a2b4810e007d6",
+      "size": 347
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/src/routes.ts",
+      "raw_sha256": "e3d116429ef16219cefc9a6840f37c1c70af62d0a5010ccc4cee267b6876a10e",
+      "size": 1067
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/styles/controls.css",
+      "raw_sha256": "55580b14aa7d035c0483ffffcf0c2595f2bea2d1abaad19e0f1c27abe03cc308",
+      "size": 5351
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/styles/page.css",
+      "raw_sha256": "bdfaa0edfd5b68c023eb7d3473708ac6635118984a0b03de0ffbf724de21ceb6",
+      "size": 2160
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/styles/tokens.css",
+      "raw_sha256": "34eacbcdcd67d3478aed1c7441692dc31c0ab5417c9b36c53d2f196681f1891e",
+      "size": 1585
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/tsconfig.lib.json",
+      "raw_sha256": "69c059c600ee4134c3bbe004cf70ee8d6f537f677ef2dbd489b054ff4d9a7fa3",
+      "size": 244
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/tsconfig.lib.prod.json",
+      "raw_sha256": "eac98add53d74ddabc0e062a055031c3fdaa8fd58174c74d4f4a21dbec0957f2",
+      "size": 401
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/tsconfig.spec.json",
+      "raw_sha256": "b38abbe565f7b6db2a06c606dd9595168df68ef05bce16bd2156090dfda42ccd",
+      "size": 660
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/ng-package.json",
+      "raw_sha256": "4d1ea76d49c80524ffcc4e88ff93dbd81c1af8d0b07c12df63652b8c3f68522d",
+      "size": 122
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/card-visual.component.ts",
+      "raw_sha256": "83c8d6bd0aae02f469b13e62b837506ce85b71238d880b72ff498855003e8c4a",
+      "size": 1293
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/chart-options-formats.spec.ts",
+      "raw_sha256": "7c0bc1a01d5adaa7f93d08ea6628e4b7e8d4cf139c3ac2f6f6c6a374179fb4ee",
+      "size": 1370
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/chart-options.spec.ts",
+      "raw_sha256": "902867120eda29136f46f6d4f7eea897d1fbfaae60e5c6fa5db8225808b9abdf",
+      "size": 3599
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/chart-options.ts",
+      "raw_sha256": "261e376ea0fd2890db5a925ba7ecd1deb9d1b1a9b3de83d6112a533b74f4b2c9",
+      "size": 8393
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/chart-visual.component.ts",
+      "raw_sha256": "11b863e0848c2be967818b4cd0334625f9093848ed81e7550ff7ff68b45f4256",
+      "size": 2929
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/plugin-visual.component.spec.ts",
+      "raw_sha256": "d65e441632bd56b80992dd6f4273fc82455321308315e5948912edf88cbe9163",
+      "size": 3655
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/plugin-visual.component.ts",
+      "raw_sha256": "65410dfcca931ba8d6eca338cbcc3898b47b2b9f4adf70d892a2f240ad435939",
+      "size": 8423
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/public-api.ts",
+      "raw_sha256": "8da84cc1e8e467a1ea427d6f8c74dd3f1dbb1dcf04955ce4404213883f13db56",
+      "size": 387
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/rows-grid.component.ts",
+      "raw_sha256": "b4e080b8ac11ab5eaabfb7e0b882bef0d2efa296ccb4e1ba3df07a26b1ed952d",
+      "size": 5744
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/slicer-visual.component.css",
+      "raw_sha256": "4357149342e4f6bb073faff63db56e6fd0d87f93f4015094a8bd1c01f12d200e",
+      "size": 3620
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/slicer-visual.component.html",
+      "raw_sha256": "beaf3d87afd067190a1e0472f25bfc27b75dd36eeb01808131b4fb4048b362d6",
+      "size": 6619
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/slicer-visual.component.ts",
+      "raw_sha256": "bb089cc28d68b72155846ea86ff2a70480984e7f7a5b109268272bebea72a8db",
+      "size": 9305
+    },
+    {
+      "path": "twise-bi/projects/tasnim-bi/visuals/src/table-visual.component.ts",
+      "raw_sha256": "306244522957e662d1eaa7c52f83ca8833d5ce49f693751da9211cbd1c8c8acc",
+      "size": 3352
+    },
+    {
+      "path": "twise-bi/tsconfig.json",
+      "raw_sha256": "876ab342b7b1412f02b0afbc748b047d29bde66f102e7b2cf160283b78738791",
+      "size": 1041
+    }
+  ]
+}
